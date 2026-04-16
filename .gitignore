@@ -1,0 +1,69 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter / Interactive Python
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Model checkpoints and weights (large files)
+checkpoints/
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.ckpt
+
+# Data (download locally, don't commit)
+data/
+datasets/
+*.parquet
+*.arrow
+
+# HuggingFace cache
+.cache/
+
+# Experiment tracking
+wandb/
+runs/
+logs/
+*.log
+
+# Secrets
+.env
+.env.*
+*.key
+credentials.*
+
+# Compiled LaTeX
+thesis_doc/*.aux
+thesis_doc/*.bbl
+thesis_doc/*.blg
+thesis_doc/*.fdb_latexmk
+thesis_doc/*.fls
+thesis_doc/*.out
+thesis_doc/*.synctex.gz
+thesis_doc/*.toc
+thesis_doc/*.lof
+thesis_doc/*.lot

@@ -1,0 +1,38 @@
+[project]
+name = "thesis"
+version = "0.1.0"
+description = "Cross-Modal Generative Alignment for Document, Chart, and Image Reasoning with Explanation-Aware VLMs"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    # Day 0: Linear algebra exploration
+    "numpy",
+    "matplotlib",
+
+    # Core ML
+    "torch",
+    "torchvision",
+
+    # HuggingFace ecosystem (Weeks 2-6)
+    "transformers",
+    "datasets",
+    "accelerate",
+    "peft",
+    "evaluate",
+
+    # Efficient training
+    "bitsandbytes",
+    "trl",
+
+    # Utilities
+    "einops",
+    "pillow",
+    "seaborn",
+
+    # Evaluation metrics
+    "nltk",
+    "rouge-score",
+
+    # Experiment tracking
+    "wandb",
+]
