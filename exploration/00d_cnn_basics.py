@@ -43,9 +43,15 @@ edge_kernel = np.array([
 
 # Manual 2D convolution — slide the kernel over the image
 def conv2d_manual(img, kernel):
+    # H = 10, W = 10,
     H, W = img.shape
+    
+    # kH = 3, kW = 3
     kH, kW = kernel.shape
+
+    # → output shape will be (8, 8)
     out = np.zeros((H - kH + 1, W - kW + 1))
+    
     for i in range(out.shape[0]):
         for j in range(out.shape[1]):
             # Pluck the 3×3 patch under the kernel
@@ -212,3 +218,5 @@ for i, layer in enumerate(tiny_cnn):
 # - **Multiple channels** = multiple parallel detectors
 # - **C in your tensors** comes directly from this
 # - CNNs see LOCAL patterns well, GLOBAL patterns poorly → why ViT replaced them for VLMs
+
+# %%

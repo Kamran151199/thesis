@@ -155,3 +155,5 @@ print("This leaks information between sentences — the model cheats.")
 #
 # Cross-entropy falls in the first category. That's why Karpathy's
 # `.view(B*T, C)` trick is mathematically identical to the per-pair loop.
+
+# %%

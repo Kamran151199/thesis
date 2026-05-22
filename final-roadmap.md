@@ -8,9 +8,9 @@
 ### What This Thesis Is About
 Modern Vision–Language Models (VLMs) like GPT-4V, Gemini, and Claude can look at images, documents, and charts and reason about them in natural language. But HOW do they align visual and textual representations? And can we make them EXPLAIN their reasoning rather than just outputting answers? This thesis traces the evolution of vision–language alignment, deeply analyzes contrastive vs. generative alignment strategies, fine-tunes an explanation-aware VLM on document/chart/image reasoning tasks, and systematically investigates what makes cross-modal reasoning work through controlled experiments.
 
-### The Four Research Questions
+### The Seven Research Questions
 
-Everything in this thesis exists to answer these four questions:
+Everything in this thesis exists to answer these seven questions. (Detailed expected-results — figures, tables, dummy data — and per-RQ methodology are in `thesis_doc/proposal.md`.)
 
 ```
 RQ1: How have vision–language alignment strategies evolved, and what
@@ -22,13 +22,28 @@ RQ2: How does generative alignment compare to contrastive alignment for
      → Answered by: Implementing and comparing both strategies (Phase 2 + 3)
 
 RQ3: To what extent does explanation-aware training improve VLM reasoning
-     accuracy and explanation faithfulness across different visual domains?
+     accuracy and explanation quality across different visual domains?
      → Answered by: Training with/without explanations, evaluating both (Phase 2 + 3)
 
 RQ4: What are the key architectural and training factors that determine
      cross-modal reasoning performance, and how do they differ across
      visual domains (documents vs. charts vs. natural images)?
      → Answered by: Ablation studies and cross-domain analysis (Phase 3)
+
+RQ5: To what extent does explanation-aware training reduce hallucinations
+     and improve the FAITHFULNESS of generated rationales relative to the
+     visual evidence (attention-alignment, masking-consistency, human)?
+     → Answered by: Faithfulness + hallucination evaluation (Phase 3)
+
+RQ6: How does QLoRA compare to full fine-tuning in preserving the benefits
+     of explanation-aware alignment across model scales (2B vs. 7B), and
+     what is the efficiency–reliability Pareto trade-off?
+     → Answered by: PEFT vs. full-FT ablation across scales (Phase 3)
+
+RQ7: How well does explanation-aware alignment learned on one visual domain
+     transfer to unseen domains, and what does the transfer profile reveal
+     about the domain-generality of generative alignment signals?
+     → Answered by: Cross-domain transfer matrix + forgetting curves (Phase 3)
 ```
 
 ### Why These Questions Matter
@@ -36,6 +51,9 @@ RQ4: What are the key architectural and training factors that determine
 - **RQ2** is an active debate — CLIP-style contrastive learning dominates, but generative approaches (BLIP-2, CoCa) are gaining ground. Empirical comparison on structured visual domains (documents/charts) is underexplored
 - **RQ3** addresses interpretability — explanation-aware models are critical for trust in high-stakes domains (medical documents, financial charts), but whether explanations actually improve reasoning accuracy is not settled
 - **RQ4** produces practical guidance — document understanding requires OCR-like spatial awareness, chart reasoning needs numerical/structural understanding, natural images need scene comprehension. Are these fundamentally different problems for a VLM?
+- **RQ5** tackles a live publication-grade concern — VLM explanations often *sound* plausible but don't reflect the actual visual evidence the model used. Faithfulness is what makes interpretability real instead of cosmetic
+- **RQ6** is the deployment story — full fine-tuning of 7B VLMs is out of reach for most labs. If QLoRA recovers most of the accuracy/faithfulness gains at a fraction of the cost, that's a practical, reusable result
+- **RQ7** tests whether the alignment signals learned in one domain are a *general* improvement or just a domain-specific trick — the answer decides whether the method is a contribution to the field or a one-domain win
 
 ### Thesis Contribution Summary
 1. A technical survey connecting the evolution of vision–language alignment methods into one narrative
@@ -167,7 +185,7 @@ GENERATIVE ALIGNMENT (BLIP-2 / CoCa style):
 
 ```
 Chapter 1: Introduction
-  → Frames all four RQs, motivates why document/chart reasoning matters
+  → Frames all seven RQs, motivates why document/chart reasoning matters
 
 Chapter 2: Background & Related Work ← ANSWERS RQ1
   → 2.1: Transformer Architecture (Encoder, Decoder, Encoder-Decoder)
@@ -836,13 +854,13 @@ processor = AutoProcessor.from_pretrained("llava-hf/llava-1.5-7b-hf")
 
 **Also study more recent VLMs:**
 
-| Model | Vision Encoder | Alignment | LLM | Key Innovation |
-|-------|---------------|-----------|-----|----------------|
-| LLaVA | CLIP-ViT | MLP | Vicuna | Simplest effective architecture |
-| LLaVA-NeXT | CLIP-ViT + DynamicRes | MLP | Various | Higher resolution for documents |
-| InternVL-2 | InternViT-6B | MLP | InternLM2 | Massive vision encoder |
-| Qwen2-VL | ViT + NaiveDynRes | Cross-attn + MLP | Qwen2 | True native resolution |
-| Phi-3-Vision | CLIP-ViT | MLP | Phi-3 | Small but capable (3.8B) |
+| Model        | Vision Encoder        | Alignment        | LLM       | Key Innovation                  |
+| ------------ | --------------------- | ---------------- | --------- | ------------------------------- |
+| LLaVA        | CLIP-ViT              | MLP              | Vicuna    | Simplest effective architecture |
+| LLaVA-NeXT   | CLIP-ViT + DynamicRes | MLP              | Various   | Higher resolution for documents |
+| InternVL-2   | InternViT-6B          | MLP              | InternLM2 | Massive vision encoder          |
+| Qwen2-VL     | ViT + NaiveDynRes     | Cross-attn + MLP | Qwen2     | True native resolution          |
+| Phi-3-Vision | CLIP-ViT              | MLP              | Phi-3     | Small but capable (3.8B)        |
 
 **For YOUR thesis, the base model decision:**
 - **Qwen2-VL-2B-Instruct** or **InternVL2-2B** — small enough for QLoRA fine-tuning on single A100, capable enough for meaningful results
@@ -1091,16 +1109,16 @@ This chapter FRAMES your experiments. It's not a survey — it's YOUR analytical
 
 Create a comparison table that becomes the backbone of your RQ2 experiments:
 
-| Dimension | Contrastive (CLIP-style) | Generative (BLIP-2/LLaVA-style) |
-|-----------|-------------------------|----------------------------------|
-| Alignment granularity | Image-level (one vector) | Token-level (generate each word) |
-| Learning signal | Binary (match/no match) | Rich (generate correct sequence) |
-| Computational cost | Lower (just embeddings) | Higher (full sequence generation) |
-| Spatial understanding | Weak (global pooling) | Strong (patch-level attention) |
-| Numerical reasoning | Very weak | Moderate (can generate numbers) |
-| Explanation capability | None (only embeddings) | Natural (generative by design) |
-| Document understanding | Poor (designed for natural images) | Better (can read text in images) |
-| Chart understanding | Poor | Moderate (depends on training data) |
+| Dimension              | Contrastive (CLIP-style)           | Generative (BLIP-2/LLaVA-style)     |
+| ---------------------- | ---------------------------------- | ----------------------------------- |
+| Alignment granularity  | Image-level (one vector)           | Token-level (generate each word)    |
+| Learning signal        | Binary (match/no match)            | Rich (generate correct sequence)    |
+| Computational cost     | Lower (just embeddings)            | Higher (full sequence generation)   |
+| Spatial understanding  | Weak (global pooling)              | Strong (patch-level attention)      |
+| Numerical reasoning    | Very weak                          | Moderate (can generate numbers)     |
+| Explanation capability | None (only embeddings)             | Natural (generative by design)      |
+| Document understanding | Poor (designed for natural images) | Better (can read text in images)    |
+| Chart understanding    | Poor                               | Moderate (depends on training data) |
 
 **Section 3.2: Explanation-Aware Training Objectives**
 
@@ -1135,14 +1153,14 @@ Variant D — CONTRASTIVE + GENERATIVE HYBRID:
 
 **Section 3.4: Evaluation Framework**
 
-| Metric | Measures | Applied to |
-|--------|----------|-----------|
-| Accuracy | Correct answers | All domains |
-| BLEU-4 | N-gram overlap of explanation | Explanation quality |
-| ROUGE-L | Longest common subsequence | Explanation quality |
-| BERTScore | Semantic similarity of explanation | Explanation quality |
-| Faithfulness | Does explanation match the visual evidence? | Explanation quality |
-| Domain-Specific | WER (documents), numerical accuracy (charts) | Per-domain |
+| Metric          | Measures                                     | Applied to          |
+| --------------- | -------------------------------------------- | ------------------- |
+| Accuracy        | Correct answers                              | All domains         |
+| BLEU-4          | N-gram overlap of explanation                | Explanation quality |
+| ROUGE-L         | Longest common subsequence                   | Explanation quality |
+| BERTScore       | Semantic similarity of explanation           | Explanation quality |
+| Faithfulness    | Does explanation match the visual evidence?  | Explanation quality |
+| Domain-Specific | WER (documents), numerical accuracy (charts) | Per-domain          |
 
 ---
 
@@ -1712,7 +1730,7 @@ Structure:
 - Hook: "When a vision–language model answers a question about a financial chart, does it truly understand the data, or is it pattern-matching? Can we know, if it doesn't explain itself?"
 - Context: VLMs are increasingly used for document processing, chart analysis, visual reasoning
 - Problem: Current alignment methods are coarse; explanation capability is underexplored as an alignment strategy
-- State all four RQs explicitly
+- State all seven RQs explicitly
 - Preview contributions (survey + 4 model variants + ablation studies + cross-domain analysis)
 - Thesis structure overview
 
@@ -1830,14 +1848,14 @@ Thesis Writing         ████████  ████████   █�
 
 ## RISK MITIGATION
 
-| Risk | Impact | Mitigation | RQ Impact |
-|------|--------|------------|-----------|
-| Base model too large for GPU | High | Use 2B model + QLoRA, or switch to Phi-3-Vision (3.8B) | Minor — still answers RQs |
-| Explanation generation doesn't improve accuracy | Medium | Document WHY — negative result IS a valid RQ3 answer. Analyze when it helps vs hurts. | Actually strengthens RQ3 |
-| Generated explanation annotations are noisy | Medium | Rely primarily on ScienceQA + A-OKVQA (human-written). Use generated only as supplement. | RQ3 still answerable |
-| Not enough time for all ablations | Medium | Priority: (1) Models A+B comparison (2) Models C+D comparison (3) Ablation on α (4) Domain transfer | See priority order below |
-| Chart/Document results are poor | Low-Medium | Analyze WHY — resolution? OCR capability? This IS RQ4 analysis | Helps answer RQ4 |
-| Running out of time | High | See priority cutoff below | Graceful degradation |
+| Risk                                            | Impact     | Mitigation                                                                                          | RQ Impact                 |
+| ----------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------- | ------------------------- |
+| Base model too large for GPU                    | High       | Use 2B model + QLoRA, or switch to Phi-3-Vision (3.8B)                                              | Minor — still answers RQs |
+| Explanation generation doesn't improve accuracy | Medium     | Document WHY — negative result IS a valid RQ3 answer. Analyze when it helps vs hurts.               | Actually strengthens RQ3  |
+| Generated explanation annotations are noisy     | Medium     | Rely primarily on ScienceQA + A-OKVQA (human-written). Use generated only as supplement.            | RQ3 still answerable      |
+| Not enough time for all ablations               | Medium     | Priority: (1) Models A+B comparison (2) Models C+D comparison (3) Ablation on α (4) Domain transfer | See priority order below  |
+| Chart/Document results are poor                 | Low-Medium | Analyze WHY — resolution? OCR capability? This IS RQ4 analysis                                      | Helps answer RQ4          |
+| Running out of time                             | High       | See priority cutoff below                                                                           | Graceful degradation      |
 
 **If Time Gets Tight — Priority Order:**
 1. Complete survey chapters (RQ1 answered) — this alone is 35% of thesis value

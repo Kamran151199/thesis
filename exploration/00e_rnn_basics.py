@@ -184,7 +184,7 @@ print("LITERALLY CAME FROM THIS. Each t is a time step the RNN would process.")
 # Let's demonstrate the parallelism advantage
 import time
 
-seq_len = 500
+seq_len = 5000
 input_dim = 128
 hidden_dim = 256
 
@@ -240,3 +240,5 @@ print(f"and Transformer does all T positions IN PARALLEL — huge win on GPUs.")
 # When you see `(B, T, C)` in transformer code, `T` is a historical name —
 # it comes from this loop. There's no actual "time" happening in a transformer;
 # all T positions are processed at once.
+
+# %%
