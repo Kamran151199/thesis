@@ -4,6 +4,11 @@
 
     "python.analysis.typeCheckingMode": "basic",
     "python.analysis.autoImportCompletions": true,
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportUnusedImport": "none",
+        "reportUnusedExpression": "none",
+        "reportUnusedVariable": "none"
+    },
 
     "jupyter.interactiveWindow.textEditor.executeSelection": true,
 

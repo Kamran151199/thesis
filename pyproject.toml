@@ -8,31 +8,41 @@ dependencies = [
     # Day 0: Linear algebra exploration
     "numpy",
     "matplotlib",
-
     # Core ML
     "torch",
     "torchvision",
-
     # HuggingFace ecosystem (Weeks 2-6)
     "transformers",
     "datasets",
     "accelerate",
     "peft",
     "evaluate",
-
     # Efficient training
     "bitsandbytes",
     "trl",
-
     # Utilities
     "einops",
     "pillow",
     "seaborn",
-
     # Evaluation metrics
     "nltk",
     "rouge-score",
-
     # Experiment tracking
     "wandb",
+    "scikit-learn>=1.8.0",
 ]
+
+# Makes the repo `pip install -e .`-able so `import src.data` etc. resolves on
+# any machine (local AND the remote Colab kernel). Without this, imports of your
+# own modules fail on Colab because the kernel can't find the `src` package.
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["src*"]
+
+[tool.ruff.lint.per-file-ignores]
+# Exploration / practice files preload shared imports for future cells.
+# Don't whine about unused imports (F401) or module-level imports after the first cell (E402).
+"exploration/**" = ["F401", "E402"]
