@@ -11,15 +11,18 @@ type by hand; everything else lives in the repo):
 
     import os, subprocess
     from google.colab import userdata, drive
-    drive.mount("/content/drive")
-    tok = userdata.get("GITHUB_TOKEN")                      # 🔑 Colab secret
-    url = f"https://{tok}@github.com/Kamran151199/thesis.git"
-    if os.path.exists("/content/thesis"):
-        subprocess.run(["git", "-C", "/content/thesis", "pull", "--ff-only"])
+    drive.mount("/content/drive")                    # "already mounted" warning = harmless
+    tok = userdata.get("GITHUB_TOKEN")               # 🔑 Colab secret (left sidebar)
+    assert tok, "GITHUB_TOKEN secret missing/empty — add it in Colab Secrets"
+    REPO = "/content/thesis"
+    url = f"https://x-access-token:{tok}@github.com/Kamran151199/thesis.git"
+    if os.path.isdir(f"{REPO}/.git"):                # only 'pull' if it's really a git repo
+        subprocess.run(["git", "-C", REPO, "pull", "--ff-only"], check=True)
     else:
-        subprocess.run(["git", "clone", url, "/content/thesis"])
-    os.chdir("/content/thesis")
-    exec(open("colab/setup_colab.py").read())               # ← runs THIS file
+        subprocess.run(["rm", "-rf", REPO])          # clear any partial dir from a failed try
+        subprocess.run(["git", "clone", url, REPO], check=True)   # check=True surfaces auth errors
+    os.chdir(REPO)
+    exec(open("colab/setup_colab.py").read())        # ← runs THIS file
 ────────────────────────────────────────────────────────────────────────────
 
 What this does (the professional 3-bucket sync model):
