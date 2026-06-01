@@ -144,13 +144,37 @@ Read these instructions carefully, and delete this section and its text after co
 \end{figure*}
 
 \section{Introduction}
-First paragraph on importance and applications of your topic~\cite{mittal2023vehicle}.
-A figure to either introduce your topic, OR that gives statistical importance/applications of your topic.
+% First paragraph on importance and applications of your topic~\cite{mittal2023vehicle}.
+% A figure to either introduce your topic, OR that gives statistical importance/applications of your topic.
+Vision--language models have rapidly become the dominant approach for answering natural-language questions about images, documents, and charts.
+They power practical systems for document understanding, chart analytics, visual accessibility, and educational decision support, in which a user poses a question in natural language and expects an answer grounded in the visual input.
+Document visual question answering alone underpins the automation of invoice processing, form understanding, and contract review across enterprise and public-sector workflows.
+Chart question answering serves analysts who must recover quantitative facts and trends that are otherwise locked inside unstructured figures.
+Science question answering couples visual evidence with multi-step reasoning, which is central to tutoring systems and assessment tools.
+Across these settings the visual input is often \emph{structured}, because documents carry layout and text while charts encode numbers through position, length, and colour.
+Such structured content rewards models that reason explicitly over the visual evidence rather than pattern-matching surface cues.
+The quality of cross-modal reasoning in these models therefore carries direct economic and societal value, which motivates a careful study of how that reasoning is learned.
 
-Second paragraph on introducing the main technique (e.g., deep learning) and its importance in solving your main topic. Also on how this main technique is significant/helpful in solving your topic.
+% Second paragraph on introducing the main technique (e.g., deep learning) and its importance in solving your main topic. Also on how this main technique is significant/helpful in solving your topic.
+The core technique behind these capabilities is cross-modal alignment, which maps the output of a visual encoder into the representation space of a pretrained language model.
+Two broad paradigms have emerged, namely contrastive alignment, which pulls matched image and text embeddings together in a shared space~\cite{radford2021clip}, and generative alignment, which trains the language model to produce text conditioned on projected visual features~\cite{li2023blip2}.
+Generative alignment is attractive for reasoning because it lets the language model articulate intermediate steps instead of only scoring a similarity.
+Recent instruction-tuned models extend this paradigm to flexible, free-form question answering over heterogeneous visual inputs.
+Adapting such models to a new domain no longer demands full fine-tuning, because parameter-efficient methods such as Low-Rank Adaptation and its quantised variant train a small fraction of the weights while freezing the base model~\cite{hu2022lora, dettmers2023qlora}.
+This efficiency makes systematic comparison feasible on a single commodity accelerator, which is the regime in which most researchers and practitioners actually operate.
+A further refinement is explanation-aware training, in which the model is supervised not only on the final answer but on a natural-language rationale that precedes it.
+Explanation-aware training is widely believed to improve reasoning, yet its effect on the \emph{faithfulness} of the produced rationales remains far less understood, particularly for structured visual content.
 
 \subsection{Gap Analysis}
-One paragraph defining what has not been done (Gap analysis).
+% One paragraph defining what has not been done (Gap analysis).
+Despite rapid progress, several gaps remain in how explanation-aware cross-modal alignment is understood and evaluated.
+First, comparisons between contrastive and generative alignment are frequently confounded by differences in backbone, data, and training budget, which makes it difficult to attribute any performance gap to the objective itself.
+Second, most work on the faithfulness of generated explanations concentrates on natural images and object hallucination, leaving structured visual content such as charts and documents comparatively unexamined.
+Third, the prior work that does target structured content is dominated by evaluation-only benchmarks or by reinforcement-learning methods, rather than by simple supervised fine-tuning under a fixed low-resource budget.
+Fourth, the relationship between explanation faithfulness and answer correctness is rarely measured across domains, so it is unclear whether faithful reasoning reliably indicates a correct answer.
+Fifth, the domain-generality of explanation-aware alignment, meaning whether a benefit observed on one visual domain transfers to another, has not been systematically profiled.
+These gaps together leave open a practically important question of whether inexpensive supervised explanation-aware fine-tuning is a worthwhile investment for structured visual reasoning.
+Our study is designed to address these gaps under controlled and reproducible conditions.
 
 \subsection{Research Questions}
 Enumerate as shown below what you are doing in this work (one main and at least two smaller research questions) and your contribution/novelty of your work.
@@ -169,10 +193,19 @@ Enumerate as shown below what you are doing in this work (one main and at least 
 \end{enumerate}
 
 \subsection{Problem Statement}
-One paragraph that gives the exact problem statement solved in this study.
+% One paragraph that gives the exact problem statement solved in this study.
+This study addresses the problem of learning cross-modal alignment that yields both accurate answers and faithful explanations for structured visual reasoning, under a realistic single-GPU fine-tuning budget.
+Given a pretrained vision--language backbone and a fixed training budget, we ask how the choice of alignment objective affects answer accuracy, explanation quality, and explanation faithfulness across document, chart, and natural-image domains.
+We hold the backbone, data mixture, and optimisation budget constant, and vary only the training signal among the baseline, contrastive-enhanced, generative, and explanation-aware generative objectives.
+We further constrain all fine-tuning to the parameter-efficient QLoRA regime, so that every comparison fits a single forty-gigabyte accelerator and remains reproducible with modest resources.
+The problem is therefore not to maximise absolute accuracy on any single benchmark, but to isolate and quantify the effect of the training objective on the quality and trustworthiness of cross-modal reasoning.
+We treat faithfulness as a first-class outcome alongside accuracy, because a confidently wrong but plausible rationale is a distinct and consequential failure mode in deployed systems.
+This framing lets us determine whether explanation-aware supervision earns its additional cost, and whether that answer depends on the structure of the visual input.
 
 \subsection{Novelty of this study}
-One paragraph shedding light on novelty of this study using a one-two liner entry followed by at least three bullet points as shown below.
+% One paragraph shedding light on novelty of this study using a one-two liner entry followed by at least three bullet points as shown below.
+The novelty of this study lies in isolating the training objective as the single variable in a controlled, fixed-budget comparison, and in treating the faithfulness of explanations for structured visual content as a primary outcome rather than an afterthought.
+Concretely, this work makes the following contributions:
 
 \begin{itemize}
     % \item Novelty 1.
@@ -184,7 +217,14 @@ One paragraph shedding light on novelty of this study using a one-two liner entr
 \end{itemize}
 
 \subsection{Significance of Our Work}
-One paragraph concluding the section with an overall summary of methods, results, and discussion.
+% One paragraph concluding the section with an overall summary of methods, results, and discussion.
+The significance of this work is both methodological and practical.
+Methodologically, it provides a controlled protocol that disentangles the effect of the alignment objective from architecture and data, which prior comparisons typically conflate.
+Practically, it characterises whether a cheap supervised explanation-aware recipe improves the faithfulness of rationales for documents and charts, the visual domains in which explicit reasoning matters most.
+By measuring faithfulness and its relationship to correctness across domains, the study offers guidance on when explanation-aware training is worth its modest additional cost.
+Because every configuration is fine-tuned with QLoRA on a single accelerator, the findings are directly actionable for researchers and practitioners operating under realistic compute constraints.
+The accompanying open-source framework reduces each experiment to a single configuration file, which lowers the barrier to replication and extension.
+Taken together, the methods, results, and discussion that follow aim to clarify how trustworthy cross-modal reasoning can be learned efficiently for structured visual content.
 
 \section{Literature Review}
 One paragraph defining all the techniques that have been used in this field.
@@ -210,7 +250,11 @@ A table summarizing the characteristics of the existing literature along with th
 \fi
 
 \section{Methodology}
-One paragraph with three - four lines summarizing your overall methodology, with a work flow figure (shown in Fig~\ref{Fig:Figure1}).
+% One paragraph with three - four lines summarizing your overall methodology, with a work flow figure (shown in Fig~\ref{Fig:Figure1}).
+Our methodology fine-tunes a pretrained vision--language backbone under four alignment objectives while holding the data and optimisation budget fixed, and then evaluates each resulting model for answer accuracy, explanation quality, and explanation faithfulness.
+The overall workflow proceeds from a neutral data representation, through backbone construction with parameter-efficient adaptation, to objective-specific training and a generate-then-score evaluation, as summarised in Figure~\ref{Fig:Figure1}.
+Each stage is implemented as an interchangeable component, so that a single configuration file selects the backbone, dataset, objective, and metrics for one experiment.
+This design ensures that the only intended difference between any two runs is the variable under study, which is essential for the controlled comparisons that the research questions demand.
 
 \begin{figure*}[!ht]
 % \centerline{\includegraphics[width=17.8cm]{./Figures/Figure1.pdf}}
@@ -220,13 +264,59 @@ One paragraph with three - four lines summarizing your overall methodology, with
 \end{figure*}
 
 \subsection{Dataset}
-One paragraph and a figure (or a table) explaining the dataset used in the study.
-In case of more than one datasets, one paragraph and one figure (or table) for each dataset.
+% One paragraph and a figure (or a table) explaining the dataset used in the study.
+% In case of more than one datasets, one paragraph and one figure (or table) for each dataset.
+We study five public benchmarks that together span three visual domains relevant to structured and natural visual reasoning.
+For the document domain we use DocVQA, a dataset of questions over scanned documents whose short text answers are scored by an edit-distance similarity~\cite{mathew2021docvqa}.
+For the chart domain we use ChartQA, which pairs bar, line, and pie charts with questions whose answers are frequently numeric and are scored by a relaxed-accuracy criterion that tolerates small numerical error~\cite{masry2022chartqa}.
+For the natural-image domain we use ScienceQA, A-OKVQA, and a subset of VQAv2, of which ScienceQA and A-OKVQA additionally provide gold natural-language rationales that form the basis for explanation-aware supervision~\cite{lu2022scienceqa, schwenk2022aokvqa}.
+All examples are mapped into a single neutral representation comprising an image, a question, an answer, optional answer choices, and an optional rationale, so that downstream components never branch on the dataset of origin.
+Explanation-aware training requires gold rationales, which are natively available only for the science and commonsense datasets, so for the document and chart datasets the rationale is either synthesised by a stronger teacher model and filtered or the example is treated as answer-only.
+As a representative example of the resulting yield, filtering ScienceQA to examples that contain both an image and a non-empty gold rationale retains approximately five thousand of the roughly twelve thousand seven hundred training examples.
+A summary of the datasets, their domains, sizes, answer types, and scoring criteria is given in Table~\ref{tab:Datasets}.
+
+\begin{table}[!ht]
+\centering
+\caption{Summary of the five benchmarks used in this study, grouped by visual domain. Sizes are approximate full-split counts before filtering and are to be verified against the released dataset cards. ANLS denotes average normalised Levenshtein similarity, and relaxed accuracy counts a numeric prediction correct within five percent of the reference value.}
+\label{tab:Datasets}
+\begin{tabular}{|l|l|c|l|c|l|}
+\hline
+\textbf{Dataset} & \textbf{Domain} & \textbf{Approx.\ size} & \textbf{Answer type} & \textbf{Rationale} & \textbf{Metric} \\ \hline
+DocVQA    & Document      & 50K & short text span & no  & ANLS \\
+ChartQA   & Chart         & 32K & numeric / short & no  & relaxed accuracy \\
+ScienceQA & Science image & 21K & multiple choice & yes & accuracy \\
+A-OKVQA   & Natural image & 25K & multiple choice & yes & accuracy \\
+VQAv2     & Natural image & 50K & open ended      & no  & VQA accuracy \\ \hline
+\end{tabular}
+\end{table}
 
 \subsection{Detailed Methodology}
-Three paragraphs for explaining the pipeline and workflow of your study.
-A figure depicting the pipeline only.
-If you use any equations, use the following as example as shown in Equation~\ref{Eq:Loss}.
+% Three paragraphs for explaining the pipeline and workflow of your study.
+% A figure depicting the pipeline only.
+% If you use any equations, use the following as example as shown in Equation~\ref{Eq:Loss}.
+\todo{Add a pipeline figure (PowerPoint/Canva $\rightarrow$ PDF) depicting the data-to-evaluation flow only.}
+Our pipeline begins by constructing a backbone wrapper that exposes a uniform interface over heterogeneous vision--language models, so that the same training and evaluation code applies to each.
+The vision encoder is frozen throughout, and adaptation is performed in the parameter-efficient QLoRA regime, in which the base weights are quantised to four bits and a small set of low-rank adapters is trained.
+On top of this shared backbone we define four alignment variants that differ only in the training signal applied.
+The baseline variant uses the model's native projection without any additional alignment loss and serves as the reference point for all comparisons.
+The contrastive-enhanced variant augments the baseline with an auxiliary noise-contrastive objective that pulls each image's pooled features toward the embedding of its own answer and away from the other answers in the batch~\cite{radford2021clip}.
+The generative variant trains the language model to predict the answer token sequence conditioned on the image and question, which is the standard generative-alignment formulation~\cite{li2023blip2}.
+The explanation-aware generative variant instead trains the model to predict a natural-language rationale followed by the answer, so that the supervision signal itself contains the intermediate reasoning.
+
+For the generative and explanation-aware variants the prompt and target are concatenated into a single sequence, and the loss is computed only over the target tokens by masking the prompt and any padding.
+Care is required here because the processor inserts image placeholder tokens before the text, and an incorrect token count would let part of the prompt leak into the supervised target.
+We therefore measure the prompt length through the same processor that encodes the full sequence, which guarantees that supervision begins exactly at the first target token.
+For the explanation-aware variant the target is further partitioned at the token level into an explanation span and an answer span.
+This partition lets the objective weight the two spans independently, as defined in Equation~\ref{Eq:Loss}, in which the coefficient $\alpha$ trades answer supervision against explanation supervision.
+Setting $\alpha$ to one recovers the answer-only generative objective, setting it to zero supervises only the explanation, and intermediate values balance the two.
+Sweeping $\alpha$ over a small set of values therefore turns the question of whether explanations help into a measurable curve rather than a single binary comparison.
+
+At inference time the model is queried with the image and question, and for multiple-choice benchmarks it first generates its own reasoning before the answer is decided.
+Rather than parsing the generated text for an answer string, which is brittle and can be gamed when the prompt enumerates the options, we score each candidate answer by its length-normalised likelihood in the context of the generated reasoning.
+The candidate with the highest likelihood is selected, which yields a robust decision that still conditions on the model's own chain of reasoning.
+For open-ended benchmarks the generated text is taken directly as the answer and compared against the reference using the domain-appropriate metric.
+The generated rationales are retained for every example, because they are the raw material for the explanation-quality and faithfulness analyses described below.
+This generate-then-score protocol is applied identically before and after fine-tuning, so that any change in measured accuracy reflects the effect of training rather than a change in the evaluation procedure.
 
 % \begin{equation}
 %     E = mc^{2}
@@ -240,14 +330,33 @@ If you use any equations, use the following as example as shown in Equation~\ref
 where $\mathcal{L}_{\text{answer}}$ and $\mathcal{L}_{\text{explanation}}$ are the masked cross-entropy over the answer and explanation token spans, and $\alpha \in \{0,0.5,1\}$ balances them.
 
 \subsection{Evaluation Metrics}
-One paragraph or more explaining the evaluation metrics with equations for each metric, where possible.
-The metrics should be defined specific to your dataset and problem and not generic.
+% One paragraph or more explaining the evaluation metrics with equations for each metric, where possible.
+% The metrics should be defined specific to your dataset and problem and not generic.
+We evaluate along three axes, namely answer accuracy, explanation quality, and explanation faithfulness, each defined specifically for the datasets used.
+Answer accuracy uses the criterion native to each benchmark, namely exact-match accuracy for ScienceQA and A-OKVQA, average normalised Levenshtein similarity for DocVQA, and relaxed accuracy for ChartQA that counts a numeric prediction correct when it falls within five percent of the reference value.
+Explanation quality compares the generated rationale against the gold rationale using BLEU-4, ROUGE-L, and BERTScore-F1, which together capture n-gram overlap, longest-common-subsequence structure, and semantic similarity.
+Faithfulness is quantified by two complementary measures that ask whether the stated reasoning is grounded in the visual evidence.
+The first is an attention-alignment score between the model's attention over image regions and the regions referenced by its explanation.
+The second is an evidence-masking consistency measure, which occludes a region of the image and records the resulting change in the likelihood of the gold answer, as defined in Equation~\ref{Eq:Drift}.
+\begin{equation}
+    \mathrm{drift}(r) = s\!\left(a \mid I\right) - s\!\left(a \mid I \setminus r\right)
+    \label{Eq:Drift}
+\end{equation}
+where $s(a \mid I)$ is the length-normalised log-likelihood of the gold answer $a$ given image $I$, and $I \setminus r$ is the image with region $r$ occluded.
+A large drift when a relevant region is masked indicates that the model relied on that region, whereas a negligible drift indicates that the answer was produced largely from the language prior.
 
 \subsection{Experimental settings}
-One paragraph for experimental settings of your and competing methods (if any).
-(Optional) One paragraph for hyper-parameter settings and network architecture.
+% One paragraph for experimental settings of your and competing methods (if any).
+% (Optional) One paragraph for hyper-parameter settings and network architecture.
+All variants share the same optimisation budget, so that any difference in outcome is attributable to the training objective rather than to tuning.
+Fine-tuning uses the AdamW optimiser with a learning rate of two times ten to the minus four under a cosine schedule with three percent warm-up, a weight decay of one hundredth, and mixed bf16 precision.
+The base model is quantised to four-bit NormalFloat and frozen, and low-rank adapters of rank sixteen with scaling factor thirty-two are trained on the language-model attention and feed-forward projections together with the alignment module.
+An effective batch size of thirty-two is obtained through gradient accumulation, which allows each configuration to fit on a single forty-gigabyte accelerator.
+Owing to the compute budget we train a single seed per configuration, and we therefore report all quantitative differences with an explicit caveat regarding run-to-run variance.
+The full set of training hyper-parameters is listed in Table~\ref{tab:Config}, and the primary backbone is Qwen2-VL-2B-Instruct with BLIP-2 and PaliGemma included for cross-architecture breadth~\cite{li2023blip2}.
+Reference numbers for competing methods, where reported, are taken directly from the corresponding publications under their stated settings.
 
-A table with hyper-parameter settings (shown in Table~\ref{tab:Config}).
+% A table with hyper-parameter settings (shown in Table~\ref{tab:Config}).
 
 \begin{table}[!ht]
 \centering
