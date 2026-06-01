@@ -64,10 +64,13 @@ _run([sys.executable, "-m", "pip", "install", "-q", "-e", ".", "--no-deps"])
 
 # ML extras that Colab may not have / may have stale. These are pure-Python or
 # CUDA-agnostic, safe to upgrade. torch/torchvision intentionally NOT listed.
+# rouge-score + nltk back the explanation-quality metrics (rouge_l, bleu);
+# einops is required by some VLM backbones (e.g. Qwen2-VL). All pure-Python.
 print("Installing ML extras (transformers, peft, bitsandbytes, ...)...")
 _run([sys.executable, "-m", "pip", "install", "-q", "-U",
       "transformers", "peft", "accelerate", "bitsandbytes",
-      "datasets", "evaluate", "trl"])
+      "datasets", "evaluate", "trl",
+      "rouge-score", "nltk", "einops"])
 
 # ── 3. Point HuggingFace caches at Drive (persist across sessions) ─────────────
 # First run still downloads; every run after reuses the Drive copy → no 4GB
