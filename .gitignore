@@ -35,9 +35,14 @@ checkpoints/
 *.safetensors
 *.ckpt
 
-# Data (download locally, don't commit)
-data/
-datasets/
+# Data (download locally, don't commit) — anchored with a leading slash so these
+# match ONLY the repo-root download dirs, not the src/data/ source package
+# (or src/data/datasets/). An unanchored `data/` matches every nested data/ too.
+/data/
+/datasets/
+# downloaded datasets / accidental nested dirs under exploration/ (CIFAR, etc.)
+exploration/data/
+exploration/exploration/
 *.parquet
 *.arrow
 
