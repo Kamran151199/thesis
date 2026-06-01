@@ -1,0 +1,55 @@
+# ════════════════════════════════════════════════════════════════════════════
+# RQ2 · BLIP-2 · generative alignment · ScienceQA
+#
+# THE PROVEN RUN. This reproduces the working prototype
+# (colab/blip2_finetune_scienceqa.py) inside the framework: freeze the vision
+# tower + OPT LLM, train the Q-Former + projection (~3%), explanation-aware
+# template with a plain (uniform) generative loss, generate-then-score eval.
+#
+# Any key omitted here falls back to its default in src/config/schema.py.
+# This file is fully specified as the annotated reference; others list only deltas.
+# ════════════════════════════════════════════════════════════════════════════
+
+name: rq2_blip2_generative_scienceqa
+rq: RQ2
+seed: 42
+
+model:
+  name: blip2                          # → src/models/backbones/blip2.py
+  pretrained: Salesforce/blip2-opt-2.7b
+  dtype: bfloat16
+  device_map: auto
+  use_qlora: false                     # proven mode: train Q-Former fully (no LoRA, no 4-bit)
+  # freeze defaults to ["vision_model", "language_model"] (the wrapper's default)
+
+data:
+  name: scienceqa                      # → src/data/datasets/scienceqa.py
+  split_train: train
+  split_eval: validation
+  max_train: 2000
+  max_eval: 200
+  prompt_variant: explanation_then_answer   # "Reasoning: … Answer: …"
+  max_length: 512
+
+objective:
+  name: generative                     # plain next-token CE over the whole target
+
+train:
+  epochs: 1
+  batch_size: 4
+  grad_accum_steps: 1                  # proven run used no accumulation
+  lr: 1.0e-5                           # small LR for the pretrained Q-Former
+  weight_decay: 0.01
+  scheduler: cosine
+  warmup_ratio: 0.03
+  log_every: 25
+
+eval:
+  metrics: [mc_accuracy]
+  cot: true                            # generate reasoning, then score each choice
+  max_new_tokens: 160
+
+wandb:
+  enabled: true
+  project: thesis-vlm-alignment
+  tags: [rq2, blip2, generative, scienceqa]

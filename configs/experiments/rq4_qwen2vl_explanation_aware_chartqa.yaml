@@ -1,0 +1,40 @@
+# RQ4 · Qwen2-VL-2B · explanation-aware · ChartQA  (cross-DOMAIN: charts)
+#
+# Same recipe as the ScienceQA flagship, pointed at the chart domain. ChartQA is
+# open-ended (no choices) → evaluated with relaxed accuracy (numeric within 5%).
+# ChartQA has no gold rationale, so the explanation-aware template falls back to
+# answer-only per example (until teacher-synthesized rationales are added, §7.2).
+
+name: rq4_qwen2vl_explanation_aware_chartqa
+rq: RQ4
+seed: 42
+
+model:
+  name: qwen2_vl
+  pretrained: Qwen/Qwen2-VL-2B-Instruct
+  use_qlora: true
+
+data:
+  name: chartqa
+  split_train: train
+  split_eval: val
+  max_train: 2000
+  max_eval: 200
+  prompt_variant: explanation_then_answer
+
+objective:
+  name: explanation_aware
+  alpha: 0.5
+
+train:
+  epochs: 1
+  batch_size: 4
+  grad_accum_steps: 8
+  lr: 2.0e-4
+
+eval:
+  metrics: [relaxed_accuracy, exact_match]   # open-ended chart answers
+  cot: true
+
+wandb:
+  tags: [rq4, qwen2_vl, chartqa, chart-domain]

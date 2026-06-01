@@ -1,0 +1,39 @@
+# RQ3 · Qwen2-VL-2B · EXPLANATION-AWARE (α=0.5) · ScienceQA
+#
+# The flagship configuration: the proposal's primary backbone + the thesis's
+# core objective. Compare against rq2_qwen2vl_generative_scienceqa.yaml (the
+# generative baseline) to answer "does explanation-aware training help?".
+
+name: rq3_qwen2vl_explanation_aware_scienceqa
+rq: RQ3
+seed: 42
+
+model:
+  name: qwen2_vl
+  pretrained: Qwen/Qwen2-VL-2B-Instruct
+  use_qlora: true
+
+data:
+  name: scienceqa
+  split_train: train
+  split_eval: validation
+  max_train: 2000
+  max_eval: 200
+  prompt_variant: explanation_then_answer
+
+objective:
+  name: explanation_aware
+  alpha: 0.5
+
+train:
+  epochs: 1
+  batch_size: 4
+  grad_accum_steps: 8
+  lr: 2.0e-4
+
+eval:
+  metrics: [mc_accuracy, rouge_l, bleu]
+  cot: true
+
+wandb:
+  tags: [rq3, qwen2_vl, explanation_aware, scienceqa]

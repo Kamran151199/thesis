@@ -1,0 +1,41 @@
+# RQ3 · BLIP-2 · EXPLANATION-AWARE (α=0.5) · ScienceQA
+#
+# Same backbone/data/hyperparameters as the RQ2 BLIP-2 baseline — only the
+# OBJECTIVE changes (generative → explanation_aware). That isolation is the RQ3
+# experiment: does weighting reasoning vs answer help? Sweep α with
+#   --set objective.alpha=0.0   (explanation-only)
+#   --set objective.alpha=1.0   (answer-only ≡ the generative baseline)
+
+name: rq3_blip2_explanation_aware_scienceqa
+rq: RQ3
+seed: 42
+
+model:
+  name: blip2
+  pretrained: Salesforce/blip2-opt-2.7b
+  use_qlora: false
+
+data:
+  name: scienceqa
+  split_train: train
+  split_eval: validation
+  max_train: 2000
+  max_eval: 200
+  prompt_variant: explanation_then_answer
+
+objective:
+  name: explanation_aware
+  alpha: 0.5                  # L = 0.5·L_answer + 0.5·L_explanation
+
+train:
+  epochs: 1
+  batch_size: 4
+  grad_accum_steps: 1
+  lr: 1.0e-5
+
+eval:
+  metrics: [mc_accuracy, rouge_l, bleu]   # accuracy + explanation quality
+  cot: true
+
+wandb:
+  tags: [rq3, blip2, explanation_aware, scienceqa]

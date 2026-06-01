@@ -1,0 +1,41 @@
+# RQ2 · Qwen2-VL-2B · generative · ScienceQA  (the proposal's PRIMARY backbone, QLoRA)
+#
+# QLoRA path: 4-bit NF4 base + rank-16 adapters on the LLM attention/MLP, vision
+# frozen. Hyperparameters follow proposal §7.4 (lr 2e-4, effective batch 32).
+
+name: rq2_qwen2vl_generative_scienceqa
+rq: RQ2
+seed: 42
+
+model:
+  name: qwen2_vl
+  pretrained: Qwen/Qwen2-VL-2B-Instruct
+  dtype: bfloat16
+  use_qlora: true             # 4-bit NF4 + LoRA (rank 16, alpha 32 by default)
+  # quantization + lora use schema defaults (NF4, double-quant, r=16, α=32)
+
+data:
+  name: scienceqa
+  split_train: train
+  split_eval: validation
+  max_train: 2000
+  max_eval: 200
+  prompt_variant: explanation_then_answer
+
+objective:
+  name: generative
+
+train:
+  epochs: 1
+  batch_size: 4
+  grad_accum_steps: 8         # 4 × 8 = 32 effective (proposal §7.4)
+  lr: 2.0e-4                  # higher LR is fine for fresh LoRA adapters
+  scheduler: cosine
+  warmup_ratio: 0.03
+
+eval:
+  metrics: [mc_accuracy]
+  cot: true
+
+wandb:
+  tags: [rq2, qwen2_vl, generative, scienceqa]

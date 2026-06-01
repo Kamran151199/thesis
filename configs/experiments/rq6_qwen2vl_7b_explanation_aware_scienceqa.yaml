@@ -1,0 +1,40 @@
+# RQ6 · Qwen2-VL-7B · explanation-aware · ScienceQA  (SCALE ablation: 2B vs 7B)
+#
+# Identical recipe to the 2B flagship, but the 7B backbone. RQ6 is QLoRA-2B vs
+# QLoRA-7B (full fine-tuning is future work — it doesn't fit Colab A100-40GB).
+# 7B in 4-bit fits; if memory is tight, drop batch_size to 2 and raise
+# grad_accum_steps to 16 to keep the effective batch at 32.
+
+name: rq6_qwen2vl_7b_explanation_aware_scienceqa
+rq: RQ6
+seed: 42
+
+model:
+  name: qwen2_vl
+  pretrained: Qwen/Qwen2-VL-7B-Instruct
+  use_qlora: true
+
+data:
+  name: scienceqa
+  split_train: train
+  split_eval: validation
+  max_train: 2000
+  max_eval: 200
+  prompt_variant: explanation_then_answer
+
+objective:
+  name: explanation_aware
+  alpha: 0.5
+
+train:
+  epochs: 1
+  batch_size: 2               # 7B in 4-bit → smaller micro-batch
+  grad_accum_steps: 16        # 2 × 16 = 32 effective
+  lr: 2.0e-4
+
+eval:
+  metrics: [mc_accuracy, rouge_l, bleu]
+  cot: true
+
+wandb:
+  tags: [rq6, qwen2_vl, 7b, scale-ablation, scienceqa]
