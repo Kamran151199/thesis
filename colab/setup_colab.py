@@ -27,9 +27,11 @@ type by hand; everything else lives in the repo):
 
 What this does (the professional 3-bucket sync model):
   1. CODE        → git (single source of truth; the first cell already pulled it)
-  2. HEAVY INPUTS→ HuggingFace Hub, cached on Drive (models + datasets persist
-                   across sessions, so you don't re-download 4GB every time)
-  3. OUTPUTS     → checkpoints on Drive (survive disconnects); metrics on wandb
+  2. HEAVY INPUTS→ HuggingFace Hub, cached on /content (fast local SSD). Re-fetched
+                   each session (~minutes) — the Hub IS the persistent store, and
+                   Drive is too slow/small for big model loads.
+  3. OUTPUTS     → checkpoints on Drive (small + precious, survive disconnects);
+                   metrics on wandb
 
 IMPORTANT: run this BEFORE `import transformers` anywhere, because it sets the
 HF cache env vars, which transformers only reads at import time.
@@ -41,8 +43,13 @@ import sys
 from pathlib import Path
 
 # ── Config ──────────────────────────────────────────────────────────────────
-DRIVE_ROOT = "/content/drive/MyDrive/thesis"   # persistent storage on your Drive
-REPO_DIR = "/content/thesis"                    # code lives on fast ephemeral SSD
+# Hybrid cache model: heavy INPUTS (models/datasets) live on fast ephemeral
+# /content and are re-fetched from the Hub each session; only small precious
+# OUTPUTS (checkpoints/results) go to persistent Drive.
+DRIVE_ROOT = "/content/drive/MyDrive/thesis"   # persistent: checkpoints + results ONLY
+REPO_DIR = "/content/thesis"                    # code (git), on fast ephemeral SSD
+HF_CACHE = "/content/hf_cache"                  # models   — fast SSD, re-fetched per session
+HF_DATASETS = "/content/hf_datasets"            # datasets — fast SSD, re-fetched per session
 
 
 def _run(cmd: list[str]) -> None:
@@ -72,21 +79,24 @@ _run([sys.executable, "-m", "pip", "install", "-q", "-U",
       "datasets", "evaluate", "trl",
       "rouge-score", "nltk", "einops"])
 
-# ── 3. Point HuggingFace caches at Drive (persist across sessions) ─────────────
-# First run still downloads; every run after reuses the Drive copy → no 4GB
-# re-download. If you find Drive *loading* slow for big models, flip HF_HOME
-# back to /content (fast SSD, but re-downloads each session).
-os.environ["HF_HOME"] = f"{DRIVE_ROOT}/hf_cache"
-os.environ["HF_DATASETS_CACHE"] = f"{DRIVE_ROOT}/hf_datasets"
-Path(os.environ["HF_HOME"]).mkdir(parents=True, exist_ok=True)
-Path(os.environ["HF_DATASETS_CACHE"]).mkdir(parents=True, exist_ok=True)
-print(f"✓ HF cache → {os.environ['HF_HOME']}")
+# ── 3. Point HuggingFace caches at /content (fast local SSD) ───────────────────
+# Models + datasets are re-fetched from the Hub each session (~minutes). Why not
+# Drive: the Hub is already the persistent store, and Drive's FUSE mount is slow
+# for big model loads + flaky for a dataset cache's many small files (and may be
+# near-full). /content has ~80GB free and loads fast. Only OUTPUTS go to Drive (§4).
+os.environ["HF_HOME"] = HF_CACHE
+os.environ["HF_DATASETS_CACHE"] = HF_DATASETS
+Path(HF_CACHE).mkdir(parents=True, exist_ok=True)
+Path(HF_DATASETS).mkdir(parents=True, exist_ok=True)
+print(f"✓ HF cache → {HF_CACHE}  (ephemeral SSD; re-fetched each session)")
 
-# ── 4. Checkpoint dir on Drive (survives runtime disconnect) ───────────────────
+# ── 4. Checkpoint dir on Drive — the ONLY bucket we persist (small + precious) ──
+# Trainable deltas only (LoRA adapter / Q-Former ≈ MBs) + results.json. Survives
+# runtime disconnects; tiny, so it fits even a near-full Drive.
 CKPT_DIR = f"{DRIVE_ROOT}/checkpoints"
 Path(CKPT_DIR).mkdir(parents=True, exist_ok=True)
 os.environ["THESIS_CKPT_DIR"] = CKPT_DIR
-print(f"✓ checkpoints → {CKPT_DIR}")
+print(f"✓ checkpoints → {CKPT_DIR}  (Drive, persistent)")
 
 # ── 5. wandb (optional — only if you added the secret) ─────────────────────────
 try:
@@ -102,7 +112,7 @@ print("\n" + "=" * 60)
 print("Colab environment ready.")
 print(f"  cwd:          {os.getcwd()}")
 print(f"  code:         {REPO_DIR}        (git — pull to refresh)")
-print(f"  HF cache:     {os.environ['HF_HOME']}")
-print(f"  checkpoints:  {CKPT_DIR}")
+print(f"  HF cache:     {os.environ['HF_HOME']}  (ephemeral, fast)")
+print(f"  checkpoints:  {CKPT_DIR}  (Drive, persistent)")
 print(f"  use in code:  os.environ['THESIS_CKPT_DIR']")
 print("=" * 60)
