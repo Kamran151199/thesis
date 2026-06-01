@@ -1,0 +1,217 @@
+%% ============================================================================
+%%  Journal paper — Cross-Modal Generative Alignment with Explanation-Aware VLMs
+%%
+%%  Template : Elsevier `elsarticle` (Information Fusion / ESWA / Pattern Recog.)
+%%  Status   : SKELETON. Methodology is drafted (stable, mirrors src/); Results
+%%             and Discussion are placeholders filled as experiments land.
+%%  Workflow : user runs experiments → hands over results.json → assistant
+%%             journals them here. See README.md.
+%%
+%%  \note{...} = red reviewer note,  \todo{...} = blue action. Remove both before
+%%  submission (comment out the two \newcommand lines to hide them).
+%% ============================================================================
+\documentclass[preprint,review,12pt]{elsarticle}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+
+\newcommand{\note}[1]{\textcolor{red}{[\textbf{NOTE:} #1]}}
+\newcommand{\todo}[1]{\textcolor{blue}{[\textbf{TODO:} #1]}}
+
+\journal{Information Fusion} % alt: Expert Systems with Applications
+
+\begin{document}
+
+\begin{frontmatter}
+
+\title{Cross-Modal Generative Alignment for Document, Chart, and Image
+Reasoning with Explanation-Aware Vision--Language Models}
+
+\author[a]{Komron Valijonov}
+\author[a]{Raja Hashim Ali}
+\affiliation[a]{organization={\note{Department / University}},
+  city={\note{city}}, country={\note{country}}}
+
+\begin{abstract}
+\note{Rewrite with real numbers once results land. Draft below adapts the proposal abstract.}
+Vision--language models (VLMs) achieve cross-modal reasoning by aligning visual
+features with pretrained language models, yet two design choices remain
+underexplored for \emph{structured} visual content such as documents and charts:
+(i) the \emph{alignment objective} --- contrastive versus generative --- and
+(ii) the effect of \emph{explanation-aware} training on not only answer accuracy
+but the \emph{faithfulness} of generated rationales. We present a controlled
+study that fixes backbone, data, and budget and varies only the training signal,
+across four alignment variants (baseline, contrastive-enhanced, generative, and
+explanation-aware generative) fine-tuned with QLoRA on a single 40\,GB GPU. We
+evaluate on DocVQA, ChartQA, ScienceQA, A-OKVQA, and VQAv2 along answer accuracy,
+explanation quality (BLEU, ROUGE-L, BERTScore), and faithfulness
+(attention-alignment and evidence-masking consistency). \todo{headline findings
++ numbers}. Our results indicate \todo{one-sentence claim: explanation-aware
+QLoRA SFT improves faithfulness, and the gain is domain-dependent}.
+\end{abstract}
+
+\begin{keyword}
+vision--language models \sep cross-modal alignment \sep explanation-aware training
+\sep chart and document understanding \sep faithfulness \sep QLoRA
+\end{keyword}
+
+\end{frontmatter}
+
+% ============================================================================
+\section{Introduction}
+\label{sec:intro}
+\note{Motivation $\rightarrow$ problem $\rightarrow$ contributions $\rightarrow$ RQs $\rightarrow$ outline.}
+\todo{Sharpen the headline claim (see README): cheap explanation-aware QLoRA
+\emph{supervised} fine-tuning improves rationale \emph{faithfulness}, not just
+accuracy, and the benefit is larger for structured visual content (charts,
+documents) than for natural images --- a gap left open by RL-based and
+evaluation-only prior work.}
+
+\paragraph{Contributions.}
+\begin{itemize}
+  \item \todo{C1 --- controlled comparison of contrastive vs.\ generative vs.\ explanation-aware alignment under a fixed single-GPU budget (RQ2, RQ3).}
+  \item \todo{C2 --- faithfulness analysis of generated rationales for structured visual reasoning (RQ5).}
+  \item \todo{C3 --- domain-generality / transfer profile of explanation-aware alignment (RQ4, RQ7).}
+  \item \todo{C4 --- a reproducible, registry-driven QLoRA recipe (released, Apache 2.0).}
+\end{itemize}
+
+% ============================================================================
+\section{Related Work}
+\label{sec:related}
+\note{RQ1 survey lives here. Drafted in parallel with experiments.}
+\todo{Threads to cover and the gap to claim:}
+\begin{itemize}
+  \item \emph{Alignment paradigms} --- contrastive (CLIP~\cite{clip}) vs.\ generative (BLIP-2~\cite{blip2}); instruction-tuned VLMs (Qwen2-VL~\cite{qwen2vl}, PaliGemma~\cite{paligemma}).
+  \item \emph{Explanation / chain-of-thought training} --- ScienceQA~\cite{scienceqa}, Multimodal-CoT~\cite{multimodalcot}.
+  \item \emph{Faithfulness \& hallucination} --- the NLE-faithfulness benchmark~\cite{nlefaithfulness}, counterfactual testing~\cite{edct}; object hallucination (POPE~\cite{pope}).
+  \item \emph{Structured-visual faithfulness} (closest neighbors) --- ChartHal~\cite{charthal} (evaluation only), Chart-RVR~\cite{chartrvr} (RL-based). \textbf{Gap:} no controlled study of explanation-aware \emph{SFT} on faithfulness \emph{across} document/chart/natural-image domains.
+  \item \emph{Parameter-efficient fine-tuning} --- LoRA~\cite{lora}, QLoRA~\cite{qlora}.
+\end{itemize}
+
+% ============================================================================
+\section{Methodology}
+\label{sec:method}
+% ---- DRAFTED: stable, mirrors the released src/ framework. ----
+
+\subsection{Data sources and preprocessing}
+\label{sec:data}
+We use five public benchmarks spanning three visual domains: documents
+(DocVQA~\cite{docvqa}), charts (ChartQA~\cite{chartqa}), and natural images
+(ScienceQA~\cite{scienceqa}, A-OKVQA~\cite{aokvqa}, VQAv2~\cite{vqav2}).
+Explanation-aware supervision requires gold rationales: ScienceQA and A-OKVQA
+provide them natively; for the remaining datasets rationales are
+\todo{synthesized via a teacher model and filtered, or treated as answer-only}.
+All samples are mapped to a single neutral schema (image, question, answer,
+optional choices, optional rationale). \note{Report the filtering yield, e.g.\
+of 12{,}726 ScienceQA training items $\approx$5k retain an image + gold rationale.}
+
+\subsection{Model design: four alignment variants}
+\label{sec:variants}
+Holding the backbone fixed (Qwen2-VL-2B-Instruct~\cite{qwen2vl} primary; BLIP-2~\cite{blip2}
+and PaliGemma~\cite{paligemma} for cross-architecture breadth), we compare four
+training signals that differ \emph{only} in the objective:
+\begin{enumerate}
+  \item \textbf{Baseline} --- native projection, no extra alignment loss.
+  \item \textbf{Contrastive-enhanced} --- baseline + auxiliary InfoNCE between
+        projected visual features and answer sentence embeddings.
+  \item \textbf{Generative} --- next-token prediction on $(\text{image}, Q \rightarrow A)$.
+  \item \textbf{Explanation-aware generative} --- next-token prediction on
+        $(\text{image}, Q \rightarrow \text{explanation} \rightarrow A)$.
+\end{enumerate}
+
+\subsection{Explanation-aware objective}
+\label{sec:loss}
+The explanation-aware loss weights the answer and explanation spans of the target:
+\begin{equation}
+  \mathcal{L} \;=\; \alpha \, \mathcal{L}_{\text{answer}}
+              \;+\; (1-\alpha)\, \mathcal{L}_{\text{explanation}},
+  \label{eq:loss}
+\end{equation}
+where each term is the masked cross-entropy over its token span and
+$\alpha \in \{0.0, 0.5, 1.0\}$ ($\alpha{=}1$ recovers answer-only / generative;
+$\alpha{=}0$ is explanation-only). Spans are tagged at the token level so the two
+losses are computed from a single forward pass.
+
+\subsection{Parameter-efficient fine-tuning (QLoRA)}
+\label{sec:qlora}
+All variants are fine-tuned with QLoRA~\cite{qlora}: the base model is quantized
+to 4-bit NF4 and frozen, and low-rank adapters (rank 16, $\alpha{=}32$) are
+trained on the language-model attention/MLP projections and the alignment module;
+the vision encoder is frozen. Optimizer AdamW ($\beta{=}(0.9,0.999)$, weight
+decay $0.01$), learning rate $2\times10^{-4}$ with cosine schedule and 3\%
+warm-up, effective batch size 32 via gradient accumulation, bf16. \note{1 seed
+per configuration --- all claims carry a variance caveat.}
+
+\subsection{Evaluation metrics}
+\label{sec:metrics}
+\textbf{Answer accuracy:} exact match / ScienceQA \& A-OKVQA accuracy, DocVQA
+ANLS, ChartQA relaxed accuracy. \textbf{Explanation quality:} BLEU-4, ROUGE-L,
+BERTScore-F1 (generated rationale vs.\ gold). \textbf{Faithfulness (RQ5):}
+attention-alignment between image-patch attention and explanation-referenced
+regions, and evidence-masking consistency (answer-likelihood drift when salient
+regions are occluded). Multiple-choice answers are scored by a robust
+generate-then-score (chain-of-thought) protocol rather than string matching.
+
+% ============================================================================
+\section{Experimental Setup}
+\label{sec:setup}
+\note{Backbones, dataset splits/sizes, the experiment grid, compute (1$\times$A100-40GB),
+software (PyTorch, Transformers, PEFT, BitsAndBytes), and the released code.}
+
+% ============================================================================
+\section{Results}
+\label{sec:results}
+\note{Filled from results.json as runs land. One subsection per RQ; tables below
+are empty scaffolds with their captions already fixed.}
+
+\subsection{RQ2 --- Contrastive vs.\ generative alignment}
+\begin{table}[t]
+  \centering
+  \caption{Answer accuracy by alignment strategy across domains.}
+  \label{tab:rq2}
+  \begin{tabular}{lccccc}
+    \toprule
+    Variant & DocVQA & ChartQA & ScienceQA & A-OKVQA & VQAv2 \\
+    \midrule
+    Contrastive-enhanced & -- & -- & -- & -- & -- \\
+    Generative           & -- & -- & -- & -- & -- \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{RQ3 --- Explanation-aware training}
+\note{Accuracy + explanation-quality table; the $\alpha$-sweep curve
+($\{0,0.5,1\}$). Lead with Qwen2-VL (BLIP-2's BLEU/ROUGE are near-zero --- weak generator).}
+
+\subsection{RQ4 --- Architectural / training factors}
+\subsection{RQ5 --- Faithfulness and hallucination}
+\subsection{RQ6 --- Parameter-efficient vs.\ scale}
+\subsection{RQ7 --- Cross-domain transfer}
+
+% ============================================================================
+\section{Discussion}
+\label{sec:discussion}
+\note{Interpret across RQs; the domain-generality hypothesis; limitations
+(1 seed, QLoRA-only, 2B/7B scale, synthesized rationales).}
+
+% ============================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+\note{Answer each RQ in one line; restate the contribution; future work
+(more seeds, full fine-tuning, larger backbones).}
+
+% ============================================================================
+\section*{Acknowledgments}
+\note{Supervisor, compute, funding if any.}
+
+\bibliographystyle{elsarticle-num}
+\bibliography{references}
+
+\end{document}
