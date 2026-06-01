@@ -55,7 +55,7 @@ Front: Title · Authors · Abstract (2 bg / 2 gap+problem / 2 method / 3 results
 | 1.1 Gap / 1.3 Problem / 1.5 Significance / Intro paragraphs | ⬜ to draft |
 | 2 Literature Review (2.1–2.4 + matrix) | 🟡 with RQ1 survey |
 | 3 Methodology (prose, equation drafted; figures/tables) | 🟡 prose stable; figures pending |
-| 4 Results (RQ1–RQ7) | ⬜ await experiments |
+| 4 Results (RQ1–RQ7) | 🟡 RQ3 expl-aware arm logged (`results/RESULTS.md`); awaiting rq2 generative pair |
 | 5 Discussion / 6 Conclusion / Declarations | ⬜ after results |
 
 ## Open issues to resolve

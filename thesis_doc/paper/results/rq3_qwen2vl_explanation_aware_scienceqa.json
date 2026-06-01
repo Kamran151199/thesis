@@ -1,0 +1,23 @@
+{
+  "name": "rq3_qwen2vl_explanation_aware_scienceqa",
+  "rq": "RQ3",
+  "seed": 42,
+  "model": "Qwen/Qwen2-VL-2B-Instruct",
+  "objective": "explanation_aware",
+  "alpha": 0.5,
+  "data": "scienceqa",
+  "max_train": 2000,
+  "max_eval": 200,
+  "baseline": {
+    "mc_accuracy": 0.46,
+    "rouge_l": 0.14411010714103503,
+    "bleu": 0.014424449953624168,
+    "random_baseline": 0.35391666666666666
+  },
+  "post": {
+    "mc_accuracy": 0.755,
+    "rouge_l": 0.6525919364221722,
+    "bleu": 0.5048884357015939,
+    "random_baseline": 0.35391666666666666
+  }
+}
