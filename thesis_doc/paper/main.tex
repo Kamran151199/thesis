@@ -1,217 +1,332 @@
-%% ============================================================================
-%%  Journal paper — Cross-Modal Generative Alignment with Explanation-Aware VLMs
+%% Elsevier elsarticle template (num style) — adapted to the professor's
+%% March-2026 template. Structure, rules, and macros follow that template
+%% verbatim; only the front matter / abstract / RQs are filled for this project.
 %%
-%%  Template : Elsevier `elsarticle` (Information Fusion / ESWA / Pattern Recog.)
-%%  Status   : SKELETON. Methodology is drafted (stable, mirrors src/); Results
-%%             and Discussion are placeholders filled as experiments land.
-%%  Workflow : user runs experiments → hands over results.json → assistant
-%%             journals them here. See README.md.
+%% EDITING RULES (from the template's General Instructions — keep them in mind):
+%%  - 30+ pages (excluding references); 7–10 sentences per paragraph.
+%%  - ONE SENTENCE PER LINE in the source.
+%%  - Do NOT delete template text (except General Instructions): comment it out
+%%    and write your version on the lines below it.
+%%  - 25–50 references, 80% later than 2021, journals/conferences (IEEE/Springer/
+%%    ACM/PLoS/Elsevier/MDPI). Preferably NO arXiv/website/thesis. Google-Scholar BibTeX.
+%%  - Figures in PowerPoint/Visio/Canva/DrawIO → PDF (≥300 ppi), B&W-friendly.
 %%
-%%  \note{...} = red reviewer note,  \todo{...} = blue action. Remove both before
-%%  submission (comment out the two \newcommand lines to hide them).
-%% ============================================================================
-\documentclass[preprint,review,12pt]{elsarticle}
+\documentclass[preprint,12pt]{elsarticle}
 
-\usepackage[T1]{fontenc}
-\usepackage[utf8]{inputenc}
-\usepackage{amsmath,amssymb}
-\usepackage{graphicx}
-\usepackage{booktabs}
-\usepackage{multirow}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{lineno}
 \usepackage{xcolor}
-\usepackage{url}
-\usepackage[hidelinks]{hyperref}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{pifont}
+\usepackage{adjustbox}
+\usepackage{array}
+\usepackage{booktabs}
 
-\newcommand{\note}[1]{\textcolor{red}{[\textbf{NOTE:} #1]}}
-\newcommand{\todo}[1]{\textcolor{blue}{[\textbf{TODO:} #1]}}
+\newcommand{\cmark}{\ding{51}} % yes
+\newcommand{\xmark}{\ding{55}} % no
+\newcommand{\pmark}{\textcolor{orange}{$\sim$}} % partial
 
-\journal{Information Fusion} % alt: Expert Systems with Applications
+\newcommand{\rev}[1]{\textcolor{blue}{#1}}      % revised / added text
+\newcommand{\del}[1]{\textcolor{red}{#1}}       % deleted text (sout needs ulem; kept plain)
+
+% Our working note macro (remove before submission).
+\newcommand{\todo}[1]{\textcolor{red}{[\textbf{TODO:} #1]}}
+
+% \journal{Nuclear Physics B}
+\journal{Information Fusion} % target venue (alt: Expert Systems with Applications)
 
 \begin{document}
 
 \begin{frontmatter}
 
+%% Title
+% \title{Scientific Title of your plan}
 \title{Cross-Modal Generative Alignment for Document, Chart, and Image
 Reasoning with Explanation-Aware Vision--Language Models}
 
-\author[a]{Komron Valijonov}
-\author[a]{Raja Hashim Ali}
-\affiliation[a]{organization={\note{Department / University}},
-  city={\note{city}}, country={\note{country}}}
+%% Authors
+% \author[label1]{Your complete name}
+% \author[label1,label2]{Raja Hashim Ali}
+% \author[label1]{Your Second Supervisor}
+\author[label1]{Komron Valijonov}
+\author[label1,label2]{Raja Hashim Ali}
+% \author[label1]{Second Supervisor Name} % fill or remove
 
+%% Author affiliation (kept from the template)
+\affiliation[label1]{organization={Department of Business, University of Europe for Applied Sciences},
+            addressline={Think Campus, Konrad-Zuse-Ring 11},
+            city={Potsdam},
+            postcode={14469},
+            state={Brandenburg},
+            country={Germany}}
+
+\affiliation[label2]{organization={Department of Artificial Intelligence, Ghulam Ishaq Khan Institute of Engineering Sciences and Technology},
+            city={Topi},
+            postcode={23460},
+            country={Pakistan}}
+
+%% Abstract — keep the 5-part structure (2 background / 2 gap+problem /
+%% 2 methodology / 3 results / 1 contribution), one sentence per line.
 \begin{abstract}
-\note{Rewrite with real numbers once results land. Draft below adapts the proposal abstract.}
-Vision--language models (VLMs) achieve cross-modal reasoning by aligning visual
-features with pretrained language models, yet two design choices remain
-underexplored for \emph{structured} visual content such as documents and charts:
-(i) the \emph{alignment objective} --- contrastive versus generative --- and
-(ii) the effect of \emph{explanation-aware} training on not only answer accuracy
-but the \emph{faithfulness} of generated rationales. We present a controlled
-study that fixes backbone, data, and budget and varies only the training signal,
-across four alignment variants (baseline, contrastive-enhanced, generative, and
-explanation-aware generative) fine-tuned with QLoRA on a single 40\,GB GPU. We
-evaluate on DocVQA, ChartQA, ScienceQA, A-OKVQA, and VQAv2 along answer accuracy,
-explanation quality (BLEU, ROUGE-L, BERTScore), and faithfulness
-(attention-alignment and evidence-masking consistency). \todo{headline findings
-+ numbers}. Our results indicate \todo{one-sentence claim: explanation-aware
-QLoRA SFT improves faithfulness, and the gain is domain-dependent}.
+% Two sentences of background and importance of this topic.
+% Two sentences defining the gap analysis (work not done in field) and your problem statement.
+% Two sentences about the methodology of your work.
+% Three sentences of Results and significance of your results.
+% One sentence summarizing your contribution.
+Vision--language models now answer questions about documents, charts, and natural images by aligning a frozen vision encoder with a pretrained language model.
+For structured visual content such as charts and documents the reasoning steps are explicit, which makes both the choice of alignment objective and the trustworthiness of the model's stated reasoning especially consequential.
+Prior work studies alignment and rationale faithfulness mostly through evaluation-only benchmarks or reinforcement-learning methods, and rarely under a fixed low-resource fine-tuning budget.
+It therefore remains unclear whether inexpensive supervised explanation-aware fine-tuning improves not only answer accuracy but the faithfulness of generated rationales, and whether any such benefit depends on the visual domain.
+We fine-tune open-source vision--language models with QLoRA under four alignment variants---baseline, contrastive-enhanced, generative, and explanation-aware generative---holding data and budget fixed so that only the training signal varies.
+We evaluate on DocVQA, ChartQA, ScienceQA, A-OKVQA, and VQAv2 along answer accuracy, explanation quality (BLEU, ROUGE-L, BERTScore), and two faithfulness measures (attention-alignment and evidence-masking consistency).
+\todo{Result sentence 1 --- accuracy by alignment variant across domains.}
+\todo{Result sentence 2 --- explanation-aware effect on faithfulness, by domain.}
+\todo{Result sentence 3 --- efficiency/scale and transfer finding.}
+\todo{Contribution sentence --- explanation-aware QLoRA supervised fine-tuning yields more faithful reasoning, with the largest gains on structured visual content.}
 \end{abstract}
 
+%% Graphical abstract
+\begin{graphicalabstract}
+% \includegraphics{grabs}
+\todo{Add graphical abstract (PowerPoint/Canva $\rightarrow$ PDF).}
+\end{graphicalabstract}
+
+%% Research highlights
+\begin{highlights}
+% \item Research highlight 1
+% \item Research highlight 2
+\item \todo{Highlight 1 --- the controlled objective comparison under a fixed budget.}
+\item \todo{Highlight 2 --- explanation-aware training improves faithfulness, not just accuracy.}
+\item \todo{Highlight 3 --- the benefit is domain-dependent (structured vs.\ natural).}
+\end{highlights}
+
+%% Keywords
 \begin{keyword}
-vision--language models \sep cross-modal alignment \sep explanation-aware training
-\sep chart and document understanding \sep faithfulness \sep QLoRA
+% component \sep formatting \sep style \sep styling \sep insert
+vision--language models \sep cross-modal alignment \sep explanation-aware training \sep chart and document understanding \sep faithfulness \sep parameter-efficient fine-tuning
 \end{keyword}
 
 \end{frontmatter}
 
-% ============================================================================
-\section{Introduction}
-\label{sec:intro}
-\note{Motivation $\rightarrow$ problem $\rightarrow$ contributions $\rightarrow$ RQs $\rightarrow$ outline.}
-\todo{Sharpen the headline claim (see README): cheap explanation-aware QLoRA
-\emph{supervised} fine-tuning improves rationale \emph{faithfulness}, not just
-accuracy, and the benefit is larger for structured visual content (charts,
-documents) than for natural images --- a gap left open by RL-based and
-evaluation-only prior work.}
+\linenumbers
 
-\paragraph{Contributions.}
-\begin{itemize}
-  \item \todo{C1 --- controlled comparison of contrastive vs.\ generative vs.\ explanation-aware alignment under a fixed single-GPU budget (RQ2, RQ3).}
-  \item \todo{C2 --- faithfulness analysis of generated rationales for structured visual reasoning (RQ5).}
-  \item \todo{C3 --- domain-generality / transfer profile of explanation-aware alignment (RQ4, RQ7).}
-  \item \todo{C4 --- a reproducible, registry-driven QLoRA recipe (released, Apache 2.0).}
-\end{itemize}
+%% main text
+%%
 
-% ============================================================================
-\section{Related Work}
-\label{sec:related}
-\note{RQ1 survey lives here. Drafted in parallel with experiments.}
-\todo{Threads to cover and the gap to claim:}
-\begin{itemize}
-  \item \emph{Alignment paradigms} --- contrastive (CLIP~\cite{clip}) vs.\ generative (BLIP-2~\cite{blip2}); instruction-tuned VLMs (Qwen2-VL~\cite{qwen2vl}, PaliGemma~\cite{paligemma}).
-  \item \emph{Explanation / chain-of-thought training} --- ScienceQA~\cite{scienceqa}, Multimodal-CoT~\cite{multimodalcot}.
-  \item \emph{Faithfulness \& hallucination} --- the NLE-faithfulness benchmark~\cite{nlefaithfulness}, counterfactual testing~\cite{edct}; object hallucination (POPE~\cite{pope}).
-  \item \emph{Structured-visual faithfulness} (closest neighbors) --- ChartHal~\cite{charthal} (evaluation only), Chart-RVR~\cite{chartrvr} (RL-based). \textbf{Gap:} no controlled study of explanation-aware \emph{SFT} on faithfulness \emph{across} document/chart/natural-image domains.
-  \item \emph{Parameter-efficient fine-tuning} --- LoRA~\cite{lora}, QLoRA~\cite{qlora}.
-\end{itemize}
-
-% ============================================================================
-\section{Methodology}
-\label{sec:method}
-% ---- DRAFTED: stable, mirrors the released src/ framework. ----
-
-\subsection{Data sources and preprocessing}
-\label{sec:data}
-We use five public benchmarks spanning three visual domains: documents
-(DocVQA~\cite{docvqa}), charts (ChartQA~\cite{chartqa}), and natural images
-(ScienceQA~\cite{scienceqa}, A-OKVQA~\cite{aokvqa}, VQAv2~\cite{vqav2}).
-Explanation-aware supervision requires gold rationales: ScienceQA and A-OKVQA
-provide them natively; for the remaining datasets rationales are
-\todo{synthesized via a teacher model and filtered, or treated as answer-only}.
-All samples are mapped to a single neutral schema (image, question, answer,
-optional choices, optional rationale). \note{Report the filtering yield, e.g.\
-of 12{,}726 ScienceQA training items $\approx$5k retain an image + gold rationale.}
-
-\subsection{Model design: four alignment variants}
-\label{sec:variants}
-Holding the backbone fixed (Qwen2-VL-2B-Instruct~\cite{qwen2vl} primary; BLIP-2~\cite{blip2}
-and PaliGemma~\cite{paligemma} for cross-architecture breadth), we compare four
-training signals that differ \emph{only} in the objective:
+\section*{General instructions}
+\textcolor{red}{This section is a a set of generalized instructions for writing a journal paper.
+Read these instructions carefully, and delete this section and its text after completing the write up.
 \begin{enumerate}
-  \item \textbf{Baseline} --- native projection, no extra alignment loss.
-  \item \textbf{Contrastive-enhanced} --- baseline + auxiliary InfoNCE between
-        projected visual features and answer sentence embeddings.
-  \item \textbf{Generative} --- next-token prediction on $(\text{image}, Q \rightarrow A)$.
-  \item \textbf{Explanation-aware generative} --- next-token prediction on
-        $(\text{image}, Q \rightarrow \text{explanation} \rightarrow A)$.
+    \item \textbf{SECTIONS:} You must have exactly the mentioned sections with the given (or more) number of paragraphs.
+    \item \textbf{TEMPLATE:} Do not delete any text from any of the sections (except General Instructions) in this template. Comment out the text and write your text in the next lines after the commented out text.
+    \item \textbf{PAGE LIMITS:} Observe the report page limits (minimum 30 or more pages without citations/references).
+    \item \textbf{PARAGRAPHS:} Each paragraph must consist of 7-10 sentences. A sentence consists of full stop ".", not lines.
+    \item \textbf{SENTENCES:} Each sentence should start on a new line in latex text (one sentence per line).
+    \item \textbf{FIGURES:} Make your figures in Microsoft Visio, Canva, DrawIO and/or Powerpoint only. Save them as PDFs. Barcharts and graphs should be saved directly as pdfs (resolution of image should at least be 300 ppi). Figures with png or jpeg extension, except for where screenshots are the only option, are not to be used.
+    \item \textbf{SOURCE FILES:} SAVE ALL SOURCE FILES OF FIGURES OR THEIR LINKS IN THE "Source" FOLDER.
+    \item \textbf{CODES:} Save all your codes in ``Codes'' folder in the repository. Also create a GitHub repository with all the code, paste the accessible link in a text file, and add that text file in the Codes folder.
+    \item \textbf{DATASETS:} Save all your datasets in the ``Datasets'' folder. If dataset is too large, then save the dataset link in a text file and add this file in the datasets folder.
+    \item \textbf{TABLES:} Generate all tables in Excel first, then convert them into latex tables using https://www.tablesgenerator.com.
+    \item \textbf{REFERENCES:} Total references should be between 25 and 50. Use latest references with 80\% references later than (not including) 2021. References should preferably be from journals and conferences only (IEEE, Springer, ACM, PloS, Elsevier (ScienceDirect) or MDPI). Preferably no websites, thesis, Researchgate or Arxiv links. Take the bibtex of all references only from Google Scholar.
+    \item \textbf{MAIN TEXT REF:} All figures and tables should be referred to in the main text.
+    \item \textbf{CAPTIONS:} All captions for figures and tables should be detailed and self explanatory.
+    \item The sample breakdown of your report is shown in Figure~\ref{Fig:Figure}.
+\end{enumerate}
+}
+
+\begin{figure*}[!ht]
+% \centerline{\includegraphics[width=10.8cm]{./Figures/Project Journal Guidelines.jpeg}}
+\centerline{\todo{Section-breakdown guideline figure (from the template's Figures/ folder).}}
+\caption{Sample Sections and what to expect in each section.}
+\label{Fig:Figure}
+\end{figure*}
+
+\section{Introduction}
+First paragraph on importance and applications of your topic~\cite{mittal2023vehicle}.
+A figure to either introduce your topic, OR that gives statistical importance/applications of your topic.
+
+Second paragraph on introducing the main technique (e.g., deep learning) and its importance in solving your main topic. Also on how this main technique is significant/helpful in solving your topic.
+
+\subsection{Gap Analysis}
+One paragraph defining what has not been done (Gap analysis).
+
+\subsection{Research Questions}
+Enumerate as shown below what you are doing in this work (one main and at least two smaller research questions) and your contribution/novelty of your work.
+
+\begin{enumerate}
+    % \item RQ1: Statement of Research Question 1.
+    % \item RQ2: Statement of Research Question 2.
+    % \item RQ3: Statement of Research Question 3.
+    \item RQ1: How have vision--language alignment strategies evolved, and what principles underpin cross-modal representation learning?
+    \item RQ2: How does generative alignment compare to contrastive alignment for document, chart, and natural-image reasoning?
+    \item RQ3: To what extent does explanation-aware training improve reasoning accuracy and explanation quality across visual domains?
+    \item RQ4: Which architectural and training factors most determine cross-modal reasoning performance, and how do they differ across domains?
+    \item RQ5: To what extent does explanation-aware training reduce hallucination and improve the faithfulness of rationales relative to the visual evidence?
+    \item RQ6: How does QLoRA compare across model scales (2B vs.\ 7B) in preserving the benefits of explanation-aware alignment?
+    \item RQ7: How well does explanation-aware alignment learned on one visual domain transfer to unseen domains?
 \end{enumerate}
 
-\subsection{Explanation-aware objective}
-\label{sec:loss}
-The explanation-aware loss weights the answer and explanation spans of the target:
+\subsection{Problem Statement}
+One paragraph that gives the exact problem statement solved in this study.
+
+\subsection{Novelty of this study}
+One paragraph shedding light on novelty of this study using a one-two liner entry followed by at least three bullet points as shown below.
+
+\begin{itemize}
+    % \item Novelty 1.
+    % \item Novelty 2.
+    % \item Novelty 3.
+    \item A controlled, fixed-budget comparison that isolates the training objective (contrastive vs.\ generative vs.\ explanation-aware) rather than confounding it with architecture or data.
+    \item A faithfulness analysis of generated rationales specifically for structured visual content (charts and documents), where prior faithfulness work concentrates on natural-image object hallucination.
+    \item Evidence on the domain-generality of explanation-aware alignment via a cross-domain transfer profile under parameter-efficient fine-tuning.
+\end{itemize}
+
+\subsection{Significance of Our Work}
+One paragraph concluding the section with an overall summary of methods, results, and discussion.
+
+\section{Literature Review}
+One paragraph defining all the techniques that have been used in this field.
+
+\subsection{Technique 1 Name}
+One paragraph for this important technique/method with ideally four references (2 sentences per reference).
+
+\subsection{Technique 2 Name}
+One paragraph for this important technique/method with ideally four references (2 sentences per reference).
+
+\subsection{Technique 3 Name}
+One paragraph for this important technique/method with ideally four references (2 sentences per reference).
+
+\subsection{Technique 4 Name}
+One paragraph for this important technique/method with ideally four references (2 sentences per reference).
+
+A table summarizing the characteristics of the existing literature along with the novelty of your proposed work (as shown in Table~\ref{tab:LiteratureSummary}).
+
+\todo{Build our literature-review comparison matrix (Table~\ref{tab:LiteratureSummary}) from the RQ1 survey; format via tablesgenerator.com. The template's sample matrix is preserved below (disabled) as a format reference.}
+\iffalse
+%% ---- SAMPLE literature matrix from the template (format reference only) ----
+%% Re-enable and replace with our own once the RQ1 survey is done.
+\fi
+
+\section{Methodology}
+One paragraph with three - four lines summarizing your overall methodology, with a work flow figure (shown in Fig~\ref{Fig:Figure1}).
+
+\begin{figure*}[!ht]
+% \centerline{\includegraphics[width=17.8cm]{./Figures/Figure1.pdf}}
+\centerline{\todo{Workflow figure (PowerPoint/Canva $\rightarrow$ PDF). Mirrors the src/ pipeline: data $\rightarrow$ backbone $\rightarrow$ objective $\rightarrow$ train $\rightarrow$ eval.}}
+\caption{Overall workflow of the proposed explanation-aware alignment study.}
+\label{Fig:Figure1}
+\end{figure*}
+
+\subsection{Dataset}
+One paragraph and a figure (or a table) explaining the dataset used in the study.
+In case of more than one datasets, one paragraph and one figure (or table) for each dataset.
+
+\subsection{Detailed Methodology}
+Three paragraphs for explaining the pipeline and workflow of your study.
+A figure depicting the pipeline only.
+If you use any equations, use the following as example as shown in Equation~\ref{Eq:Loss}.
+
+% \begin{equation}
+%     E = mc^{2}
+%     \label{Eq:TheoryofRelativity}
+% \end{equation}
+% where $E$ is the energy, $m$ is the mass, and $c$ is the speed of light.
 \begin{equation}
-  \mathcal{L} \;=\; \alpha \, \mathcal{L}_{\text{answer}}
-              \;+\; (1-\alpha)\, \mathcal{L}_{\text{explanation}},
-  \label{eq:loss}
+    \mathcal{L} = \alpha\,\mathcal{L}_{\text{answer}} + (1-\alpha)\,\mathcal{L}_{\text{explanation}}
+    \label{Eq:Loss}
 \end{equation}
-where each term is the masked cross-entropy over its token span and
-$\alpha \in \{0.0, 0.5, 1.0\}$ ($\alpha{=}1$ recovers answer-only / generative;
-$\alpha{=}0$ is explanation-only). Spans are tagged at the token level so the two
-losses are computed from a single forward pass.
+where $\mathcal{L}_{\text{answer}}$ and $\mathcal{L}_{\text{explanation}}$ are the masked cross-entropy over the answer and explanation token spans, and $\alpha \in \{0,0.5,1\}$ balances them.
 
-\subsection{Parameter-efficient fine-tuning (QLoRA)}
-\label{sec:qlora}
-All variants are fine-tuned with QLoRA~\cite{qlora}: the base model is quantized
-to 4-bit NF4 and frozen, and low-rank adapters (rank 16, $\alpha{=}32$) are
-trained on the language-model attention/MLP projections and the alignment module;
-the vision encoder is frozen. Optimizer AdamW ($\beta{=}(0.9,0.999)$, weight
-decay $0.01$), learning rate $2\times10^{-4}$ with cosine schedule and 3\%
-warm-up, effective batch size 32 via gradient accumulation, bf16. \note{1 seed
-per configuration --- all claims carry a variance caveat.}
+\subsection{Evaluation Metrics}
+One paragraph or more explaining the evaluation metrics with equations for each metric, where possible.
+The metrics should be defined specific to your dataset and problem and not generic.
 
-\subsection{Evaluation metrics}
-\label{sec:metrics}
-\textbf{Answer accuracy:} exact match / ScienceQA \& A-OKVQA accuracy, DocVQA
-ANLS, ChartQA relaxed accuracy. \textbf{Explanation quality:} BLEU-4, ROUGE-L,
-BERTScore-F1 (generated rationale vs.\ gold). \textbf{Faithfulness (RQ5):}
-attention-alignment between image-patch attention and explanation-referenced
-regions, and evidence-masking consistency (answer-likelihood drift when salient
-regions are occluded). Multiple-choice answers are scored by a robust
-generate-then-score (chain-of-thought) protocol rather than string matching.
+\subsection{Experimental settings}
+One paragraph for experimental settings of your and competing methods (if any).
+(Optional) One paragraph for hyper-parameter settings and network architecture.
 
-% ============================================================================
-\section{Experimental Setup}
-\label{sec:setup}
-\note{Backbones, dataset splits/sizes, the experiment grid, compute (1$\times$A100-40GB),
-software (PyTorch, Transformers, PEFT, BitsAndBytes), and the released code.}
+A table with hyper-parameter settings (shown in Table~\ref{tab:Config}).
 
-% ============================================================================
-\section{Results}
-\label{sec:results}
-\note{Filled from results.json as runs land. One subsection per RQ; tables below
-are empty scaffolds with their captions already fixed.}
-
-\subsection{RQ2 --- Contrastive vs.\ generative alignment}
-\begin{table}[t]
-  \centering
-  \caption{Answer accuracy by alignment strategy across domains.}
-  \label{tab:rq2}
-  \begin{tabular}{lccccc}
-    \toprule
-    Variant & DocVQA & ChartQA & ScienceQA & A-OKVQA & VQAv2 \\
-    \midrule
-    Contrastive-enhanced & -- & -- & -- & -- & -- \\
-    Generative           & -- & -- & -- & -- & -- \\
-    \bottomrule
-  \end{tabular}
+\begin{table}[!ht]
+\centering
+\caption{Training configuration used for QLoRA fine-tuning of the vision--language backbones in this study.}
+\label{tab:Config}
+\begin{tabular}{|l|c|}
+\hline
+\multicolumn{2}{|c|}{\textbf{Training Configuration}}
+\\ \hline
+Adapter & QLoRA (4-bit NF4, rank 16, $\alpha$=32) \\
+Optimizer & AdamW ($\beta_1$=0.9, $\beta_2$=0.999) \\
+Learning rate & 2e-4 (cosine, 3\% warm-up) \\
+Weight decay & 0.01 \\
+Effective batch size & 32 (grad. accumulation) \\
+Precision & bf16 \\
+Seeds & 1 per configuration \\ \hline
+\end{tabular}
 \end{table}
 
-\subsection{RQ3 --- Explanation-aware training}
-\note{Accuracy + explanation-quality table; the $\alpha$-sweep curve
-($\{0,0.5,1\}$). Lead with Qwen2-VL (BLIP-2's BLEU/ROUGE are near-zero --- weak generator).}
+\section{Results}
+%% This section contains ONLY results (no opinion/discussion). One or two
+%% paragraphs per RQ, each referring to its figures/tables. Comparison with
+%% contemporary methods also goes here.
 
-\subsection{RQ4 --- Architectural / training factors}
-\subsection{RQ5 --- Faithfulness and hallucination}
-\subsection{RQ6 --- Parameter-efficient vs.\ scale}
-\subsection{RQ7 --- Cross-domain transfer}
+% \subsection{RQ1 Title in three to five words}
+\subsection{RQ1: Alignment evolution and taxonomy}
+One or two paragraph(s) for this RQ giving all the results, referring to its figures/tables.
 
-% ============================================================================
+% \subsection{RQ2 Title in three to five words}
+\subsection{RQ2: Contrastive vs.\ generative}
+One or two paragraph(s) for this RQ giving all the results, referring to its figures/tables.
+
+% \subsection{RQ3 Title in three to five words}
+\subsection{RQ3: Explanation-aware impact}
+One or two paragraph(s) for this RQ giving all the results, referring to its figures/tables.
+
+% \subsection{RQ4 Title in three to five words}
+\subsection{RQ4: Architectural and training factors}
+One or two paragraph(s) for this RQ giving all the results, referring to its figures/tables.
+
+% \subsection{RQ5 Title in three to five words}
+\subsection{RQ5: Faithfulness and hallucination}
+One or two paragraph(s) for this RQ giving all the results, referring to its figures/tables.
+
+% \subsection{RQ6 Title in three to five words}
+\subsection{RQ6: Efficiency and scale}
+One or two paragraph(s) for this RQ giving all the results, referring to its figures/tables.
+
+% \subsection{RQ7 Title in three to five words}
+\subsection{RQ7: Cross-domain transfer}
+One or two paragraph(s) for this RQ giving all the results, referring to its figures/tables.
+
+This section must contain only results and nothing else.
+Also include comparison with existing contemporary methods in this section.
+
 \section{Discussion}
-\label{sec:discussion}
-\note{Interpret across RQs; the domain-generality hypothesis; limitations
-(1 seed, QLoRA-only, 2B/7B scale, synthesized rationales).}
+Five to six paragraphs discussing the results (at least one paragraph for each research question).
+Your opinion on how good/bad the results are.
+Draw inferences from the results here.
+Explain novelty of your contributions and what was missing that you have explored here.
+Discuss how results from your proposed method compare with other existing contemporary methods.
+Any assumptions that effect your analysis?
 
-% ============================================================================
+\subsection{Limitations}
+One paragraph discussing the limitations of your work, if any?
+
+\subsection{Future Directions}
+One paragraph for what are the future directions in your opinion for continuing this study.
+
 \section{Conclusion}
-\label{sec:conclusion}
-\note{Answer each RQ in one line; restate the contribution; future work
-(more seeds, full fine-tuning, larger backbones).}
+One paragraph related to conclusions drawn from your whole experimentation.
 
-% ============================================================================
-\section*{Acknowledgments}
-\note{Supervisor, compute, funding if any.}
+\section*{Declarations}
+% Update the tool name(s) to those actually used.
+The authors used generative AI tools to improve the language and clarity of the manuscript.
+The authors reviewed and edited all content generated by the tools and take full responsibility for the final version of the manuscript.
 
+% DO NOT REMOVE THESE LINES AT ANY COST
 \bibliographystyle{elsarticle-num}
-\bibliography{references}
+\bibliography{Bibliography}
 
 \end{document}

@@ -1,58 +1,74 @@
-# `thesis_doc/paper/` — the journal paper (living document)
+# `thesis_doc/paper/` — the journal paper (professor's template)
 
-The publishable manuscript distilled from the thesis. **Paper first → professor
-approval → thesis doc.** Target: *Information Fusion* (aspirational) / *Expert
-Systems with Applications* (realistic) — both Elsevier `elsarticle`.
+Built on the **professor's Elsevier `elsarticle` template** (March 2026). The
+structure, macros, and rules below are *mandatory* — the professor grades to them.
 
-## Who does what
+**Paper first → professor approval → thesis doc.** Venue: *Information Fusion*
+(aspirational) / *Expert Systems with Applications* (realistic).
 
-| You | Me (the journal-keeper) |
-|-----|--------------------------|
-| run experiments, evals, code | own `main.tex` + `references.bib` |
-| decide the science | draft prose, build tables/figures, manage the bibliography |
-| hand over `results.json` / paste numbers | turn results into paper content, keep it consistent |
-| read papers for related work | integrate them + add `.bib` entries |
+## Files
 
-**How to feed me a result:** after a run, point me at its
-`outputs/<name>/results.json` (or paste the metrics) and tell me the config. I
-update the right table/figure/prose and note what's still pending.
+| File | What |
+|------|------|
+| `main.tex` | the manuscript on the professor's template; front matter + abstract + RQs filled, body kept as template to fill section-by-section |
+| `Bibliography.bib` | `\bibliography{Bibliography}` — published-venue anchors, flagged VERIFY |
+| *(no `references.bib`)* | removed — the template uses `Bibliography.bib` |
 
-## Honesty rules (non-negotiable)
+## Hard rules (from the template's "General instructions")
 
-- Every quantitative claim carries the **1-seed variance caveat**.
-- The contribution is **empirical systematization + a focused hypothesis test**,
-  not a novel method — no over-claiming.
-- Position against the real neighbors: ChartHal, EDCT, Chart-RVR, the 2023
-  NLE-faithfulness benchmark, Multimodal-CoT.
-- Lead the explanation-quality story with **Qwen2-VL** (BLIP-2 is a weak
-  generator → near-zero BLEU/ROUGE; use it as an accuracy baseline).
-- **Verify every `.bib` entry** against official sources before submission.
+- **≥30 pages** excluding references. This is a long report, not a short paper.
+- **7–10 sentences per paragraph.**
+- **One sentence per line** in the LaTeX source.
+- **Comment, don't delete:** keep template text, comment it out, write yours below.
+  (Delete only the *General instructions* section, at the very end.)
+- **References: 25–50, ≥80% after 2021, journals/conferences** (IEEE, Springer,
+  ACM, PLoS, Elsevier, MDPI). **Preferably NO arXiv / websites / thesis /
+  ResearchGate.** BibTeX from Google Scholar.
+- **Figures** in PowerPoint/Visio/Canva/DrawIO → **PDF, ≥300 ppi**, B&W-friendly;
+  keep sources in a `Source/` folder, code/data in `Codes/` and `Datasets/`.
+- **Tables** built in Excel → tablesgenerator.com → LaTeX.
+- Every figure/table must be **referred to in the main text**; captions
+  **self-explanatory**.
+
+## Required section structure (exact)
+
+```
+Front: Title · Authors · Abstract (2 bg / 2 gap+problem / 2 method / 3 results / 1 contribution)
+       · Graphical Abstract · Highlights · Keywords
+1 Introduction → 1.1 Gap Analysis · 1.2 Research Questions · 1.3 Problem Statement
+                 1.4 Novelty · 1.5 Significance
+2 Literature Review → 2.1–2.4 Technique sections + comparison Table
+3 Methodology → 3.1 Dataset · 3.2 Detailed Methodology · 3.3 Evaluation Metrics
+                3.4 Experimental settings (+ config Table, architecture Fig)
+4 Results → RQ1 … RQ7 subsections (results ONLY; + contemporary-method comparison)
+5 Discussion → 5.1 Limitations · 5.2 Future Directions
+6 Conclusion · Declarations · References
+```
 
 ## Results tracker (filled vs pending)
 
-| RQ | Where in paper | Artifact | Status |
-|----|----------------|----------|--------|
-| RQ1 | §Related Work | survey + taxonomy | 🟡 drafting (parallel) |
-| RQ2 | §Results | Table: acc by alignment strategy | ⬜ pending runs |
-| RQ3 | §Results | Table: acc + expl-quality; α-curve fig | ⬜ pending runs |
-| RQ4 | §Results | ablation table | ⬜ pending runs |
-| RQ5 | §Results / §Discussion | faithfulness table + qualitative | ⬜ pending runs |
-| RQ6 | §Results | 2B-vs-7B efficiency table | ⬜ pending runs |
-| RQ7 | §Results | 3×3 transfer matrix | ⬜ pending runs |
-| — | §Methodology | full method (data, variants, loss, QLoRA, metrics) | 🟢 drafted |
-| — | §Data | filtering yield (ScienceQA ~5k of 12.7k w/ rationale) | 🟢 noted |
+| Part | Status |
+|------|--------|
+| Front matter (title, authors, affiliations, journal, keywords) | 🟢 done |
+| Abstract (structure + 4 non-result sentences) | 🟢 drafted · ⬜ 3 result + 1 contribution sentences await runs |
+| 1.2 Research Questions (our 7 RQs) + 1.4 Novelty bullets | 🟢 done |
+| 1.1 Gap / 1.3 Problem / 1.5 Significance / Intro paragraphs | ⬜ to draft |
+| 2 Literature Review (2.1–2.4 + matrix) | 🟡 with RQ1 survey |
+| 3 Methodology (prose, equation drafted; figures/tables) | 🟡 prose stable; figures pending |
+| 4 Results (RQ1–RQ7) | ⬜ await experiments |
+| 5 Discussion / 6 Conclusion / Declarations | ⬜ after results |
 
-Legend: 🟢 done · 🟡 in progress · ⬜ waiting on experiments.
+## Open issues to resolve
 
-*First real data point to produce:* the generative-vs-explanation-aware pair on
-**one** dataset with **Qwen2-VL** → fills the first cells of the RQ2/RQ3 tables.
+1. **Bibliography vs. arXiv rule.** Foundational VLM works (Qwen2-VL, PaliGemma)
+   and the recent faithfulness papers (ChartHal, EDCT, Chart-RVR) are arXiv-only.
+   Either find published versions or ask the professor whether a few foundational
+   arXiv cites are acceptable. Bulk of refs should be 2022–2025 journal/conference.
+2. **Figures** must be hand-made (PPT/Canva → PDF). The template's sample figures
+   are neutralized (`\todo` placeholders) so it compiles; replace as we go.
 
 ## Compiling
 
-- **Overleaf:** New Project → Upload Project → add `main.tex` + `references.bib`
-  (or link Overleaf to this GitHub repo). Recompile; it pulls the `elsarticle`
-  class automatically.
-- **Local:** `latexmk -pdf main.tex` (needs a TeX distribution + `elsarticle`).
-
-`\note{}` (red) and `\todo{}` (blue) mark open items — comment out their two
-`\newcommand` lines in `main.tex` to hide them for a clean PDF.
+- **Overleaf:** upload `main.tex` + `Bibliography.bib` (+ a `Figures/` folder when
+  you have figures). It pulls `elsarticle`. The `\todo{}` macro marks open items.
+- **Local:** `latexmk -pdf main.tex` (needs `elsarticle`, `pifont`, `adjustbox`).

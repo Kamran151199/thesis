@@ -1,0 +1,101 @@
+%% ============================================================================
+%%  Bibliography.bib  (the file `\bibliography{Bibliography}` in main.tex loads)
+%%
+%%  PROFESSOR'S RULES (from the template) — this bib MUST satisfy them:
+%%    • 25–50 references total.
+%%    • ≥80% later than 2021 (i.e., 2022 or newer).
+%%    • Journals/conferences only — preference: IEEE, Springer, ACM, PLoS,
+%%      Elsevier (ScienceDirect), MDPI.
+%%    • Preferably NO arXiv / websites / thesis / ResearchGate.
+%%    • Take every BibTeX entry from Google Scholar ("Cite → BibTeX"), not here.
+%%
+%%  ⚠️ The entries below are PUBLISHED-VENUE ANCHORS, flagged VERIFY — replace
+%%     each with the exact Google-Scholar BibTeX before submission. The bulk of
+%%     the 25–50 refs (mostly 2022–2025 journal/conference papers) get added as
+%%     we write the Literature Review (RQ1 survey).
+%%
+%%  ⚠️ arXiv-only works we rely on (Qwen2-VL, PaliGemma, and the recent
+%%     chart/doc faithfulness papers ChartHal/EDCT/Chart-RVR) violate the
+%%     no-arXiv rule. Options: cite a published version if one exists, or ask the
+%%     professor whether a few foundational arXiv cites are acceptable exceptions.
+%% ============================================================================
+
+% ---- Template example (currently cited in the Introduction placeholder; remove
+%      once that paragraph is rewritten with our own citation) ------------------
+@article{mittal2023vehicle,
+  title   = {Vehicle detection and traffic density estimation using ensemble of deep learning models},
+  author  = {Mittal, Utkarsh and Chawla, Priyanka},
+  journal = {Multimedia Tools and Applications},
+  volume  = {82}, number = {7}, pages = {10397--10419}, year = {2023},
+  publisher = {Springer}
+}
+
+% ============================================================================
+%  PUBLISHED-VENUE ANCHORS for our work — VERIFY each via Google Scholar.
+%  (Conferences are allowed; note CLIP/DocVQA are 2021 and count against the
+%   80%-post-2021 quota, so keep the lit-review refs mostly 2022+.)
+% ============================================================================
+
+@inproceedings{radford2021clip,
+  title     = {Learning transferable visual models from natural language supervision},
+  author    = {Radford, Alec and Kim, Jong Wook and Hallacy, Chris and others},
+  booktitle = {Proceedings of the International Conference on Machine Learning (ICML)},
+  year      = {2021}
+  % VERIFY (PMLR vol/pages) via Google Scholar
+}
+
+@inproceedings{li2023blip2,
+  title     = {{BLIP-2}: Bootstrapping language-image pre-training with frozen image encoders and large language models},
+  author    = {Li, Junnan and Li, Dongxu and Savarese, Silvio and Hoi, Steven},
+  booktitle = {Proceedings of the International Conference on Machine Learning (ICML)},
+  year      = {2023}
+  % VERIFY
+}
+
+@inproceedings{lu2022scienceqa,
+  title     = {Learn to explain: Multimodal reasoning via thought chains for science question answering},
+  author    = {Lu, Pan and Mishra, Swaroop and Xia, Tanglin and others},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2022}
+  % VERIFY
+}
+
+@inproceedings{masry2022chartqa,
+  title     = {{ChartQA}: A benchmark for question answering about charts with visual and logical reasoning},
+  author    = {Masry, Ahmed and Long, Do Xuan and Tan, Jia Qing and Joty, Shafiq and Hoque, Enamul},
+  booktitle = {Findings of the Association for Computational Linguistics (ACL)},
+  year      = {2022}
+  % VERIFY
+}
+
+@inproceedings{mathew2021docvqa,
+  title     = {{DocVQA}: A dataset for {VQA} on document images},
+  author    = {Mathew, Minesh and Karatzas, Dimosthenis and Jawahar, C. V.},
+  booktitle = {Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision (WACV)},
+  year      = {2021}
+  % VERIFY
+}
+
+@inproceedings{schwenk2022aokvqa,
+  title     = {{A-OKVQA}: A benchmark for visual question answering using world knowledge},
+  author    = {Schwenk, Dustin and Khandelwal, Apoorv and Clark, Christopher and Marino, Kenneth and Mottaghi, Roozbeh},
+  booktitle = {Proceedings of the European Conference on Computer Vision (ECCV)},
+  year      = {2022}
+  % VERIFY
+}
+
+@inproceedings{hu2022lora,
+  title     = {{LoRA}: Low-rank adaptation of large language models},
+  author    = {Hu, Edward J. and Shen, Yelong and Wallis, Phillip and others},
+  booktitle = {Proceedings of the International Conference on Learning Representations (ICLR)},
+  year      = {2022}
+  % VERIFY
+}
+
+@inproceedings{dettmers2023qlora,
+  title     = {{QLoRA}: Efficient finetuning of quantized {LLMs}},
+  author    = {Dettmers, Tim and Pagnoni, Artidoro and Holtzman, Ari and Zettlemoyer, Luke},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2023}
+  % VERIFY
+}
