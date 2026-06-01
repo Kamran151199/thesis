@@ -21,6 +21,7 @@ data:
   max_train: 2000
   max_eval: 200
   prompt_variant: explanation_then_answer
+  max_length: 1024            # Qwen image ≈320 tokens; 512 would truncate the target
 
 objective:
   name: generative

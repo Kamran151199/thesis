@@ -92,7 +92,11 @@ class Evaluator:
         reasoning = ""
         if self.cfg.cot and self.template.produces_reasoning:
             cont = generate_continuation(
-                self.wrapper, ex, self.template, self.cfg.max_new_tokens
+                self.wrapper,
+                ex,
+                self.template,
+                self.cfg.max_new_tokens,
+                max_length=self.cfg.max_length,
             )
             reasoning, _ = split_reasoning_answer(cont)
 
@@ -108,7 +112,7 @@ class Evaluator:
             )
             scores = [
                 score_continuation(
-                    self.wrapper, image, context, c, self.cfg.max_new_tokens
+                    self.wrapper, image, context, c, self.cfg.max_length
                 )
                 for c in ex.choices
             ]
@@ -123,7 +127,11 @@ class Evaluator:
 
         # Open-ended: the generated text IS the answer.
         cont = generate_continuation(
-            self.wrapper, ex, self.template, self.cfg.max_new_tokens
+            self.wrapper,
+            ex,
+            self.template,
+            self.cfg.max_new_tokens,
+            max_length=self.cfg.max_length,
         )
         gen_reasoning, answer = split_reasoning_answer(cont)
         return Prediction(

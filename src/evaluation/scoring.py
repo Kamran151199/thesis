@@ -34,7 +34,7 @@ from src.utils.devices import move_to_device
 
 @torch.no_grad()
 def score_continuation(
-    wrapper, image, context_text: str, continuation_text: str, max_length: int = 512
+    wrapper, image, context_text: str, continuation_text: str, max_length: int = 1024
 ) -> float:
     """Length-normalized log-likelihood of ``continuation_text`` after ``context_text``.
 
@@ -62,21 +62,31 @@ def score_continuation(
 
 @torch.no_grad()
 def generate_continuation(
-    wrapper, ex: VLMExample, template: PromptTemplate, max_new_tokens: int = 160
+    wrapper,
+    ex: VLMExample,
+    template: PromptTemplate,
+    max_new_tokens: int = 160,
+    max_length: int | None = None,
 ) -> str:
     """Generate the model's continuation of the prompt (its reasoning + answer).
 
     Returns the text AFTER the prompt, with any echoed prompt stripped. The
     caller splits it into reasoning / answer on the "Answer:" cue.
+
+    ``max_length`` caps the *prompt* encoding (image tokens + text); pass the
+    ``EvalConfig.max_length`` so it exceeds the backbone's image-token count
+    (Qwen2-VL ≈ 320). Falls back to ``template_max_length`` when not given.
     """
     prompt = template.prompt(ex)
     image = ex.image.convert("RGB")
+    if max_length is None:
+        max_length = template_max_length(template)
     enc = wrapper.build_inputs(
         [image],
         [prompt],
         padding=False,
         truncation=True,
-        max_length=template_max_length(template),
+        max_length=max_length,
         for_generation=True,
     )
     enc = move_to_device(dict(enc), wrapper.device, wrapper.dtype)
@@ -87,9 +97,11 @@ def generate_continuation(
 
 
 def template_max_length(template: PromptTemplate) -> int:
-    """Prompt-encoding length cap for generation (separate from the new-token
-    budget). 512 is plenty for a question + options."""
-    return 512
+    """Fallback prompt-encoding length cap (separate from the new-token budget).
+    1024 holds a question + options + the image-token block for every backbone
+    (BLIP-2 ≈ 32 image tokens, Qwen2-VL ≈ 320). Callers normally pass the
+    ``EvalConfig.max_length`` instead of relying on this default."""
+    return 1024
 
 
 def split_reasoning_answer(continuation: str) -> tuple[str, str]:

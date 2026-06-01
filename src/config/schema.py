@@ -184,6 +184,11 @@ class EvalConfig:
     metrics: list[str] = field(default_factory=lambda: ["mc_accuracy"])
     cot: bool = True
     max_new_tokens: int = 160  # generation budget for the reasoning span
+    # Sequence-truncation cap for scoring/encoding. MUST exceed the backbone's
+    # image-token count (BLIP-2 ≈ 32, Qwen2-VL ≈ 320) — a smaller cap slices the
+    # image-token block mid-way and the processor raises a token-count mismatch.
+    # This is NOT max_new_tokens (a generation budget); the two are unrelated.
+    max_length: int = 1024
     batch_size: int = 1  # eval is per-item (scoring loop); kept for symmetry
 
 
