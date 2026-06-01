@@ -45,6 +45,7 @@ import torch
 
 from src.data.example import VLMExample
 from src.data.prompts import PromptTemplate
+from src.models.base import BaseVLMWrapper
 
 LABEL_IGNORE = -100  # HF's "ignore this position in the loss" sentinel
 
@@ -87,7 +88,7 @@ class VLMCollator:
 
     def __init__(
         self,
-        wrapper,
+        wrapper: BaseVLMWrapper,
         template: PromptTemplate,
         max_length: int = 512,
         tag_spans: bool = False,
@@ -136,7 +137,7 @@ class VLMCollator:
             enc["span_ids"] = self._build_span_ids(examples, images, prompts, prompt_lens, labels)
         return dict(enc)
 
-    def _build_span_ids(self, examples, images, prompts, prompt_lens, labels) -> torch.Tensor:
+    def _build_span_ids(self, examples: list[VLMExample], images, prompts, prompt_lens, labels) -> torch.Tensor:
         """Tag each TARGET token as explanation (1) or answer (2); rest = 0.
 
         Boundaries are found by re-encoding cumulative prefixes

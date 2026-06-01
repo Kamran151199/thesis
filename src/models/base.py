@@ -242,7 +242,7 @@ class BaseVLMWrapper(ABC):
 
     @torch.no_grad()
     def generate(self, batch: dict[str, Any], **gen_kwargs):
-        return self.model.generate(**batch, **gen_kwargs)
+        return self.model.generate(**batch, **gen_kwargs)  # type: ignore[attr-defined]
 
     def train(self) -> None:
         self.model.train()

@@ -31,13 +31,16 @@ import time
 from typing import Any, Callable
 
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 
 from src.config.schema import ExperimentConfig
 from src.training.callbacks import Callback
 from src.training.optim import build_optimizer, build_scheduler
 from src.utils.devices import move_to_device
 from src.utils.logging import get_logger
+from src.data.collator import VLMCollator
+from src.models.base import BaseVLMWrapper
+from src.objectives.base import BaseObjective
 
 log = get_logger(__name__)
 
@@ -66,10 +69,10 @@ class Trainer:
 
     def __init__(
         self,
-        wrapper,
-        objective,
-        dataset,
-        collator,
+        wrapper: BaseVLMWrapper,
+        objective: BaseObjective,
+        dataset: Dataset,
+        collator: VLMCollator,
         cfg: ExperimentConfig,
         callbacks: list[Callback] | None = None,
         evaluator_fn: Callable[[], dict[str, float]] | None = None,
@@ -91,6 +94,7 @@ class Trainer:
         )
 
         accum = cfg.train.grad_accum_steps
+
         optim_steps_per_epoch = math.ceil(len(self.loader) / accum)
         total = cfg.train.epochs * optim_steps_per_epoch
         if cfg.train.max_steps is not None:
@@ -123,7 +127,8 @@ class Trainer:
         optim_step, micro, last = 0, 0, {}
         self.optimizer.zero_grad()
         done = False
-        for _epoch in range(cfg.epochs):
+        for _ in range(cfg.epochs):
+
             for batch in self.loader:
                 batch = move_to_device(batch, device, dtype)
                 out = self.objective.compute(self.wrapper, batch)
@@ -168,6 +173,8 @@ class Trainer:
         return summary
 
     def _run_eval(self, step: int) -> dict[str, float]:
+        if not self.evaluator_fn:
+            raise ValueError("No evaluator_fn provided to Trainer, can't run eval")
         self.wrapper.eval()
         metrics = self.evaluator_fn()
         self._fire("on_evaluate", step, metrics)

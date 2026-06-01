@@ -82,7 +82,7 @@ class ExperimentRunner:
         trainer = Trainer(
             wrapper,
             objective,
-            train_ds,
+            train_ds,  # type: ignore (BaseVLMDataset is a Dataset's duck type, but mypy doesn't see it)
             collator,
             cfg,
             callbacks,

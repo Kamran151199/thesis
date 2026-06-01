@@ -50,6 +50,11 @@ class ExplanationAwareObjective(BaseObjective):
         }
         logits = wrapper.forward(forward_batch).logits
 
+        # here we take logits (the unnormalized scores for every token),
+        # take the labels (the target token ids),
+        # take the span_ids (which token belongs to which loss component),
+        # and compute the loss by masking out the irrelevant tokens for each component and applying cross-entropy to the rest.
+        # How filtering out the irrelevant tokens works: masked_token_ce applies the CE loss only to the tokens where the mask is True, effectively ignoring the others.
         l_answer = masked_token_ce(logits, labels, mask=span_ids == SPAN_ANSWER)
         l_expl = masked_token_ce(logits, labels, mask=span_ids == SPAN_EXPLANATION)
         loss = alpha * l_answer + (1.0 - alpha) * l_expl

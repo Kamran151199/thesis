@@ -81,7 +81,7 @@ def apply_qlora(
         target_modules=target_modules,
         task_type=task_type,
     )
-    model = get_peft_model(model, peft_cfg)
+    model = get_peft_model(model, peft_cfg)  # type: ignore[return-value]
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     total = sum(p.numel() for p in model.parameters())
     log.info(

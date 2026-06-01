@@ -26,12 +26,16 @@ import numpy as np
 import torch
 
 from src.config.schema import EvalConfig
+from src.data.base import BaseVLMDataset
+from src.data.example import VLMExample
+from src.data.prompts import PromptTemplate
 from src.evaluation.base import BaseMetric, Prediction
 from src.evaluation.scoring import (
     generate_continuation,
     score_continuation,
     split_reasoning_answer,
 )
+from src.models.base import BaseVLMWrapper
 from src.utils.logging import get_logger
 
 log = get_logger(__name__)
@@ -56,7 +60,12 @@ class Evaluator:
     """
 
     def __init__(
-        self, wrapper, dataset, template, cfg: EvalConfig, metrics: list[BaseMetric]
+        self,
+        wrapper: BaseVLMWrapper,
+        dataset: BaseVLMDataset,
+        template: PromptTemplate,
+        cfg: EvalConfig,
+        metrics: list[BaseMetric]
     ):
         self.wrapper = wrapper
         self.dataset = dataset
@@ -75,7 +84,7 @@ class Evaluator:
                 log.info("predicted %d/%d", i + 1, len(self.dataset))
         return preds
 
-    def _predict_one(self, ex) -> Prediction:
+    def _predict_one(self, ex: VLMExample) -> Prediction:
         image = ex.image.convert("RGB")
         prompt = self.template.prompt(ex)
 
@@ -88,6 +97,9 @@ class Evaluator:
             reasoning, _ = split_reasoning_answer(cont)
 
         if ex.is_multiple_choice:
+            if not ex.choices:
+                raise ValueError("Multiple-choice example has no choices: %r", ex)
+
             # Build the context the choices are scored in (CoT-conditioned if any).
             context = (
                 f"{prompt} Reasoning: {reasoning} Answer:"
@@ -136,7 +148,7 @@ class Evaluator:
             results["random_baseline"] = float(
                 np.mean(
                     [
-                        1.0 / len(self.dataset[i].choices)
+                        1.0 / len(self.dataset[i].choices)  # type: ignore[union-attr]
                         for i in range(len(self.dataset))
                     ]
                 )

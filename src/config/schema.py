@@ -29,6 +29,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 from typing import Any
+from typing_extensions import Literal
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -68,7 +69,7 @@ class LoraConfig:
     r: int = 16
     alpha: int = 32
     dropout: float = 0.05
-    bias: str = "none"  # "none" | "lora_only" | "all"
+    bias: Literal["none", "lora_only", "all"] = "none"  # "none" | "lora_only" | "all"
     target_modules: list[str] | str = "auto"
 
 
