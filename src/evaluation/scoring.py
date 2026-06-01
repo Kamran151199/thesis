@@ -66,21 +66,19 @@ def generate_continuation(
     ex: VLMExample,
     template: PromptTemplate,
     max_new_tokens: int = 160,
-    max_length: int | None = None,
+    max_length: int = 1024,
 ) -> str:
     """Generate the model's continuation of the prompt (its reasoning + answer).
 
     Returns the text AFTER the prompt, with any echoed prompt stripped. The
     caller splits it into reasoning / answer on the "Answer:" cue.
 
-    ``max_length`` caps the *prompt* encoding (image tokens + text); pass the
-    ``EvalConfig.max_length`` so it exceeds the backbone's image-token count
-    (Qwen2-VL ≈ 320). Falls back to ``template_max_length`` when not given.
+    ``max_length`` caps the *prompt* encoding (image tokens + text); the default
+    1024 clears every backbone's image-token block (BLIP-2 ≈ 32, Qwen2-VL ≈ 320).
+    The evaluator passes ``EvalConfig.max_length`` here.
     """
     prompt = template.prompt(ex)
     image = ex.image.convert("RGB")
-    if max_length is None:
-        max_length = template_max_length(template)
     enc = wrapper.build_inputs(
         [image],
         [prompt],
@@ -94,14 +92,6 @@ def generate_continuation(
     text = wrapper.processor.tokenizer.decode(out_ids[0], skip_special_tokens=True)
     # Some models echo the prompt in the output; strip it if so.
     return text[len(prompt) :].strip() if text.startswith(prompt) else text.strip()
-
-
-def template_max_length(template: PromptTemplate) -> int:
-    """Fallback prompt-encoding length cap (separate from the new-token budget).
-    1024 holds a question + options + the image-token block for every backbone
-    (BLIP-2 ≈ 32 image tokens, Qwen2-VL ≈ 320). Callers normally pass the
-    ``EvalConfig.max_length`` instead of relying on this default."""
-    return 1024
 
 
 def split_reasoning_answer(continuation: str) -> tuple[str, str]:
