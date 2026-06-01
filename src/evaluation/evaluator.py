@@ -31,8 +31,8 @@ from src.data.example import VLMExample
 from src.data.prompts import PromptTemplate
 from src.evaluation.base import BaseMetric, Prediction
 from src.evaluation.scoring import (
-    generate_continuation,
-    score_continuation,
+    generate_batch,
+    score_batch,
     split_reasoning_answer,
 )
 from src.models.base import BaseVLMWrapper
@@ -77,68 +77,112 @@ class Evaluator:
     def predict(self) -> list[Prediction]:
         self.wrapper.eval()
         preds: list[Prediction] = []
-        for i in range(len(self.dataset)):
-            ex = self.dataset[i]
-            preds.append(self._predict_one(ex))
-            if (i + 1) % 50 == 0:
-                log.info("predicted %d/%d", i + 1, len(self.dataset))
+        n = len(self.dataset)
+        bs = max(1, self.cfg.batch_size)
+        for start in range(0, n, bs):
+            chunk = [self.dataset[i] for i in range(start, min(start + bs, n))]
+            preds.extend(self._predict_chunk(chunk))
+            log.info("predicted %d/%d", min(start + bs, n), n)
         return preds
 
     def _predict_one(self, ex: VLMExample) -> Prediction:
-        image = ex.image.convert("RGB")
-        prompt = self.template.prompt(ex)
+        """Single-example prediction — just a one-row :meth:`_predict_chunk`."""
+        return self._predict_chunk([ex])[0]
 
-        # Generate the model's continuation (reasoning + tentative answer).
-        reasoning = ""
-        if self.cfg.cot and self.template.produces_reasoning:
-            cont = generate_continuation(
+    def _predict_chunk(self, chunk: list[VLMExample]) -> list[Prediction]:
+        """Predict a batch of examples in as few forward passes as possible.
+
+        One batched generation for the whole chunk (the autoregressive
+        bottleneck), then — for multiple-choice — one batched likelihood pass
+        over every (example × choice) row. The per-item results are identical to
+        the single-item ``generate_continuation`` / ``score_continuation`` path;
+        only the batching differs (so the GPU stays busy instead of idling at
+        batch size 1).
+        """
+        is_mc = self.dataset.is_multiple_choice
+        prompts = [self.template.prompt(ex) for ex in chunk]
+        images = [ex.image.convert("RGB") for ex in chunk]
+
+        # Batched generation: reasoning for MC+CoT, or the answer for open-ended.
+        conts: list[str] | None = None
+        if (not is_mc) or (self.cfg.cot and self.template.produces_reasoning):
+            conts = generate_batch(
                 self.wrapper,
-                ex,
+                chunk,
                 self.template,
                 self.cfg.max_new_tokens,
-                max_length=self.cfg.max_length,
+                self.cfg.max_length,
             )
-            reasoning, _ = split_reasoning_answer(cont)
 
-        if ex.is_multiple_choice:
-            if not ex.choices:
-                raise ValueError("Multiple-choice example has no choices: %r", ex)
-
-            # Build the context the choices are scored in (CoT-conditioned if any).
-            context = (
-                f"{prompt} Reasoning: {reasoning} Answer:"
-                if reasoning
-                else f"{prompt} Answer:"
-            )
-            scores = [
-                score_continuation(
-                    self.wrapper, image, context, c, self.cfg.max_length
+        if not is_mc:
+            # Open-ended: the generated text IS the answer.
+            assert conts is not None  # always generated on the open-ended path
+            out: list[Prediction] = []
+            for ex, cont in zip(chunk, conts):
+                gen_reasoning, answer = split_reasoning_answer(cont)
+                out.append(
+                    Prediction(
+                        example=ex,
+                        predicted_text=answer or cont.strip(),
+                        reasoning=gen_reasoning,
+                    )
                 )
-                for c in ex.choices
-            ]
-            idx = int(np.argmax(scores))
-            return Prediction(
-                example=ex,
-                predicted_index=idx,
-                predicted_text=ex.choices[idx],
-                reasoning=reasoning,
-                choice_scores=scores,
+            return out
+
+        # Multiple-choice: build each example's (CoT-conditioned) scoring context…
+        reasonings = (
+            [split_reasoning_answer(c)[0] for c in conts]
+            if conts is not None
+            else [""] * len(chunk)
+        )
+        contexts = [
+            f"{p} Reasoning: {r} Answer:" if r else f"{p} Answer:"
+            for p, r in zip(prompts, reasonings)
+        ]
+
+        # …then flatten every (example, choice) pair into one scoring batch.
+        row_images: list = []
+        row_contexts: list[str] = []
+        row_choices: list[str] = []
+        owner: list[int] = []
+        for i, ex in enumerate(chunk):
+            if not ex.choices:
+                raise ValueError(f"Multiple-choice example has no choices: {ex!r}")
+            for choice in ex.choices:
+                row_images.append(images[i])
+                row_contexts.append(contexts[i])
+                row_choices.append(choice)
+                owner.append(i)
+
+        # Score in sub-batches of batch_size rows (bounds the logits tensor).
+        bs = max(1, self.cfg.batch_size)
+        flat_scores: list[float] = []
+        for s in range(0, len(row_images), bs):
+            flat_scores.extend(
+                score_batch(
+                    self.wrapper,
+                    row_images[s : s + bs],
+                    row_contexts[s : s + bs],
+                    row_choices[s : s + bs],
+                    self.cfg.max_length,
+                )
             )
 
-        # Open-ended: the generated text IS the answer.
-        cont = generate_continuation(
-            self.wrapper,
-            ex,
-            self.template,
-            self.cfg.max_new_tokens,
-            max_length=self.cfg.max_length,
-        )
-        gen_reasoning, answer = split_reasoning_answer(cont)
-        return Prediction(
-            example=ex,
-            predicted_text=answer or cont.strip(),
-            reasoning=reasoning or gen_reasoning,
-        )
+        # Regroup scores by example and take the argmax choice.
+        out = []
+        for i, ex in enumerate(chunk):
+            ex_scores = [flat_scores[j] for j, o in enumerate(owner) if o == i]
+            idx = int(np.argmax(ex_scores))
+            out.append(
+                Prediction(
+                    example=ex,
+                    predicted_index=idx,
+                    predicted_text=ex.choices[idx],
+                    reasoning=reasonings[i],
+                    choice_scores=ex_scores,
+                )
+            )
+        return out
 
     def evaluate(self) -> dict[str, float]:
         """Predict, then compute every applicable configured metric."""

@@ -122,6 +122,31 @@ def test_retrieval_recall_perfect():
     assert out["R@1"] == 1.0 and out["MRR"] == 1.0
 
 
+def test_per_row_neg_ce_matches_per_row_reference():
+    # The anchor for batched eval: per_row_neg_ce over a B-row batch must equal
+    # B independent single-item scores. HF's model(labels=…).loss for ONE row is
+    # the mean CE over its non-masked shifted tokens — which is exactly what
+    # cross_entropy(..., ignore_index=-100) returns per row. So if our batched
+    # helper matches that per-row reference, batched and per-item eval agree.
+    from torch.nn.functional import cross_entropy
+
+    from src.evaluation.scoring import per_row_neg_ce
+
+    torch.manual_seed(0)
+    B, T, V = 3, 9, 13
+    logits = torch.randn(B, T, V)
+    labels = torch.randint(0, V, (B, T))
+    for i, ctx in enumerate([2, 4, 5]):  # a different context-prefix length per row
+        labels[i, :ctx] = -100
+
+    got = per_row_neg_ce(logits, labels)
+    for i in range(B):
+        ref = cross_entropy(
+            logits[i, :-1, :].float(), labels[i, 1:], ignore_index=-100
+        ).item()
+        assert abs(got[i] - (-ref)) < 1e-5, (got[i], -ref)
+
+
 def _run_all():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for t in tests:

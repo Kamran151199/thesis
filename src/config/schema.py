@@ -189,7 +189,11 @@ class EvalConfig:
     # image-token block mid-way and the processor raises a token-count mismatch.
     # This is NOT max_new_tokens (a generation budget); the two are unrelated.
     max_length: int = 1024
-    batch_size: int = 1  # eval is per-item (scoring loop); kept for symmetry
+    # How many examples per batched generation, and how many (example × choice)
+    # rows per batched scoring forward. Higher → better GPU use, more memory. 8 is
+    # comfortable for a 2B model on an A100-40GB; lower it if you OOM, raise it to
+    # go faster. (batch_size=1 reproduces the old per-item path bit-for-bit.)
+    batch_size: int = 8
 
 
 # ════════════════════════════════════════════════════════════════════════════
