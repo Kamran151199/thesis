@@ -1,16 +1,7 @@
-%% Elsevier elsarticle template (num style) — adapted to the professor's
-%% March-2026 template. Structure, rules, and macros follow that template
-%% verbatim; only the front matter / abstract / RQs are filled for this project.
-%%
-%% EDITING RULES (from the template's General Instructions — keep them in mind):
-%%  - 30+ pages (excluding references); 7–10 sentences per paragraph.
-%%  - ONE SENTENCE PER LINE in the source.
-%%  - Do NOT delete template text (except General Instructions): comment it out
-%%    and write your version on the lines below it.
-%%  - 25–50 references, 80% later than 2021, journals/conferences (IEEE/Springer/
-%%    ACM/PLoS/Elsevier/MDPI). Preferably NO arXiv/website/thesis. Google-Scholar BibTeX.
-%%  - Figures in PowerPoint/Visio/Canva/DrawIO → PDF (≥300 ppi), B&W-friendly.
-%%
+%% Elsevier elsarticle template (num style) adapted for the journal manuscript.
+%% The manuscript keeps one sentence per line in the source, and result-dependent
+%% claims are left as explicit TODO slots until the experiment ledger is complete.
+
 \documentclass[preprint,12pt]{elsarticle}
 
 \usepackage{amssymb}
@@ -21,40 +12,31 @@
 \usepackage{multirow}
 \usepackage{pifont}
 \usepackage{adjustbox}
-\usepackage{array}
 \usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{url}
 
-\newcommand{\cmark}{\ding{51}} % yes
-\newcommand{\xmark}{\ding{55}} % no
-\newcommand{\pmark}{\textcolor{orange}{$\sim$}} % partial
+\setlength{\emergencystretch}{2em}
 
-\newcommand{\rev}[1]{\textcolor{blue}{#1}}      % revised / added text
-\newcommand{\del}[1]{\textcolor{red}{#1}}       % deleted text (sout needs ulem; kept plain)
-
-% Our working note macro (remove before submission).
+\newcommand{\cmark}{\ding{51}}
+\newcommand{\xmark}{\ding{55}}
+\newcommand{\pmark}{\textcolor{orange}{$\sim$}}
+\newcommand{\rev}[1]{\textcolor{blue}{#1}}
+\newcommand{\del}[1]{\textcolor{red}{#1}}
 \newcommand{\todo}[1]{\textcolor{red}{[\textbf{TODO:} #1]}}
 
-% \journal{Nuclear Physics B}
-\journal{Information Fusion} % target venue (alt: Expert Systems with Applications)
+\journal{Information Fusion}
 
 \begin{document}
 
 \begin{frontmatter}
 
-%% Title
-% \title{Scientific Title of your plan}
 \title{Cross-Modal Generative Alignment for Document, Chart, and Image
 Reasoning with Explanation-Aware Vision--Language Models}
 
-%% Authors
-% \author[label1]{Your complete name}
-% \author[label1,label2]{Raja Hashim Ali}
-% \author[label1]{Your Second Supervisor}
 \author[label1]{Komron Valijonov}
 \author[label1,label2]{Raja Hashim Ali}
-% \author[label1]{Second Supervisor Name} % fill or remove
 
-%% Author affiliation (kept from the template)
 \affiliation[label1]{organization={Department of Business, University of Europe for Applied Sciences},
             addressline={Think Campus, Konrad-Zuse-Ring 11},
             city={Potsdam},
@@ -67,44 +49,30 @@ Reasoning with Explanation-Aware Vision--Language Models}
             postcode={23460},
             country={Pakistan}}
 
-%% Abstract — keep the 5-part structure (2 background / 2 gap+problem /
-%% 2 methodology / 3 results / 1 contribution), one sentence per line.
 \begin{abstract}
-% Two sentences of background and importance of this topic.
-% Two sentences defining the gap analysis (work not done in field) and your problem statement.
-% Two sentences about the methodology of your work.
-% Three sentences of Results and significance of your results.
-% One sentence summarizing your contribution.
-Vision--language models now answer questions about documents, charts, and natural images by aligning a frozen vision encoder with a pretrained language model.
-For structured visual content such as charts and documents the reasoning steps are explicit, which makes both the choice of alignment objective and the trustworthiness of the model's stated reasoning especially consequential.
-Prior work studies alignment and rationale faithfulness mostly through evaluation-only benchmarks or reinforcement-learning methods, and rarely under a fixed low-resource fine-tuning budget.
-It therefore remains unclear whether inexpensive supervised explanation-aware fine-tuning improves not only answer accuracy but the faithfulness of generated rationales, and whether any such benefit depends on the visual domain.
-We fine-tune open-source vision--language models with QLoRA under four alignment variants---baseline, contrastive-enhanced, generative, and explanation-aware generative---holding data and budget fixed so that only the training signal varies.
-We evaluate on DocVQA, ChartQA, ScienceQA, A-OKVQA, and VQAv2 along answer accuracy, explanation quality (BLEU, ROUGE-L, BERTScore), and two faithfulness measures (attention-alignment and evidence-masking consistency).
-\todo{Result sentence 1 --- accuracy by alignment variant across domains.}
-\todo{Result sentence 2 --- explanation-aware effect on faithfulness, by domain.}
-\todo{Result sentence 3 --- efficiency/scale and transfer finding.}
-\todo{Contribution sentence --- explanation-aware QLoRA supervised fine-tuning yields more faithful reasoning, with the largest gains on structured visual content.}
+Vision--language models now answer questions about documents, charts, and natural images by aligning visual evidence with a pretrained language model.
+For structured visual content such as charts and documents, the reasoning steps are often visible in the input, which makes both the alignment objective and the trustworthiness of the generated rationale important.
+Prior work studies contrastive alignment, generative alignment, and rationale generation mostly under different backbones, datasets, or compute budgets, so the effect of the training signal is difficult to isolate.
+It also remains unclear whether supervised explanation-aware fine-tuning improves faithfulness, or merely makes the model produce longer and more plausible text.
+This study fine-tunes open-source vision--language models under four controlled variants: zero-shot baseline, BLIP-2 contrastive-enhanced alignment, Qwen2-VL generative alignment, and Qwen2-VL explanation-aware generative alignment.
+The evaluation spans DocVQA, ChartQA, ScienceQA, A-OKVQA, and a VQAv2 subset, and measures answer accuracy, explanation quality, and visual-evidence faithfulness under the same generate-then-score protocol.
+\todo{Insert final result sentence on accuracy by objective and domain after all runs are complete.}
+\todo{Insert final result sentence on explanation quality and faithfulness after rationale metrics and masking tests are complete.}
+\todo{Insert final result sentence on scale, efficiency, and cross-domain transfer after the corresponding runs are complete.}
+\todo{Insert final contribution sentence that states the supported finding without over-claiming.}
 \end{abstract}
 
-%% Graphical abstract
 \begin{graphicalabstract}
-% \includegraphics{grabs}
-\todo{Add graphical abstract (PowerPoint/Canva $\rightarrow$ PDF).}
+\includegraphics[width=\linewidth]{Figures/fig_graphical_abstract}
 \end{graphicalabstract}
 
-%% Research highlights
 \begin{highlights}
-% \item Research highlight 1
-% \item Research highlight 2
-\item \todo{Highlight 1 --- the controlled objective comparison under a fixed budget.}
-\item \todo{Highlight 2 --- explanation-aware training improves faithfulness, not just accuracy.}
-\item \todo{Highlight 3 --- the benefit is domain-dependent (structured vs.\ natural).}
+\item A fixed-budget protocol compares BLIP-2 contrastive-enhanced, Qwen2-VL generative, and Qwen2-VL explanation-aware alignment.
+\item The study evaluates structured and natural visual reasoning with answer, rationale, and evidence-faithfulness metrics.
+\item Result-dependent claims are intentionally reserved until the full experiment ledger is complete.
 \end{highlights}
 
-%% Keywords
 \begin{keyword}
-% component \sep formatting \sep style \sep styling \sep insert
 vision--language models \sep cross-modal alignment \sep explanation-aware training \sep chart and document understanding \sep faithfulness \sep parameter-efficient fine-tuning
 \end{keyword}
 
@@ -112,329 +80,415 @@ vision--language models \sep cross-modal alignment \sep explanation-aware traini
 
 \linenumbers
 
-%% main text
-%%
-
-\section*{General instructions}
-\textcolor{red}{This section is a a set of generalized instructions for writing a journal paper.
-Read these instructions carefully, and delete this section and its text after completing the write up.
-\begin{enumerate}
-    \item \textbf{SECTIONS:} You must have exactly the mentioned sections with the given (or more) number of paragraphs.
-    \item \textbf{TEMPLATE:} Do not delete any text from any of the sections (except General Instructions) in this template. Comment out the text and write your text in the next lines after the commented out text.
-    \item \textbf{PAGE LIMITS:} Observe the report page limits (minimum 30 or more pages without citations/references).
-    \item \textbf{PARAGRAPHS:} Each paragraph must consist of 7-10 sentences. A sentence consists of full stop ".", not lines.
-    \item \textbf{SENTENCES:} Each sentence should start on a new line in latex text (one sentence per line).
-    \item \textbf{FIGURES:} Make your figures in Microsoft Visio, Canva, DrawIO and/or Powerpoint only. Save them as PDFs. Barcharts and graphs should be saved directly as pdfs (resolution of image should at least be 300 ppi). Figures with png or jpeg extension, except for where screenshots are the only option, are not to be used.
-    \item \textbf{SOURCE FILES:} SAVE ALL SOURCE FILES OF FIGURES OR THEIR LINKS IN THE "Source" FOLDER.
-    \item \textbf{CODES:} Save all your codes in ``Codes'' folder in the repository. Also create a GitHub repository with all the code, paste the accessible link in a text file, and add that text file in the Codes folder.
-    \item \textbf{DATASETS:} Save all your datasets in the ``Datasets'' folder. If dataset is too large, then save the dataset link in a text file and add this file in the datasets folder.
-    \item \textbf{TABLES:} Generate all tables in Excel first, then convert them into latex tables using https://www.tablesgenerator.com.
-    \item \textbf{REFERENCES:} Total references should be between 25 and 50. Use latest references with 80\% references later than (not including) 2021. References should preferably be from journals and conferences only (IEEE, Springer, ACM, PloS, Elsevier (ScienceDirect) or MDPI). Preferably no websites, thesis, Researchgate or Arxiv links. Take the bibtex of all references only from Google Scholar.
-    \item \textbf{MAIN TEXT REF:} All figures and tables should be referred to in the main text.
-    \item \textbf{CAPTIONS:} All captions for figures and tables should be detailed and self explanatory.
-    \item The sample breakdown of your report is shown in Figure~\ref{Fig:Figure}.
-\end{enumerate}
-}
-
-\begin{figure*}[!ht]
-% \centerline{\includegraphics[width=10.8cm]{./Figures/Project Journal Guidelines.jpeg}}
-\centerline{\todo{Section-breakdown guideline figure (from the template's Figures/ folder).}}
-\caption{Sample Sections and what to expect in each section.}
-\label{Fig:Figure}
-\end{figure*}
-
 \section{Introduction}
-% First paragraph on importance and applications of your topic~\cite{mittal2023vehicle}.
-% A figure to either introduce your topic, OR that gives statistical importance/applications of your topic.
-Vision--language models have rapidly become the dominant approach for answering natural-language questions about images, documents, and charts.
-They power practical systems for document understanding, chart analytics, visual accessibility, and educational decision support, in which a user poses a question in natural language and expects an answer grounded in the visual input.
-Document visual question answering alone underpins the automation of invoice processing, form understanding, and contract review across enterprise and public-sector workflows.
-Chart question answering serves analysts who must recover quantitative facts and trends that are otherwise locked inside unstructured figures.
-Science question answering couples visual evidence with multi-step reasoning, which is central to tutoring systems and assessment tools.
-Across these settings the visual input is often \emph{structured}, because documents carry layout and text while charts encode numbers through position, length, and colour.
-Such structured content rewards models that reason explicitly over the visual evidence rather than pattern-matching surface cues.
-The quality of cross-modal reasoning in these models therefore carries direct economic and societal value, which motivates a careful study of how that reasoning is learned.
+Vision--language models have become a practical way to answer natural-language questions about images, documents, and charts.
+They are now used for document understanding, chart analytics, visual accessibility, and educational support, where a user asks a question and expects an answer that is grounded in the visual input.
+Document visual question answering is especially useful for forms, invoices, receipts, and contracts because the answer is often located inside layout, text, and local structure.
+Chart question answering is useful in analytics because the relevant fact may be encoded by position, length, colour, or a trend rather than by written text.
+Science and commonsense visual question answering add another layer, because the model must combine visible evidence with background knowledge and multi-step reasoning.
+Across these settings, a correct answer without reliable reasoning is not enough, since a model can give a plausible explanation for the wrong reason.
+This makes cross-modal reasoning a trust problem as much as it is an accuracy problem.
+The central motivation of this work is therefore to study how the training objective affects not only what a vision--language model answers, but also how well its generated reasoning stays tied to the visual evidence.
 
-% Second paragraph on introducing the main technique (e.g., deep learning) and its importance in solving your main topic. Also on how this main technique is significant/helpful in solving your topic.
-The core technique behind these capabilities is cross-modal alignment, which maps the output of a visual encoder into the representation space of a pretrained language model.
-Two broad paradigms have emerged, namely contrastive alignment, which pulls matched image and text embeddings together in a shared space~\cite{radford2021clip}, and generative alignment, which trains the language model to produce text conditioned on projected visual features~\cite{li2023blip2}.
-Generative alignment is attractive for reasoning because it lets the language model articulate intermediate steps instead of only scoring a similarity.
-Recent instruction-tuned models extend this paradigm to flexible, free-form question answering over heterogeneous visual inputs.
-Adapting such models to a new domain no longer demands full fine-tuning, because parameter-efficient methods such as Low-Rank Adaptation and its quantised variant train a small fraction of the weights while freezing the base model~\cite{hu2022lora, dettmers2023qlora}.
-This efficiency makes systematic comparison feasible on a single commodity accelerator, which is the regime in which most researchers and practitioners actually operate.
-A further refinement is explanation-aware training, in which the model is supervised not only on the final answer but on a natural-language rationale that precedes it.
-Explanation-aware training is widely believed to improve reasoning, yet its effect on the \emph{faithfulness} of the produced rationales remains far less understood, particularly for structured visual content.
+The core mechanism behind modern vision--language models is cross-modal alignment.
+Recent work shows that the final behaviour of a vision--language model depends on the whole training recipe: visual resolution, data mixture, connector design, instruction tuning, and the way the language model is adapted~\cite{laurencon2024whatmatters,zhang2025mm15,deitke2025molmo}.
+Open model families such as Qwen2-VL, Qwen2.5-VL, LLaVA-OneVision, and PaliGemma are especially relevant here because they make strong multimodal backbones available for controlled academic experiments~\cite{wang2024qwen2vl,bai2025qwen25vl,li2025llavaonevision,beyer2024paligemma}.
+At the same time, text-rich and chart-focused work shows that general visual instruction following is not enough for documents, tables, charts, and scientific diagrams~\cite{fu2025textrichsurvey,wang2024docllm,masry2024chartinstruct,masry2025chartgemma}.
+The important practical change is that these systems can often be adapted without retraining the whole model.
+Low-rank variants such as DoRA make it possible to update a small number of trainable parameters while leaving the base model frozen or quantised~\cite{liu2024dora}.
+That is the setting in which many research projects and small teams operate, so it is the setting used here.
+The question is not whether a very large model can achieve the best leaderboard number, but whether a controlled and inexpensive alignment objective can make reasoning more accurate and more faithful.
 
 \subsection{Gap Analysis}
-% One paragraph defining what has not been done (Gap analysis).
-Despite rapid progress, several gaps remain in how explanation-aware cross-modal alignment is understood and evaluated.
-First, comparisons between contrastive and generative alignment are frequently confounded by differences in backbone, data, and training budget, which makes it difficult to attribute any performance gap to the objective itself.
-Second, most work on the faithfulness of generated explanations concentrates on natural images and object hallucination, leaving structured visual content such as charts and documents comparatively unexamined.
-Third, the prior work that does target structured content is dominated by evaluation-only benchmarks or by reinforcement-learning methods, rather than by simple supervised fine-tuning under a fixed low-resource budget.
-Fourth, the relationship between explanation faithfulness and answer correctness is rarely measured across domains, so it is unclear whether faithful reasoning reliably indicates a correct answer.
-Fifth, the domain-generality of explanation-aware alignment, meaning whether a benefit observed on one visual domain transfers to another, has not been systematically profiled.
-These gaps together leave open a practically important question of whether inexpensive supervised explanation-aware fine-tuning is a worthwhile investment for structured visual reasoning.
-Our study is designed to address these gaps under controlled and reproducible conditions.
+Despite fast progress, the effect of the training objective remains difficult to read from the current literature.
+Many comparisons mix together different data, architectures, model sizes, and optimisation budgets, so a gain can be caused by scale rather than by the objective.
+Contrastive learning is strong for retrieval-style alignment, but it does not directly train the model to produce answer sequences or rationales.
+Generative learning produces fluent answers, but fluency alone does not prove that the explanation is visually grounded.
+Explanation-aware training is attractive because it supervises intermediate reasoning, yet it can also teach the model to imitate rationales that sound correct while still relying on language priors.
+Most faithfulness work in vision--language modelling focuses on natural-image hallucination, while documents and charts are less studied even though their evidence is more structured and audit-friendly.
+The missing piece is a fixed-budget comparison that changes the alignment objective while keeping the rest of the experiment stable.
+This study addresses that missing piece across document, chart, science, commonsense, and natural-image question answering.
 
 \subsection{Research Questions}
-Enumerate as shown below what you are doing in this work (one main and at least two smaller research questions) and your contribution/novelty of your work.
+This work is organised around one main question: how should resource-constrained vision--language models be aligned when the goal is accurate and faithful visual reasoning?
+The following research questions make the problem measurable.
 
 \begin{enumerate}
-    % \item RQ1: Statement of Research Question 1.
-    % \item RQ2: Statement of Research Question 2.
-    % \item RQ3: Statement of Research Question 3.
     \item RQ1: How have vision--language alignment strategies evolved, and what principles underpin cross-modal representation learning?
-    \item RQ2: How does generative alignment compare to contrastive alignment for document, chart, and natural-image reasoning?
+    \item RQ2: How does BLIP-2 generative alignment compare to BLIP-2 contrastive-enhanced alignment for visual reasoning?
     \item RQ3: To what extent does explanation-aware training improve reasoning accuracy and explanation quality across visual domains?
     \item RQ4: Which architectural and training factors most determine cross-modal reasoning performance, and how do they differ across domains?
     \item RQ5: To what extent does explanation-aware training reduce hallucination and improve the faithfulness of rationales relative to the visual evidence?
-    \item RQ6: How does QLoRA compare across model scales (2B vs.\ 7B) in preserving the benefits of explanation-aware alignment?
+    \item RQ6: How does QLoRA compare across model scales in preserving the benefits of explanation-aware alignment?
     \item RQ7: How well does explanation-aware alignment learned on one visual domain transfer to unseen domains?
 \end{enumerate}
 
 \subsection{Problem Statement}
-% One paragraph that gives the exact problem statement solved in this study.
-This study addresses the problem of learning cross-modal alignment that yields both accurate answers and faithful explanations for structured visual reasoning, under a realistic single-GPU fine-tuning budget.
-Given a pretrained vision--language backbone and a fixed training budget, we ask how the choice of alignment objective affects answer accuracy, explanation quality, and explanation faithfulness across document, chart, and natural-image domains.
-We hold the backbone, data mixture, and optimisation budget constant, and vary only the training signal among the baseline, contrastive-enhanced, generative, and explanation-aware generative objectives.
-We further constrain all fine-tuning to the parameter-efficient QLoRA regime, so that every comparison fits a single forty-gigabyte accelerator and remains reproducible with modest resources.
-The problem is therefore not to maximise absolute accuracy on any single benchmark, but to isolate and quantify the effect of the training objective on the quality and trustworthiness of cross-modal reasoning.
-We treat faithfulness as a first-class outcome alongside accuracy, because a confidently wrong but plausible rationale is a distinct and consequential failure mode in deployed systems.
-This framing lets us determine whether explanation-aware supervision earns its additional cost, and whether that answer depends on the structure of the visual input.
+This study addresses the problem of learning cross-modal alignment that yields both accurate answers and faithful explanations under a realistic single-GPU fine-tuning budget.
+Given a pretrained vision--language backbone and a fixed training budget, we ask how the alignment objective affects answer accuracy, explanation quality, and explanation faithfulness across document, chart, and natural-image domains.
+The backbone, data representation, optimisation schedule, and evaluation procedure are held constant wherever possible.
+Only the training signal changes inside each controlled comparison: the BLIP-2 RQ2 pair keeps the same Q-Former training budget, and the Qwen2-VL generative and explanation-aware runs keep the same QLoRA setup.
+This keeps the comparison feasible on a modest accelerator and avoids relying on full-model fine-tuning of the language model.
+The goal is not to maximise the absolute score on any one benchmark.
+The goal is to isolate whether the objective changes the behaviour of the model in ways that matter for trustworthy reasoning.
+This framing treats a plausible but visually unsupported rationale as a real failure mode, even when the final answer happens to be correct.
 
 \subsection{Novelty of this study}
-% One paragraph shedding light on novelty of this study using a one-two liner entry followed by at least three bullet points as shown below.
-The novelty of this study lies in isolating the training objective as the single variable in a controlled, fixed-budget comparison, and in treating the faithfulness of explanations for structured visual content as a primary outcome rather than an afterthought.
+The novelty of this study is the controlled isolation of the alignment objective under a fixed low-resource budget.
+The paper also treats faithfulness for structured visual content as a primary outcome rather than as a secondary qualitative observation.
 Concretely, this work makes the following contributions:
 
 \begin{itemize}
-    % \item Novelty 1.
-    % \item Novelty 2.
-    % \item Novelty 3.
-    \item A controlled, fixed-budget comparison that isolates the training objective (contrastive vs.\ generative vs.\ explanation-aware) rather than confounding it with architecture or data.
-    \item A faithfulness analysis of generated rationales specifically for structured visual content (charts and documents), where prior faithfulness work concentrates on natural-image object hallucination.
-    \item Evidence on the domain-generality of explanation-aware alignment via a cross-domain transfer profile under parameter-efficient fine-tuning.
+    \item It defines fixed-budget comparisons of baseline, BLIP-2 contrastive-enhanced, Qwen2-VL generative, and Qwen2-VL explanation-aware alignment under explicit data and optimisation constraints.
+    \item It evaluates explanation quality and evidence faithfulness for documents and charts in addition to natural-image benchmarks.
+    \item It implements a generate-then-score evaluation protocol for multiple-choice reasoning so that the model's own generated rationale can influence the answer decision.
+    \item It profiles the compute and scale trade-off of QLoRA-based alignment instead of assuming that larger or fully fine-tuned models are the only relevant setting.
 \end{itemize}
 
 \subsection{Significance of Our Work}
-% One paragraph concluding the section with an overall summary of methods, results, and discussion.
-The significance of this work is both methodological and practical.
-Methodologically, it provides a controlled protocol that disentangles the effect of the alignment objective from architecture and data, which prior comparisons typically conflate.
-Practically, it characterises whether a cheap supervised explanation-aware recipe improves the faithfulness of rationales for documents and charts, the visual domains in which explicit reasoning matters most.
-By measuring faithfulness and its relationship to correctness across domains, the study offers guidance on when explanation-aware training is worth its modest additional cost.
-Because every configuration is fine-tuned with QLoRA on a single accelerator, the findings are directly actionable for researchers and practitioners operating under realistic compute constraints.
-The accompanying open-source framework reduces each experiment to a single configuration file, which lowers the barrier to replication and extension.
-Taken together, the methods, results, and discussion that follow aim to clarify how trustworthy cross-modal reasoning can be learned efficiently for structured visual content.
+The significance of this work is mainly methodological, but it has direct practical value.
+Methodologically, it gives a cleaner answer to a common question: whether explanation supervision helps because it changes reasoning, or only because it changes the text the model emits.
+Practically, it studies the compute regime in which many teams actually work, where full fine-tuning of large multimodal models is not realistic.
+Documents and charts are also the domains where faithfulness is easiest to audit and most costly to ignore, since the answer should normally be traceable to visible evidence.
+By measuring answer accuracy, rationale quality, and evidence sensitivity together, the study avoids treating any single metric as a complete proxy for reasoning.
+The framework is also reusable, because every dataset is converted to the same neutral representation and every experiment is selected through configuration.
+The resulting paper is intended to give a sober view of when explanation-aware alignment is worth the extra supervision.
+The final result-dependent claims will be added only after the full experiment ledger is complete.
 
 \section{Literature Review}
-One paragraph defining all the techniques that have been used in this field.
+This review is intentionally recent.
+The goal is not to retell the full history of vision--language modelling, but to place this thesis beside the current 2024--2025 work that a journal reviewer will likely compare it with.
+The bibliography is restricted to 2024--2025 sources, so older benchmark definitions are not repeated as references here.
+The literature is grouped by technical pressure point: model construction, text-rich images, chart reasoning, faithfulness, and low-budget adaptation.
 
-\subsection{Technique 1 Name}
-One paragraph for this important technique/method with ideally four references (2 sentences per reference).
+\subsection{Recent vision--language model design}
+The current generation of vision--language models is less about a single alignment trick and more about the interaction between architecture, visual tokenisation, data curation, and instruction tuning.
+Recent ablation work argues that many design choices in VLM construction are still under-justified, which makes controlled comparisons valuable in their own right~\cite{laurencon2024whatmatters}.
+MM1.5 makes a similar point from a data-centric angle by showing that OCR data, synthetic captions, instruction mixtures, and specialised variants can matter as much as raw scale~\cite{zhang2025mm15}.
+Molmo and PixMo add a useful counterpoint because they emphasise open weights and open data, making the training recipe more inspectable than in closed systems~\cite{deitke2025molmo}.
+LLaVA-OneVision shows how one model family can transfer across single-image, multi-image, and video settings when the visual and instruction data are chosen carefully~\cite{li2025llavaonevision}.
+For this thesis, the key lesson is pragmatic: if the backbone, data mixture, and training budget all change at once, it becomes hard to tell what the objective itself contributed.
 
-\subsection{Technique 2 Name}
-One paragraph for this important technique/method with ideally four references (2 sentences per reference).
+Open model families also matter because this study is built for a realistic research budget.
+Qwen2-VL and Qwen2.5-VL are relevant because they explicitly target dynamic resolution, document parsing, charts, diagrams, and other text-heavy visual inputs~\cite{wang2024qwen2vl,bai2025qwen25vl}.
+PaliGemma is relevant because it is compact enough for transfer experiments while still covering a broad set of VLM tasks~\cite{beyer2024paligemma}.
+These models are not cited here as leaderboard targets.
+They are cited as examples of the current backbone class that makes controlled, parameter-efficient experiments possible.
 
-\subsection{Technique 3 Name}
-One paragraph for this important technique/method with ideally four references (2 sentences per reference).
+\subsection{Text-rich and document-heavy images}
+Documents are a useful stress test because the answer often depends on small text, two-dimensional layout, and local context rather than on object recognition alone.
+A recent survey of text-rich image understanding shows how quickly the field has moved toward multimodal large language models for OCR-heavy and layout-heavy inputs~\cite{fu2025textrichsurvey}.
+DocLLM is a strong example of document-specific modelling because it treats layout as a first-class signal for generative document understanding~\cite{wang2024docllm}.
+OmniDocBench pushes the same problem toward benchmark coverage by evaluating diverse PDF parsing cases with detailed annotations~\cite{ouyang2025omnidocbench}.
+DocVQA is used in this thesis as the document VQA task, while the cited document literature is kept to recent work on text-rich and layout-heavy image understanding.
+The gap for this work is that document papers often optimise document understanding itself, while this thesis asks a narrower question: what happens when the alignment objective changes but the rest of the training path stays fixed?
 
-\subsection{Technique 4 Name}
-One paragraph for this important technique/method with ideally four references (2 sentences per reference).
+\subsection{Charts and structured visual reasoning}
+Charts create a different failure mode.
+The model has to read text, decode marks and axes, compare quantities, and sometimes reason over a trend that is never written as a sentence.
+ChartInstruct and ChartGemma show that instruction tuning directly on chart images improves chart comprehension and reasoning~\cite{masry2024chartinstruct,masry2025chartgemma}.
+ChartMimic reframes chart understanding as chart-to-code generation, which is useful because it tests whether the model can reproduce the visual structure rather than only answer a question about it~\cite{yang2025chartmimic}.
+ChartMuseum is especially relevant because it argues that current LVLMs still fall far below humans on visual reasoning over real-world charts~\cite{tang2025chartmuseum}.
+MathVista, MMMU-Pro, and MMReason broaden the same concern beyond charts by testing mathematical, expert-level, and multi-step multimodal reasoning under harder evaluation settings~\cite{lu2024mathvista,yue2025mmmupro,yao2025mmreason}.
+ChartQA, ScienceQA, and A-OKVQA are retained in the experiment design because they cover chart reasoning, science reasoning, and knowledge-heavy visual reasoning.
 
-A table summarizing the characteristics of the existing literature along with the novelty of your proposed work (as shown in Table~\ref{tab:LiteratureSummary}).
+\subsection{Faithfulness, critique, and efficient adaptation}
+The main risk in explanation-aware training is that the model may learn to sound reasonable without using the visual evidence it mentions.
+Recent benchmark work makes this problem visible from several angles.
+MMMU tests expert-level multimodal perception and reasoning across heterogeneous visual formats~\cite{yue2024mmmu}.
+MMStar sharpens this point by asking whether benchmark items are genuinely vision-dependent rather than solvable from language priors~\cite{chen2024mmstar}.
+HallusionBench targets the interaction between language hallucination and visual illusion in LVLM responses~\cite{guan2024hallusionbench}.
+Hallucination-augmented contrastive learning then shows one way to treat hallucinated visual text as a representation-learning problem~\cite{jiang2024hacl}.
+VISCO and Critic-V are relevant because they move beyond final-answer scoring and evaluate critique, correction, and error detection in multimodal reasoning~\cite{wu2025visco,zhang2025criticv}.
+Together, these papers support the decision to measure faithfulness separately from answer accuracy.
 
-\todo{Build our literature-review comparison matrix (Table~\ref{tab:LiteratureSummary}) from the RQ1 survey; format via tablesgenerator.com. The template's sample matrix is preserved below (disabled) as a format reference.}
-\iffalse
-%% ---- SAMPLE literature matrix from the template (format reference only) ----
-%% Re-enable and replace with our own once the RQ1 survey is done.
-\fi
+Efficient adaptation is the practical constraint around all of this.
+DoRA is cited as a newer low-rank adaptation variant that keeps the same general motivation: improving adaptation capacity without paying for full-model fine-tuning~\cite{liu2024dora}.
+Reason-RFT is also relevant because it shows the current movement toward post-training methods that explicitly reward visual reasoning, even when the present thesis stays with supervised objective comparisons~\cite{tan2025reasonrft}.
+This study combines the two concerns that are often separated in prior work.
+It uses an efficient adaptation regime, but evaluates the trained model as a reasoning system with answer, rationale, and evidence-faithfulness outputs.
+
+Table~\ref{tab:LiteratureSummary} summarises the closest lines of work and the gap addressed by this paper.
+The table is not intended to be a catalogue.
+Its purpose is to show why a fixed-budget objective comparison is still useful even when stronger specialised models exist.
+
+\begin{table*}[!ht]
+\centering
+\caption{Summary of representative related work and the gap addressed by this study. A check mark indicates that the paper directly targets the property, a cross indicates that it is outside the main scope, and a tilde indicates partial coverage.}
+\label{tab:LiteratureSummary}
+\scriptsize
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{|p{3.2cm}|p{2.4cm}|c|c|c|c|p{4.5cm}|}
+\hline
+\textbf{Work} & \textbf{Main focus} & \textbf{Generation} & \textbf{Structured VQA} & \textbf{Rationales} & \textbf{Efficient FT} & \textbf{Relation to this study} \\ \hline
+Recent VLM construction~\cite{laurencon2024whatmatters,deitke2025molmo,li2025llavaonevision,zhang2025mm15} & Backbone and data recipe & \cmark & \pmark & \pmark & \pmark & Shows why architecture and data must be controlled before claiming an objective-level effect. \\ \hline
+Open VLM backbones~\cite{wang2024qwen2vl,bai2025qwen25vl,beyer2024paligemma} & Adaptable model families & \cmark & \pmark & \pmark & \pmark & Provide practical backbone candidates for fixed-budget experiments. \\ \hline
+Text-rich document work~\cite{fu2025textrichsurvey,wang2024docllm,ouyang2025omnidocbench} & Documents and PDF parsing & \cmark & \cmark & \pmark & \pmark & Motivates document evaluation, but does not isolate training objectives under one backbone. \\ \hline
+Chart reasoning work~\cite{masry2024chartinstruct,masry2025chartgemma,tang2025chartmuseum,yang2025chartmimic} & Chart understanding & \cmark & \cmark & \pmark & \pmark & Shows that chart reasoning remains difficult and needs explicit structured evaluation. \\ \hline
+Recent reasoning benchmarks~\cite{lu2024mathvista,yue2024mmmu,chen2024mmstar,yue2025mmmupro,yao2025mmreason} & Harder multimodal evaluation & \pmark & \cmark & \pmark & \xmark & Motivate stricter evaluation for visual, mathematical, and multi-step reasoning. \\ \hline
+Faithfulness and critique~\cite{guan2024hallusionbench,jiang2024hacl,wu2025visco,zhang2025criticv} & Reasoning reliability & \pmark & \cmark & \cmark & \xmark & Supports measuring hallucination, critique, and evidence use separately from accuracy. \\ \hline
+DoRA / Reason-RFT~\cite{liu2024dora,tan2025reasonrft} & Efficient and reasoning-focused adaptation & \pmark & \xmark & \pmark & \cmark & Motivate low-resource adaptation and explicit reasoning-oriented post-training. \\ \hline
+This study & Controlled explanation-aware alignment & \cmark & \cmark & \cmark & \cmark & Isolates objective choice and measures answer, rationale, and evidence-faithfulness outcomes. \\ \hline
+\end{tabular}
+\end{adjustbox}
+\end{table*}
 
 \section{Methodology}
-% One paragraph with three - four lines summarizing your overall methodology, with a work flow figure (shown in Fig~\ref{Fig:Figure1}).
-Our methodology fine-tunes a pretrained vision--language backbone under four alignment objectives while holding the data and optimisation budget fixed, and then evaluates each resulting model for answer accuracy, explanation quality, and explanation faithfulness.
-The overall workflow proceeds from a neutral data representation, through backbone construction with parameter-efficient adaptation, to objective-specific training and a generate-then-score evaluation, as summarised in Figure~\ref{Fig:Figure1}.
-Each stage is implemented as an interchangeable component, so that a single configuration file selects the backbone, dataset, objective, and metrics for one experiment.
-This design ensures that the only intended difference between any two runs is the variable under study, which is essential for the controlled comparisons that the research questions demand.
+The methodology fine-tunes a pretrained vision--language backbone under four alignment objectives while holding the dataset pipeline and optimisation budget fixed.
+The workflow begins with a neutral dataset representation, constructs the model with QLoRA adapters, applies the selected objective, and evaluates the trained model with the same generate-then-score procedure.
+Figure~\ref{Fig:Figure1} gives the end-to-end pipeline.
+This setup is intentionally conservative because a controlled comparison is more useful here than a large leaderboard-style training run.
+Each experiment is selected through a configuration file, which records the dataset, backbone, objective, adapter settings, metrics, and random seed.
+The same implementation path is used for baseline evaluation, fine-tuning, and post-training evaluation.
+That design reduces hidden experimental differences and makes later result updates easier to audit.
 
 \begin{figure*}[!ht]
-% \centerline{\includegraphics[width=17.8cm]{./Figures/Figure1.pdf}}
-\centerline{\todo{Workflow figure (PowerPoint/Canva $\rightarrow$ PDF). Mirrors the src/ pipeline: data $\rightarrow$ backbone $\rightarrow$ objective $\rightarrow$ train $\rightarrow$ eval.}}
-\caption{Overall workflow of the proposed explanation-aware alignment study.}
+\centerline{\includegraphics[width=\linewidth]{./Figures/fig_pipeline}}
+\caption{Overall workflow of the proposed explanation-aware alignment study.
+Datasets are normalised into a shared multimodal example format, the selected backbone is adapted with QLoRA, and each objective is evaluated through answer, rationale, and evidence-faithfulness metrics.}
 \label{Fig:Figure1}
 \end{figure*}
 
 \subsection{Dataset}
-% One paragraph and a figure (or a table) explaining the dataset used in the study.
-% In case of more than one datasets, one paragraph and one figure (or table) for each dataset.
-We study five public benchmarks that together span three visual domains relevant to structured and natural visual reasoning.
-For the document domain we use DocVQA, a dataset of questions over scanned documents whose short text answers are scored by an edit-distance similarity~\cite{mathew2021docvqa}.
-For the chart domain we use ChartQA, which pairs bar, line, and pie charts with questions whose answers are frequently numeric and are scored by a relaxed-accuracy criterion that tolerates small numerical error~\cite{masry2022chartqa}.
-For the natural-image domain we use ScienceQA, A-OKVQA, and a subset of VQAv2, of which ScienceQA and A-OKVQA additionally provide gold natural-language rationales that form the basis for explanation-aware supervision~\cite{lu2022scienceqa, schwenk2022aokvqa}.
-All examples are mapped into a single neutral representation comprising an image, a question, an answer, optional answer choices, and an optional rationale, so that downstream components never branch on the dataset of origin.
-Explanation-aware training requires gold rationales, which are natively available only for the science and commonsense datasets, so for the document and chart datasets the rationale is either synthesised by a stronger teacher model and filtered or the example is treated as answer-only.
-As a representative example of the resulting yield, filtering ScienceQA to examples that contain both an image and a non-empty gold rationale retains approximately five thousand of the roughly twelve thousand seven hundred training examples.
-A summary of the datasets, their domains, sizes, answer types, and scoring criteria is given in Table~\ref{tab:Datasets}.
+The study uses five public benchmarks that cover document, chart, science, commonsense, and natural-image reasoning.
+DocVQA represents the document domain and requires the model to answer questions from scanned pages using text, layout, and visual context.
+ChartQA represents the chart domain and includes questions that require visual reading, numerical comparison, and logical reasoning over chart elements.
+ScienceQA provides multimodal science questions with answer choices and explanations, which makes it a natural source of gold rationales.
+A-OKVQA provides commonsense visual questions and rationales over natural images, which complements ScienceQA by testing knowledge-heavy visual reasoning.
+VQAv2 is included as a broad natural-image VQA control subset so that the structured-domain findings are not confused with general VQA behaviour.
+All examples are converted into a neutral schema containing an image, a question, an optional set of answer choices, a target answer, and an optional rationale.
+When a dataset does not provide gold rationales, the example is treated as answer-only unless a separately generated rationale is added in a clearly marked experiment.
 
 \begin{table}[!ht]
 \centering
-\caption{Summary of the five benchmarks used in this study, grouped by visual domain. Sizes are approximate full-split counts before filtering and are to be verified against the released dataset cards. ANLS denotes average normalised Levenshtein similarity, and relaxed accuracy counts a numeric prediction correct within five percent of the reference value.}
+\caption{Benchmarks used in the study. The sizes are rounded public benchmark sizes before any filtering by image availability, answer type, or rationale availability. Final per-run counts are reported in the experiment ledger and in the Results section once the corresponding run is complete.}
 \label{tab:Datasets}
+\begin{adjustbox}{max width=\textwidth}
 \begin{tabular}{|l|l|c|l|c|l|}
 \hline
-\textbf{Dataset} & \textbf{Domain} & \textbf{Approx.\ size} & \textbf{Answer type} & \textbf{Rationale} & \textbf{Metric} \\ \hline
-DocVQA    & Document      & 50K & short text span & no  & ANLS \\
-ChartQA   & Chart         & 32K & numeric / short & no  & relaxed accuracy \\
+\textbf{Dataset} & \textbf{Domain} & \textbf{Approx.\ size} & \textbf{Answer type} & \textbf{Gold rationale} & \textbf{Primary metric} \\ \hline
+DocVQA & Document & 50K & short text span & no & ANLS \\
+ChartQA & Chart & 32K & numeric / short text & no & relaxed accuracy \\
 ScienceQA & Science image & 21K & multiple choice & yes & accuracy \\
-A-OKVQA   & Natural image & 25K & multiple choice & yes & accuracy \\
-VQAv2     & Natural image & 50K & open ended      & no  & VQA accuracy \\ \hline
+A-OKVQA & Commonsense image & 25K & multiple choice / short text & yes & accuracy \\
+VQAv2 subset & Natural image & run-specific & open ended & no & VQA accuracy \\ \hline
 \end{tabular}
+\end{adjustbox}
 \end{table}
 
 \subsection{Detailed Methodology}
-% Three paragraphs for explaining the pipeline and workflow of your study.
-% A figure depicting the pipeline only.
-% If you use any equations, use the following as example as shown in Equation~\ref{Eq:Loss}.
-\todo{Add a pipeline figure (PowerPoint/Canva $\rightarrow$ PDF) depicting the data-to-evaluation flow only.}
-Our pipeline begins by constructing a backbone wrapper that exposes a uniform interface over heterogeneous vision--language models, so that the same training and evaluation code applies to each.
-The vision encoder is frozen throughout, and adaptation is performed in the parameter-efficient QLoRA regime, in which the base weights are quantised to four bits and a small set of low-rank adapters is trained.
-On top of this shared backbone we define four alignment variants that differ only in the training signal applied.
-The baseline variant uses the model's native projection without any additional alignment loss and serves as the reference point for all comparisons.
-The contrastive-enhanced variant augments the baseline with an auxiliary noise-contrastive objective that pulls each image's pooled features toward the embedding of its own answer and away from the other answers in the batch~\cite{radford2021clip}.
-The generative variant trains the language model to predict the answer token sequence conditioned on the image and question, which is the standard generative-alignment formulation~\cite{li2023blip2}.
-The explanation-aware generative variant instead trains the model to predict a natural-language rationale followed by the answer, so that the supervision signal itself contains the intermediate reasoning.
+Figure~\ref{Fig:Architecture} shows the model-level architecture used for the alignment experiments.
+The implementation wraps each backbone behind a common interface so that training code does not depend on a model-specific forward pass.
+For Qwen2-VL, the base model is loaded in 4-bit precision and adapted with rank-16 QLoRA adapters.
+For the BLIP-2 contrastive arm, the vision encoder and OPT language model remain frozen while the Q-Former, language projection, and a small answer-projection head are trained.
+The baseline variant evaluates the model before task fine-tuning.
+The BLIP-2 contrastive-enhanced variant adds an auxiliary image--answer contrastive term that pulls the pooled Q-Former image representation toward the correct answer representation and away from other answers in the batch.
+The generative variant trains the model to generate the answer sequence conditioned on the image and question.
+The explanation-aware generative variant trains the model to generate a rationale followed by the final answer.
+The variants therefore differ in the supervision signal while sharing the same data loader, optimiser family, and evaluation path within each controlled comparison.
 
-For the generative and explanation-aware variants the prompt and target are concatenated into a single sequence, and the loss is computed only over the target tokens by masking the prompt and any padding.
-Care is required here because the processor inserts image placeholder tokens before the text, and an incorrect token count would let part of the prompt leak into the supervised target.
-We therefore measure the prompt length through the same processor that encodes the full sequence, which guarantees that supervision begins exactly at the first target token.
-For the explanation-aware variant the target is further partitioned at the token level into an explanation span and an answer span.
-This partition lets the objective weight the two spans independently, as defined in Equation~\ref{Eq:Loss}, in which the coefficient $\alpha$ trades answer supervision against explanation supervision.
-Setting $\alpha$ to one recovers the answer-only generative objective, setting it to zero supervises only the explanation, and intermediate values balance the two.
-Sweeping $\alpha$ over a small set of values therefore turns the question of whether explanations help into a measurable curve rather than a single binary comparison.
+For generative training, the prompt and target are concatenated into one sequence, but the loss is applied only to the target tokens.
+This masking detail is important because multimodal processors insert image placeholder tokens before the text, and a hand-counted prompt length can shift the supervised region by several tokens.
+The implementation therefore measures the prompt length with the same processor that encodes the full sequence.
+For the contrastive objective, the same span tagging is reused to pool only answer tokens for the InfoNCE text representation; rationale tokens are still supervised by the generative loss but are not treated as the contrastive positive.
+For the explanation-aware objective, the target is split into an explanation span and an answer span.
+Equation~\ref{Eq:Loss} weights the two spans with a coefficient $\alpha$.
+When $\alpha$ is one, the objective becomes answer-only generation.
+When $\alpha$ is zero, the objective supervises only the explanation span.
+Intermediate values test whether answer and rationale supervision reinforce each other or compete for capacity.
 
-At inference time the model is queried with the image and question, and for multiple-choice benchmarks it first generates its own reasoning before the answer is decided.
-Rather than parsing the generated text for an answer string, which is brittle and can be gamed when the prompt enumerates the options, we score each candidate answer by its length-normalised likelihood in the context of the generated reasoning.
-The candidate with the highest likelihood is selected, which yields a robust decision that still conditions on the model's own chain of reasoning.
-For open-ended benchmarks the generated text is taken directly as the answer and compared against the reference using the domain-appropriate metric.
-The generated rationales are retained for every example, because they are the raw material for the explanation-quality and faithfulness analyses described below.
-This generate-then-score protocol is applied identically before and after fine-tuning, so that any change in measured accuracy reflects the effect of training rather than a change in the evaluation procedure.
+\begin{figure*}[!ht]
+\centerline{\includegraphics[width=\linewidth]{./Figures/fig_architecture}}
+\caption{Model-level architecture for explanation-aware cross-modal alignment.
+Visual evidence and the question prompt are encoded into a multimodal token stream, passed through a frozen vision--language backbone with trainable QLoRA adapters, and supervised through separate rationale and answer spans.
+The auxiliary reference lane summarises the BLIP-2 contrastive path used for representation-level alignment analyses.}
+\label{Fig:Architecture}
+\end{figure*}
 
-% \begin{equation}
-%     E = mc^{2}
-%     \label{Eq:TheoryofRelativity}
-% \end{equation}
-% where $E$ is the energy, $m$ is the mass, and $c$ is the speed of light.
 \begin{equation}
     \mathcal{L} = \alpha\,\mathcal{L}_{\text{answer}} + (1-\alpha)\,\mathcal{L}_{\text{explanation}}
     \label{Eq:Loss}
 \end{equation}
-where $\mathcal{L}_{\text{answer}}$ and $\mathcal{L}_{\text{explanation}}$ are the masked cross-entropy over the answer and explanation token spans, and $\alpha \in \{0,0.5,1\}$ balances them.
+where $\mathcal{L}_{\text{answer}}$ and $\mathcal{L}_{\text{explanation}}$ are the masked cross-entropy losses over the answer and explanation token spans, and $\alpha$ controls their relative weight.
+
+At inference time, multiple-choice benchmarks are evaluated with a protocol that generates a reasoning trace and then scores the candidate answers.
+The model first generates its own rationale or short reasoning trace from the image and question.
+Each candidate answer is then scored by its length-normalised conditional likelihood in the context of that generated text.
+The answer with the highest likelihood is selected.
+This avoids brittle string parsing and reduces the chance that a model receives credit only because it copied an option label.
+For open-ended datasets, the generated answer string is evaluated with the benchmark's native metric.
+Generated rationales are stored for every example where the model produces them.
+Those rationales are then used for text-quality and faithfulness analysis.
 
 \subsection{Evaluation Metrics}
-% One paragraph or more explaining the evaluation metrics with equations for each metric, where possible.
-% The metrics should be defined specific to your dataset and problem and not generic.
-We evaluate along three axes, namely answer accuracy, explanation quality, and explanation faithfulness, each defined specifically for the datasets used.
-Answer accuracy uses the criterion native to each benchmark, namely exact-match accuracy for ScienceQA and A-OKVQA, average normalised Levenshtein similarity for DocVQA, and relaxed accuracy for ChartQA that counts a numeric prediction correct when it falls within five percent of the reference value.
-Explanation quality compares the generated rationale against the gold rationale using BLEU-4, ROUGE-L, and BERTScore-F1, which together capture n-gram overlap, longest-common-subsequence structure, and semantic similarity.
-Faithfulness is quantified by two complementary measures that ask whether the stated reasoning is grounded in the visual evidence.
-The first is an attention-alignment score between the model's attention over image regions and the regions referenced by its explanation.
-The second is an evidence-masking consistency measure, which occludes a region of the image and records the resulting change in the likelihood of the gold answer, as defined in Equation~\ref{Eq:Drift}.
+The evaluation has three axes: answer quality, rationale quality, and evidence faithfulness.
+Answer quality uses the native scoring rule of each benchmark.
+ScienceQA and A-OKVQA use multiple-choice accuracy, DocVQA uses average normalised Levenshtein similarity, ChartQA uses relaxed accuracy for numerical answers, and the VQAv2 subset uses VQA consensus accuracy when annotator answers are available.
+Rationale quality is measured with BLEU and ROUGE-L against gold rationales when gold rationales are available.
+These metrics are imperfect, but together they give lexical and sequence-level views of the generated explanation.
+Faithfulness is measured by checking whether the rationale and answer depend on the visual evidence the model claims to use.
+The first faithfulness measure is evidence-masking consistency, defined in Equation~\ref{Eq:Drift}.
+The second is a qualitative evidence-inspection diagnostic that compares high-drift masked regions with the visual evidence referenced by the generated explanation when such inspection is possible.
+
 \begin{equation}
     \mathrm{drift}(r) = s\!\left(a \mid I\right) - s\!\left(a \mid I \setminus r\right)
     \label{Eq:Drift}
 \end{equation}
-where $s(a \mid I)$ is the length-normalised log-likelihood of the gold answer $a$ given image $I$, and $I \setminus r$ is the image with region $r$ occluded.
-A large drift when a relevant region is masked indicates that the model relied on that region, whereas a negligible drift indicates that the answer was produced largely from the language prior.
+where $s(a \mid I)$ is the length-normalised log-likelihood of the gold answer $a$ given image $I$, and $I \setminus r$ is the same image with region $r$ occluded.
+A high positive drift after masking a relevant region means the answer depended on that visual evidence.
+A near-zero drift suggests that the answer may be driven by language priors, shortcut cues, or non-visual context.
+This faithfulness framing follows the broader distinction between a useful explanation and a faithful explanation.
+It also connects to recent multimodal hallucination and critique work, where a model may describe or rely on visual content that is not present in the image~\cite{guan2024hallusionbench,jiang2024hacl,wu2025visco,zhang2025criticv}.
+The final report will present these faithfulness measures beside answer accuracy rather than treating them as post-hoc qualitative examples.
 
 \subsection{Experimental settings}
-% One paragraph for experimental settings of your and competing methods (if any).
-% (Optional) One paragraph for hyper-parameter settings and network architecture.
-All variants share the same optimisation budget, so that any difference in outcome is attributable to the training objective rather than to tuning.
-Fine-tuning uses the AdamW optimiser with a learning rate of two times ten to the minus four under a cosine schedule with three percent warm-up, a weight decay of one hundredth, and mixed bf16 precision.
-The base model is quantised to four-bit NormalFloat and frozen, and low-rank adapters of rank sixteen with scaling factor thirty-two are trained on the language-model attention and feed-forward projections together with the alignment module.
-An effective batch size of thirty-two is obtained through gradient accumulation, which allows each configuration to fit on a single forty-gigabyte accelerator.
-Owing to the compute budget we train a single seed per configuration, and we therefore report all quantitative differences with an explicit caveat regarding run-to-run variance.
-The full set of training hyper-parameters is listed in Table~\ref{tab:Config}, and the primary backbone is Qwen2-VL-2B-Instruct with BLIP-2 and PaliGemma included for cross-architecture breadth~\cite{li2023blip2}.
-Reference numbers for competing methods, where reported, are taken directly from the corresponding publications under their stated settings.
-
-% A table with hyper-parameter settings (shown in Table~\ref{tab:Config}).
+All variants are run under a fixed-budget protocol, with run-specific deviations recorded in the experiment ledger.
+The Qwen2-VL fine-tuning runs use AdamW, a learning rate of $2 \times 10^{-4}$, cosine decay, three percent warm-up, weight decay of 0.01, bf16 compute, and an effective batch size of 32 through gradient accumulation.
+The Qwen2-VL base model is loaded with 4-bit NormalFloat quantisation, and QLoRA adapters use rank 16 with scaling factor 32 unless the result table explicitly states otherwise.
+The primary QLoRA backbone is Qwen2-VL-2B-Instruct, because it is strong enough for the target tasks while still fitting the available compute budget~\cite{wang2024qwen2vl}.
+The BLIP-2 RQ2 arm uses Salesforce BLIP-2 OPT-2.7B with the vision tower and OPT language model frozen, training only the Q-Former-side alignment components.
+Qwen2-VL-7B is reserved for the model-scale ablation under the same QLoRA recipe.
+Each run is logged with the exact dataset split, filtered count, seed, objective, adapter configuration, and metric outputs.
+Because the budget allows only a limited number of seeds, the Results section reports that limitation directly instead of presenting small differences as statistically settled.
+Table~\ref{tab:Config} lists the default configuration.
 
 \begin{table}[!ht]
 \centering
-\caption{Training configuration used for QLoRA fine-tuning of the vision--language backbones in this study.}
+\caption{Default Qwen2-VL QLoRA fine-tuning configuration. BLIP-2 contrastive runs use the separately reported frozen-vision/frozen-LLM Q-Former training setup. Any run that changes these values is reported separately in the experiment ledger and in the Results section.}
 \label{tab:Config}
 \begin{tabular}{|l|c|}
 \hline
-\multicolumn{2}{|c|}{\textbf{Training Configuration}}
-\\ \hline
-Adapter & QLoRA (4-bit NF4, rank 16, $\alpha$=32) \\
+\multicolumn{2}{|c|}{\textbf{Training Configuration}} \\ \hline
+Adapter & QLoRA (4-bit NF4, rank 16, scaling 32) \\
 Optimizer & AdamW ($\beta_1$=0.9, $\beta_2$=0.999) \\
-Learning rate & 2e-4 (cosine, 3\% warm-up) \\
+Learning rate & $2 \times 10^{-4}$ (cosine, 3\% warm-up) \\
 Weight decay & 0.01 \\
-Effective batch size & 32 (grad. accumulation) \\
-Precision & bf16 \\
-Seeds & 1 per configuration \\ \hline
+Effective batch size & 32 with gradient accumulation \\
+Precision & bf16 compute \\
+Primary seed policy & one seed per complete configuration \\ \hline
 \end{tabular}
 \end{table}
 
 \section{Results}
-%% This section contains ONLY results (no opinion/discussion). One or two
-%% paragraphs per RQ, each referring to its figures/tables. Comparison with
-%% contemporary methods also goes here.
+This section is reserved for completed experiment outputs only.
+No result-dependent claim is made here until the corresponding table, figure, and run log are generated.
+Each subsection below states exactly what will be inserted when the run is complete.
+This keeps the manuscript honest while still preserving the final journal-paper structure.
 
-% \subsection{RQ1 Title in three to five words}
-\subsection{RQ1: Alignment evolution and taxonomy}
-One or two paragraph(s) for this RQ giving all the results, referring to its figures/tables.
+\subsection{Alignment Strategy Taxonomy}
+\todo{Insert the final survey table and taxonomy figure after the reviewed papers are frozen.}
+\todo{Report the number of papers reviewed, the 2024--2025 ratio, and the final categorisation of contrastive, generative, instruction-tuned, explanation-aware, and efficient-adaptation methods.}
 
-% \subsection{RQ2 Title in three to five words}
-\subsection{RQ2: Contrastive vs.\ generative}
-One or two paragraph(s) for this RQ giving all the results, referring to its figures/tables.
+\subsection{Objective-Level Comparison Across Domains}
+\todo{Insert the table comparing zero-shot baselines, the BLIP-2 generative versus contrastive-enhanced RQ2 pair, and the Qwen2-VL generative versus explanation-aware runs across the completed benchmark set.}
+\todo{Insert a short results-only paragraph describing which objective wins per domain, without interpretation.}
 
-% \subsection{RQ3 Title in three to five words}
-\subsection{RQ3: Explanation-aware impact}
-One or two paragraph(s) for this RQ giving all the results, referring to its figures/tables.
+\subsection{Effect of Explanation-Aware Training}
+Table~\ref{tab:alpha_sweep} and Figure~\ref{Fig:AlphaSweep} report the explanation-aware $\alpha$-sweep on ScienceQA under the fixed QLoRA budget, where $\alpha$ is the answer-span weight in Equation~\ref{Eq:Loss}.
+Fine-tuning raises multiple-choice accuracy from the zero-shot baseline of 0.460 to between 0.675 and 0.775, depending on $\alpha$.
+Accuracy is highest at $\alpha=0.10$ (0.775) and decreases as $\alpha$ rises to 1.00 (0.680); it is also lowest at the two extreme settings, $\alpha=0.00$ (0.675) and $\alpha=1.00$ (0.680).
+Explanation quality is single-peaked: ROUGE-L and BLEU are highest at $\alpha=0.10$ (0.706 and 0.579) and fall monotonically as $\alpha$ increases, reaching 0.000 at $\alpha=1.00$, where the answer-only objective leaves the explanation span unsupervised and the model emits no rationale.
+The $\alpha=0.10$ setting, whose answer-span weight matches the implicit answer weight of uniform generative cross-entropy ($\alpha_{\text{eff}}\approx0.1$ on ScienceQA), is within run-to-run variation of the separately trained generative control (0.765 accuracy, 0.703 ROUGE-L, 0.570 BLEU).
+Removing rationale supervision entirely ($\alpha=1.00$) lowers accuracy by about ten points relative to $\alpha=0.10$ and eliminates rationale quality, and moving $\alpha$ in either direction away from 0.10 improves neither accuracy nor explanation quality.
+These numbers come from a single seed at 2{,}000 training and 200 evaluation examples, so the differences are reported as observed effects rather than statistically settled gaps.
 
-% \subsection{RQ4 Title in three to five words}
-\subsection{RQ4: Architectural and training factors}
-One or two paragraph(s) for this RQ giving all the results, referring to its figures/tables.
+\begin{table}[!ht]
+\centering
+\caption{RQ3 explanation-aware $\alpha$-sweep on ScienceQA (Qwen2-VL-2B, QLoRA, 2{,}000 train / 200 eval, single seed). The coefficient $\alpha$ weights the answer span in Equation~\ref{Eq:Loss}: $\alpha=1$ is answer-only and $\alpha=0$ is explanation-only. The zero-shot and generative rows are references; the generative objective uses uniform next-token cross-entropy, which corresponds to an answer-span weight of $\alpha_{\text{eff}}\approx0.1$ on this dataset. Random-choice accuracy is 0.354. The best $\alpha$ is shown in bold.}
+\label{tab:alpha_sweep}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Variant ($\alpha$)} & \textbf{MC accuracy} & \textbf{ROUGE-L} & \textbf{BLEU} \\ \hline
+Zero-shot (frozen) & 0.460 & 0.144 & 0.014 \\
+Generative (uniform CE) & 0.765 & 0.703 & 0.570 \\ \hline
+$\alpha=0.00$ (explanation-only) & 0.675 & 0.449 & 0.334 \\
+$\alpha=0.10$ & \textbf{0.775} & \textbf{0.706} & \textbf{0.579} \\
+$\alpha=0.25$ & 0.770 & 0.685 & 0.545 \\
+$\alpha=0.50$ & 0.740 & 0.653 & 0.505 \\
+$\alpha=0.75$ & 0.720 & 0.616 & 0.455 \\
+$\alpha=1.00$ (answer-only) & 0.680 & 0.000 & 0.000 \\ \hline
+\end{tabular}
+\end{table}
 
-% \subsection{RQ5 Title in three to five words}
-\subsection{RQ5: Faithfulness and hallucination}
-One or two paragraph(s) for this RQ giving all the results, referring to its figures/tables.
+\begin{figure}[!ht]
+\centerline{\includegraphics[width=0.82\linewidth]{./Figures/fig_alpha_sweep}}
+\caption{Explanation-aware $\alpha$-sweep on ScienceQA.
+Answer accuracy peaks at the natural answer-span weight ($\alpha\approx0.1$, where the objective coincides with uniform generative cross-entropy) and declines toward both extremes.
+Explanation quality (ROUGE-L, BLEU) peaks at the same point and falls monotonically as $\alpha$ increases, reaching zero at $\alpha=1$ where the explanation span is unsupervised.
+Series are distinguished by marker shape and line style; the dashed grey line marks random-choice accuracy. Single seed.}
+\label{Fig:AlphaSweep}
+\end{figure}
 
-% \subsection{RQ6 Title in three to five words}
-\subsection{RQ6: Efficiency and scale}
-One or two paragraph(s) for this RQ giving all the results, referring to its figures/tables.
+\subsection{Backbone and Training Ablations}
+\todo{Insert the ablation table for model backbone, adapter target modules, LoRA rank, learning rate, and prompt/target formatting.}
+\todo{Report only measured effects here; move interpretation to Discussion.}
 
-% \subsection{RQ7 Title in three to five words}
-\subsection{RQ7: Cross-domain transfer}
-One or two paragraph(s) for this RQ giving all the results, referring to its figures/tables.
+\subsection{Faithfulness and Hallucination Analysis}
+\todo{Insert evidence-masking consistency results and qualitative evidence-inspection summaries, grouped by domain and objective.}
+\todo{Insert representative hallucination/error counts only if they come from a fixed annotation protocol.}
 
-This section must contain only results and nothing else.
-Also include comparison with existing contemporary methods in this section.
+\subsection{Efficiency and Scale Trade-offs}
+\todo{Insert the QLoRA scale comparison table for the 2B and larger backbones, including trainable parameters, GPU memory, wall-clock time, and metric changes.}
+\todo{State whether the larger model preserves, improves, or weakens the explanation-aware effect only after both runs are complete.}
+
+\subsection{Cross-Domain Transfer}
+\todo{Insert the train-domain versus test-domain transfer matrix for explanation-aware alignment.}
+\todo{Report which transfer directions are strongest and weakest using only measured numbers.}
+
+\todo{Insert comparison with contemporary published methods after the final benchmark numbers are available, and keep settings differences explicit.}
 
 \section{Discussion}
-Five to six paragraphs discussing the results (at least one paragraph for each research question).
-Your opinion on how good/bad the results are.
-Draw inferences from the results here.
-Explain novelty of your contributions and what was missing that you have explored here.
-Discuss how results from your proposed method compare with other existing contemporary methods.
-Any assumptions that effect your analysis?
+The discussion will be completed after the Results section is populated, because its main job is to interpret measured results rather than predict them.
+The current manuscript therefore reserves discussion space for each major experimental theme and avoids unsupported claims.
+The taxonomy discussion will explain what the literature implies about the movement from contrastive alignment to generative and instruction-tuned alignment.
+The objective-comparison discussion will interpret whether the BLIP-2 contrastive-enhanced arm improves visual reasoning or mainly improves representation-level matching.
+The explanation-aware discussion will address whether rationale supervision improves answer correctness, rationale quality, or only the surface form of generated text.
+The ablation discussion will connect observed differences to backbone choice, adapter placement, masking correctness, and prompt construction.
+The faithfulness discussion will assess whether the produced rationales are visually grounded or whether they behave like post-hoc rationalisations.
+The final discussion themes will cover the practical trade-offs of model scale, compute, and transfer across domains.
+
+Several assumptions already matter before the final numbers are known.
+First, the study assumes that a fixed QLoRA budget is a meaningful practical constraint rather than a weakness.
+Second, it assumes that comparing objectives under the same backbone and data pipeline is more informative than chasing each benchmark's best published score.
+Third, it assumes that rationale quality metrics are diagnostic but not sufficient, which is why the masking and attention diagnostics are included.
+Fourth, it assumes that documents and charts deserve separate treatment from natural images because their evidence structure is different.
+These assumptions shape the analysis and will be stated again when the final results are discussed.
+The comparison with contemporary methods will also separate absolute published leaderboard performance from controlled within-framework effects.
+That distinction is important because a specialised document or chart model may outperform the general backbone while still not answering the objective-comparison question studied here.
 
 \subsection{Limitations}
-One paragraph discussing the limitations of your work, if any?
+The main limitation is compute.
+The fixed single-GPU budget makes the study reproducible, but it limits the number of seeds, model scales, and full-dataset sweeps that can be run.
+The second limitation is rationale availability.
+ScienceQA and A-OKVQA provide gold explanations, while DocVQA, ChartQA, and VQAv2 do not provide the same kind of rationale supervision.
+Any teacher-generated rationale experiment for those datasets must therefore be reported separately from gold-rationale training.
+The third limitation is metric validity.
+BLEU and ROUGE-L can miss valid alternative explanations, and qualitative evidence inspection is only diagnostic rather than a complete explanation of model causality.
+The masking metric is more directly tied to evidence use, but it depends on the quality of the masked regions and can be noisy for dense document or chart images.
+These limitations do not invalidate the study, but they define the boundary of what the final claims can support.
 
 \subsection{Future Directions}
-One paragraph for what are the future directions in your opinion for continuing this study.
+Future work should first repeat the strongest configurations with multiple seeds and larger evaluation splits.
+The next step is to test stronger backbones and newer open multimodal models while preserving the same objective-isolation protocol.
+A separate direction is to build better rationale annotations for chart and document benchmarks, because those domains are exactly where faithful explanations are most useful.
+More causal faithfulness tests would also improve the analysis, especially tests that edit text, chart marks, or document regions in a semantically controlled way.
+Another useful extension is to compare supervised explanation-aware learning with preference-based or reinforcement-learning methods that reward visual grounding.
+Finally, deployment-oriented work should measure latency, memory, and calibration alongside accuracy and faithfulness.
+Those extensions would turn the present controlled study into a broader recipe for reliable multimodal reasoning systems.
 
 \section{Conclusion}
-One paragraph related to conclusions drawn from your whole experimentation.
+This paper studies how the alignment objective affects vision--language reasoning under a fixed, realistic QLoRA fine-tuning budget.
+The manuscript defines controlled comparisons between zero-shot baselines, BLIP-2 contrastive-enhanced alignment, Qwen2-VL generative alignment, and Qwen2-VL explanation-aware generative alignment across document, chart, science, commonsense, and natural-image benchmarks.
+It also defines an evaluation protocol that measures answer accuracy, rationale quality, and evidence faithfulness together.
+\todo{Insert the final conclusion sentence on the strongest objective after the objective-comparison and explanation-aware experiments are complete.}
+\todo{Insert the final conclusion sentence on faithfulness and hallucination after the faithfulness analysis is complete.}
+\todo{Insert the final conclusion sentence on compute, scale, and transfer after the efficiency and transfer experiments are complete.}
+Until those runs are complete, the defensible conclusion is methodological: the framework is ready to test whether explanation-aware alignment improves trustworthy cross-modal reasoning without changing the backbone, data pipeline, or compute budget.
 
 \section*{Declarations}
-% Update the tool name(s) to those actually used.
 The authors used generative AI tools to improve the language and clarity of the manuscript.
 The authors reviewed and edited all content generated by the tools and take full responsibility for the final version of the manuscript.
 
-% DO NOT REMOVE THESE LINES AT ANY COST
 \bibliographystyle{elsarticle-num}
 \bibliography{Bibliography}
 

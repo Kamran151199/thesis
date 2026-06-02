@@ -1,0 +1,43 @@
+# RQ3/RQ4 · Qwen2-VL-2B · explanation-aware · A-OKVQA
+#
+# The natural-image rationale domain. A-OKVQA has multiple-choice answers and
+# human rationales, so it is the clean second dataset for checking whether
+# explanation-aware training transfers beyond ScienceQA-style science diagrams.
+
+name: rq3_qwen2vl_explanation_aware_aokvqa
+rq: RQ3
+seed: 42
+
+model:
+  name: qwen2_vl
+  pretrained: Qwen/Qwen2-VL-2B-Instruct
+  dtype: bfloat16
+  use_qlora: true
+
+data:
+  name: aokvqa
+  split_train: train
+  split_eval: validation
+  max_train: 2000
+  max_eval: 200
+  prompt_variant: explanation_then_answer
+  max_length: 1024
+
+objective:
+  name: explanation_aware
+  alpha: 0.5
+
+train:
+  epochs: 1
+  batch_size: 4
+  grad_accum_steps: 8
+  lr: 2.0e-4
+  scheduler: cosine
+  warmup_ratio: 0.03
+
+eval:
+  metrics: [mc_accuracy, rouge_l, bleu]
+  cot: true
+
+wandb:
+  tags: [rq3, rq4, qwen2_vl, explanation_aware, aokvqa]

@@ -10,6 +10,10 @@ turns `(wrapper, batch)` into one scalar to backprop.
 | `explanation_aware` | `α·L_answer + (1−α)·L_explanation` | RQ3 (the core contribution) |
 | `contrastive` | `L_generative + w·InfoNCE(image, answer)` | RQ2 contrastive arm |
 
+The BLIP-2 contrastive arm is wired through `model.contrastive_projection=true`;
+without that flag the wrapper raises before training instead of running a
+half-connected objective.
+
 ## The explanation-aware loss (RQ3)
 
 ```
@@ -30,7 +34,7 @@ automatically because this objective sets `requires_span_ids = True`).
 | `base.py` | `BaseObjective`, `LossOutput`, and `masked_token_ce` (CE over a position subset) |
 | `generative.py` | the baseline loss |
 | `explanation_aware.py` | the α-weighted answer/explanation loss |
-| `contrastive.py` | generative + InfoNCE; `info_nce()` is the same symmetric loss as the CLIP exploration |
+| `contrastive.py` | generative + answer-span InfoNCE; `info_nce()` is the same symmetric loss as the CLIP exploration |
 
 ## Add an objective
 

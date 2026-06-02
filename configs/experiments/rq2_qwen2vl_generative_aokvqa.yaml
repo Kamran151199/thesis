@@ -1,0 +1,42 @@
+# RQ2/RQ3 · Qwen2-VL-2B · generative · A-OKVQA
+#
+# Natural-image commonsense control with gold rationales. This mirrors the
+# ScienceQA generative control: the target contains rationale + answer, but the
+# loss is uniform next-token CE rather than answer/explanation reweighting.
+
+name: rq2_qwen2vl_generative_aokvqa
+rq: RQ2
+seed: 42
+
+model:
+  name: qwen2_vl
+  pretrained: Qwen/Qwen2-VL-2B-Instruct
+  dtype: bfloat16
+  use_qlora: true
+
+data:
+  name: aokvqa
+  split_train: train
+  split_eval: validation
+  max_train: 2000
+  max_eval: 200
+  prompt_variant: explanation_then_answer
+  max_length: 1024
+
+objective:
+  name: generative
+
+train:
+  epochs: 1
+  batch_size: 4
+  grad_accum_steps: 8
+  lr: 2.0e-4
+  scheduler: cosine
+  warmup_ratio: 0.03
+
+eval:
+  metrics: [mc_accuracy, rouge_l, bleu]
+  cot: true
+
+wandb:
+  tags: [rq2, qwen2_vl, generative, aokvqa]

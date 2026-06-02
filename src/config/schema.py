@@ -82,6 +82,10 @@ class ModelConfig:
     dtype: str = "bfloat16"
     device_map: str = "auto"
     use_qlora: bool = True
+    #: BLIP-2-only: attach the trainable answer-token projection used by the
+    #: contrastive InfoNCE objective. Kept opt-in so plain BLIP-2 generative
+    #: controls do not carry an unused trainable head.
+    contrastive_projection: bool = False
     #: Module-name prefixes to hard-freeze regardless of LoRA (e.g. the vision
     #: tower). The wrapper supplies sane defaults if left empty.
     freeze: list[str] = field(default_factory=list)

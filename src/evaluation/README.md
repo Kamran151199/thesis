@@ -17,7 +17,7 @@ SCORE     [Prediction…] → {metric: value}  (cheap; reuse predictions)
   argmax wins. This replaced the gameable string-match eval that gave a bogus
   100% baseline.
 - **Open-ended** (ChartQA, DocVQA, VQAv2) → generate the answer text, compare
-  with EM / ANLS / relaxed accuracy.
+  with EM / ANLS / relaxed accuracy / VQAv2 consensus accuracy.
 
 The generated reasoning is kept on each `Prediction`, so explanation metrics
 (ROUGE-L, BLEU) and faithfulness reuse it for free.
@@ -29,7 +29,7 @@ The generated reasoning is kept on each `Prediction`, so explanation metrics
 | `scoring.py` | the proven primitives: `score_continuation` (likelihood) + `generate_continuation` + `split_reasoning_answer` |
 | `base.py` | `Prediction` + `BaseMetric` (`applies_to` ∈ mc/open/explanation) |
 | `evaluator.py` | runs predict→score; skips metrics that don't fit the dataset; adds the random baseline |
-| `metrics/accuracy.py` | `mc_accuracy`, `exact_match`, `anls` (DocVQA), `relaxed_accuracy` (ChartQA) |
+| `metrics/accuracy.py` | `mc_accuracy`, `exact_match`, `anls` (DocVQA), `relaxed_accuracy` (ChartQA), `vqa_accuracy` (VQAv2) |
 | `metrics/generation.py` | `rouge_l`, `bleu` — generated reasoning vs gold rationale (RQ3) |
 | `metrics/retrieval.py` | `retrieval_recall` (R@K, MRR) for RQ2's contrastive eval |
 | `faithfulness/` | RQ5 — see its own README |

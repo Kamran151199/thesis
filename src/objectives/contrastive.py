@@ -68,14 +68,15 @@ def info_nce(
 
 @OBJECTIVES.register("contrastive")
 class ContrastiveObjective(BaseObjective):
-    requires_span_ids = False
+    requires_span_ids = True
 
     def compute(self, wrapper, batch: dict) -> LossOutput:
         # 1. The usual generative loss (the model still learns to answer).
-        out = wrapper.forward(batch)
+        forward_batch = {k: v for k, v in batch.items() if k != "span_ids"}
+        out = wrapper.forward(forward_batch)
         l_gen = out.loss
 
-        # 2. Auxiliary InfoNCE between image features and answer embeddings.
+        # 2. Auxiliary InfoNCE between image features and answer-span embeddings.
         image_embeds, text_embeds = wrapper.contrastive_features(batch)
         l_nce = info_nce(image_embeds, text_embeds, self.cfg.temperature)
 

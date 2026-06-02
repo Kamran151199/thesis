@@ -161,7 +161,12 @@ def generate_continuation(
         for_generation=True,
     )
     enc = move_to_device(dict(enc), wrapper.device, wrapper.dtype)
-    out_ids = wrapper.model.generate(**enc, max_new_tokens=max_new_tokens)
+    # Greedy decoding → REPRODUCIBLE eval. Sampling makes the same model score
+    # differently run-to-run (we saw the untrained baseline wobble 0.45↔0.46);
+    # a benchmark wants determinism, so we pin it rather than inherit the default.
+    out_ids = wrapper.model.generate(
+        **enc, max_new_tokens=max_new_tokens, do_sample=False
+    )
     text = wrapper.processor.tokenizer.decode(out_ids[0], skip_special_tokens=True)
     # Some models echo the prompt in the output; strip it if so.
     return text[len(prompt) :].strip() if text.startswith(prompt) else text.strip()
@@ -200,7 +205,9 @@ def generate_batch(
             for_generation=True,
         )
         enc = move_to_device(dict(enc), wrapper.device, wrapper.dtype)
-        out_ids = wrapper.model.generate(**enc, max_new_tokens=max_new_tokens)
+        out_ids = wrapper.model.generate(
+            **enc, max_new_tokens=max_new_tokens, do_sample=False  # greedy = reproducible
+        )
     finally:
         tok.padding_side = old_side
 

@@ -1,6 +1,7 @@
 """Answer-accuracy metrics — one per benchmark's scoring convention (§7.5).
 
     mc_accuracy        ScienceQA / A-OKVQA   exact index match (argmax == gold)
+    vqa_accuracy       VQAv2                 consensus score over 10 annotator answers
     exact_match        generic open-ended    normalized string equality (any gold variant)
     anls               DocVQA                edit-distance similarity (OCR-tolerant)
     relaxed_accuracy   ChartQA               numeric within 5%, else exact match
@@ -70,6 +71,30 @@ class ExactMatch(BaseMetric):
             pred = _normalize(p.predicted_text)
             hits += int(any(pred == _normalize(g) for g in _gold_variants(p)))
         return {"exact_match": hits / max(len(predictions), 1)}
+
+
+@METRICS.register("vqa_accuracy")
+class VQAAccuracy(BaseMetric):
+    """VQAv2 consensus accuracy: min(1, matching annotator answers / 3)."""
+
+    name = "vqa_accuracy"
+    applies_to = "open"
+
+    def compute(self, predictions: list[Prediction]) -> dict[str, float]:
+        total = 0.0
+        for p in predictions:
+            pred = _normalize(p.predicted_text)
+            raw_variants = p.example.metadata.get("answers") or []
+            if raw_variants:
+                variants = [_normalize(g) for g in raw_variants]
+                matches = sum(int(pred == g) for g in variants)
+                total += min(1.0, matches / 3.0)
+            else:
+                # Small VQAv2 subsets sometimes keep only the majority answer.
+                # In that case consensus scoring is impossible, so fall back to
+                # exact majority-answer accuracy instead of giving every hit 1/3.
+                total += float(pred == _normalize(p.example.answer))
+        return {"vqa_accuracy": total / max(len(predictions), 1)}
 
 
 @METRICS.register("anls")

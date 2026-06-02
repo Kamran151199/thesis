@@ -1,0 +1,52 @@
+# RQ2 · BLIP-2 · contrastive-enhanced alignment · ScienceQA
+#
+# Same backbone/data/hyperparameters as rq2_blip2_generative_scienceqa. The only
+# experimental change is the objective: normal answer generation plus an
+# auxiliary InfoNCE term between pooled Q-Former image features and answer-token
+# embeddings. This keeps RQ2 a within-BLIP-2 comparison.
+
+name: rq2_blip2_contrastive_scienceqa
+rq: RQ2
+seed: 42
+
+model:
+  name: blip2
+  pretrained: Salesforce/blip2-opt-2.7b
+  dtype: bfloat16
+  device_map: auto
+  use_qlora: false
+  contrastive_projection: true
+
+data:
+  name: scienceqa
+  split_train: train
+  split_eval: validation
+  max_train: 2000
+  max_eval: 200
+  prompt_variant: explanation_then_answer
+  max_length: 512
+
+objective:
+  name: contrastive
+  contrastive_weight: 0.10
+  temperature: 0.07
+
+train:
+  epochs: 1
+  batch_size: 4
+  grad_accum_steps: 1
+  lr: 1.0e-5
+  weight_decay: 0.01
+  scheduler: cosine
+  warmup_ratio: 0.03
+  log_every: 25
+
+eval:
+  metrics: [mc_accuracy]
+  cot: true
+  max_new_tokens: 160
+
+wandb:
+  enabled: true
+  project: thesis-vlm-alignment
+  tags: [rq2, blip2, contrastive, scienceqa]

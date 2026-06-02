@@ -67,7 +67,16 @@ def load_checkpoint(wrapper, ckpt_dir: str | Path) -> None:
     """
     ckpt_dir = Path(ckpt_dir)
     if isinstance(wrapper.model, PeftModel):
-        wrapper.model.load_adapter(str(ckpt_dir), adapter_name="default")
+        # The wrapper is already constructed with a freshly initialized PEFT
+        # adapter named "default". Loading the trained adapter with the same
+        # name can collide in PEFT, so attach it under a stable evaluation name
+        # and activate it explicitly.
+        adapter_name = "trained"
+        if adapter_name not in getattr(wrapper.model, "peft_config", {}):
+            wrapper.model.load_adapter(
+                str(ckpt_dir), adapter_name=adapter_name, is_trainable=False
+            )
+        wrapper.model.set_adapter(adapter_name)
         log.info("loaded LoRA adapter ← %s", ckpt_dir)
     else:
         state = torch.load(ckpt_dir / "trainable_state.pt", map_location="cpu")

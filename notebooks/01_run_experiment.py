@@ -29,8 +29,8 @@ from src.evaluation.faithfulness import region_importance
 from src.evaluation.scoring import generate_continuation, split_reasoning_answer
 from src.models import build_model
 from src.objectives import build_objective
-from src.training import ConsoleCallback, Trainer
-from src.utils import describe_device, set_seed
+from src.training import CheckpointCallback, ConsoleCallback, Trainer
+from src.utils import describe_device, experiment_dir, set_seed
 
 print("device:", describe_device())  # cuda:0 NVIDIA A100 … on Colab; cpu locally
 set_seed(42)
@@ -116,16 +116,22 @@ print("BASELINE:", {k: round(v, 4) for k, v in baseline.items()})
 # ## 5. Fine-tune
 # The `Trainer` is backbone/objective-agnostic — it just asks the objective for a
 # loss and fires callbacks. We pass `evaluator_fn=None` here and eval manually
-# afterwards so the before/after is explicit.
+# afterwards so the before/after is explicit. The `CheckpointCallback` saves the
+# trained adapter to Drive at the end, so you can reload it later instead of
+# retraining (the runner wires this automatically; here we add it by hand).
 
-# %% Cell 6 — train
+# %% Cell 6 — train  (checkpoints the trained adapter to Drive at the end)
+ckpt_dir = experiment_dir(cfg.name)   # → $THESIS_CKPT_DIR/<name> (Drive on Colab)
 trainer = Trainer(
     wrapper, objective, train_ds, collator, cfg,
-    callbacks=[ConsoleCallback()],
+    callbacks=[ConsoleCallback(), CheckpointCallback(ckpt_dir)],
     evaluator_fn=None,
 )
 summary = trainer.train()
 print("train summary:", summary)
+print("post-trained adapter →", ckpt_dir)
+# reload later (no retrain):  from src.training.checkpoint import load_checkpoint
+#                             load_checkpoint(wrapper, ckpt_dir)
 
 
 # %% [markdown]

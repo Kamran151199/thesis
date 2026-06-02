@@ -1,0 +1,22 @@
+{
+  "name": "rq2_qwen2vl_generative_scienceqa",
+  "rq": "RQ2",
+  "seed": 42,
+  "model": "Qwen/Qwen2-VL-2B-Instruct",
+  "objective": "generative",
+  "alpha": null,
+  "data": "scienceqa",
+  "max_train": 2000,
+  "max_eval": 200,
+  "baseline": {
+    "mc_accuracy": 0.45,
+    "random_baseline": 0.35391666666666666
+  },
+  "post": {
+    "mc_accuracy": 0.765,
+    "rouge_l": 0.7028622339712911,
+    "bleu": 0.5703658512050324,
+    "random_baseline": 0.35391666666666666
+  },
+  "note": "rouge_l/bleu came from a post-hoc re-eval of the in-memory adapter; baseline rouge/bleu were not captured (the original generative run evaluated mc_accuracy only)."
+}

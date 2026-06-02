@@ -21,7 +21,8 @@ data:
   max_train: 2000
   max_eval: 200
   prompt_variant: explanation_then_answer
-  max_length: 1024            # Qwen image ≈320 tokens; 512 would truncate the target
+  max_length: 2048            # charts/docs are HIGH-RES → up to ~1280 image tokens;
+                              # 1024 would slice the image block (same bug as ScienceQA@512)
 
 objective:
   name: explanation_aware

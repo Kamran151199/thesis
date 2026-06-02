@@ -91,7 +91,7 @@ Honesty matters for a thesis — not everything is equally battle-tested:
 | Config / registry / collator / trainer / evaluator plumbing | **Tested** (`tests/test_core.py`, CPU) |
 | Qwen2-VL & PaliGemma backbones | **Implemented**, marked `# VERIFY` — decode one label batch on first run to confirm image-token masking (see each wrapper's docstring) |
 | Open-ended datasets (ChartQA/DocVQA/VQAv2/A-OKVQA) | **Implemented** with documented HF schemas — verify column names on first load |
-| `contrastive` objective | InfoNCE math implemented; needs the backbone `contrastive_features` hook (RQ2 contrastive arm) |
-| Faithfulness: `masking_consistency` | **Runs today** (model-agnostic) · `attention_alignment` is a structured scaffold (needs per-backbone attention extraction) |
+| `contrastive` objective | **Implemented for BLIP-2** with Q-Former image features + answer-token projection; run the Colab preflight before training |
+| Faithfulness: `masking_consistency` | **Runs today** (model-agnostic) |
 
 Extension recipes live in each subpackage's `README.md`.

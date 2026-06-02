@@ -1,0 +1,49 @@
+# RQ4/RQ7 · Qwen2-VL-2B · answer-only fallback · VQAv2
+#
+# Broad natural-image VQA control. VQAv2 has no gold rationale field, so this
+# uses the same fallback as ChartQA/DocVQA: answer-only targets under the shared
+# prompt/evaluation machinery.
+#
+# Default uses an explicit 1k-row VQAv2 sample so the full paper notebook remains
+# Colab-runnable without downloading the full COCO train/val image zips. Report
+# this as the "VQAv2 subset" run. To run the full HuggingFaceM4 source, override
+# data.hf_path=HuggingFaceM4/VQAv2 and data.split_eval=validation.
+
+name: rq4_qwen2vl_explanation_aware_vqav2
+rq: RQ4
+seed: 42
+
+model:
+  name: qwen2_vl
+  pretrained: Qwen/Qwen2-VL-2B-Instruct
+  dtype: bfloat16
+  use_qlora: true
+
+data:
+  name: vqav2
+  hf_path: Erland/VQAv2-sample
+  split_train: train
+  split_eval: test
+  max_train: 900
+  max_eval: 100
+  prompt_variant: explanation_then_answer
+  max_length: 1024
+
+objective:
+  name: explanation_aware
+  alpha: 0.5
+
+train:
+  epochs: 1
+  batch_size: 4
+  grad_accum_steps: 8
+  lr: 2.0e-4
+  scheduler: cosine
+  warmup_ratio: 0.03
+
+eval:
+  metrics: [vqa_accuracy, exact_match]
+  cot: true
+
+wandb:
+  tags: [rq4, rq7, qwen2_vl, vqav2, natural-image-domain]

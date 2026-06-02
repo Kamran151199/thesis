@@ -19,10 +19,15 @@ e.g. `rq3_qwen2vl_explanation_aware_scienceqa.yaml`.
 | File | RQ | Backbone | Objective | Dataset | Notes |
 |------|----|----------|-----------|---------|-------|
 | `rq2_blip2_generative_scienceqa` | 2 | BLIP-2 | generative | ScienceQA | **the proven run** (full Q-Former, no LoRA) |
+| `rq2_blip2_contrastive_scienceqa` | 2 | BLIP-2 | contrastive | ScienceQA | generative loss + Q-Former/answer InfoNCE; sets `model.contrastive_projection=true` |
 | `rq3_blip2_explanation_aware_scienceqa` | 3 | BLIP-2 | explanation-aware | ScienceQA | α=0.5; sweep α for the RQ3 curve |
 | `rq2_qwen2vl_generative_scienceqa` | 2 | Qwen2-VL-2B | generative | ScienceQA | QLoRA baseline |
+| `rq2_qwen2vl_generative_aokvqa` | 2/3 | Qwen2-VL-2B | generative | A-OKVQA | natural-image rationale control |
 | `rq3_qwen2vl_explanation_aware_scienceqa` | 3 | Qwen2-VL-2B | explanation-aware | ScienceQA | **flagship** (primary backbone + core loss) |
+| `rq3_qwen2vl_explanation_aware_aokvqa` | 3/4 | Qwen2-VL-2B | explanation-aware | A-OKVQA | second gold-rationale domain |
 | `rq4_qwen2vl_explanation_aware_chartqa` | 4 | Qwen2-VL-2B | explanation-aware | ChartQA | chart domain (open-ended, relaxed acc) |
+| `rq4_qwen2vl_explanation_aware_docvqa` | 4/7 | Qwen2-VL-2B | answer-only fallback | DocVQA | document domain (ANLS) |
+| `rq4_qwen2vl_explanation_aware_vqav2` | 4/7 | Qwen2-VL-2B | answer-only fallback | VQAv2 subset | natural-image control; defaults to `Erland/VQAv2-sample` for Colab feasibility |
 | `rq6_qwen2vl_7b_explanation_aware_scienceqa` | 6 | Qwen2-VL-7B | explanation-aware | ScienceQA | 2B-vs-7B scale ablation |
 
 ## Generating the rest of the grid
