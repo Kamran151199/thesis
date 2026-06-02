@@ -29,7 +29,7 @@ We compute the two spans ourselves from the logits + ``span_ids``.
 
 from __future__ import annotations
 
-from src.data.collator import SPAN_ANSWER, SPAN_EXPLANATION
+from src.data.constants import SPAN_ANSWER, SPAN_EXPLANATION
 from src.objectives.base import BaseObjective, LossOutput, masked_token_ce
 from src.objectives import OBJECTIVES
 

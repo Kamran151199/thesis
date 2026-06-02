@@ -35,7 +35,7 @@ import torch
 import torch.nn as nn
 from transformers import Blip2ForConditionalGeneration, Blip2Processor
 
-from src.data.collator import LABEL_IGNORE, SPAN_ANSWER
+from src.data.constants import LABEL_IGNORE, SPAN_ANSWER
 from src.models.backbones import BACKBONES
 from src.models.base import BaseVLMWrapper
 

@@ -41,21 +41,16 @@ instead — see ``src.evaluation.scoring``.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import torch
 
+from src.data.constants import LABEL_IGNORE, SPAN_CODE, SPAN_IGNORE
 from src.data.example import VLMExample
 from src.data.prompts import PromptTemplate
-from src.models.base import BaseVLMWrapper
 
-LABEL_IGNORE = -100  # HF's "ignore this position in the loss" sentinel
-
-# Span codes for explanation-aware loss weighting (the optional ``span_ids``
-# tensor). Each TARGET token is tagged so the objective can apply α to the
-# answer span and (1−α) to the explanation span.
-SPAN_IGNORE = 0  # prompt / image / padding — never scored
-SPAN_EXPLANATION = 1  # the " Reasoning: …" tokens
-SPAN_ANSWER = 2  # the " Answer: X." tokens
-_SPAN_CODE = {"explanation": SPAN_EXPLANATION, "answer": SPAN_ANSWER}
+if TYPE_CHECKING:
+    from src.models.base import BaseVLMWrapper
 
 
 class VLMCollator:
@@ -88,7 +83,7 @@ class VLMCollator:
 
     def __init__(
         self,
-        wrapper: BaseVLMWrapper,
+        wrapper: "BaseVLMWrapper",
         template: PromptTemplate,
         max_length: int = 512,
         tag_spans: bool = False,
@@ -154,7 +149,7 @@ class VLMCollator:
             for name, text in self.template.target_spans(ex):
                 acc = acc + text
                 end = min(self.wrapper.input_length(images[i], acc, self.max_length), seq_len)
-                span_ids[i, cursor:end] = _SPAN_CODE[name]
+                span_ids[i, cursor:end] = SPAN_CODE[name]
                 cursor = end
         span_ids[labels == LABEL_IGNORE] = SPAN_IGNORE  # never tag masked positions
         return span_ids
