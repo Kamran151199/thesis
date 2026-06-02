@@ -61,6 +61,7 @@ class ExperimentRunner:
         template = build_template(cfg.data.prompt_variant)
         train_ds = build_dataset(cfg.data, split=cfg.data.split_train)
         eval_ds = build_dataset(cfg.data, split=cfg.data.split_eval)
+        self._sync_eval_length()
 
         wrapper = build_model(cfg.model)
         collator = build_collator(
@@ -171,3 +172,20 @@ class ExperimentRunner:
         }
         raw = json.dumps(payload, sort_keys=True, default=str)
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16], payload
+
+    def _sync_eval_length(self) -> None:
+        """Keep eval encoding at least as long as train/data encoding.
+
+        Qwen2-VL validates that the number of image placeholder tokens in the
+        text matches the encoded ``input_ids``. For high-resolution chart/doc
+        images, using the default eval max_length=1024 can truncate the image
+        token block even when training uses data.max_length=2048. Raise eval
+        length here so configs cannot silently diverge.
+        """
+        if self.cfg.eval.max_length < self.cfg.data.max_length:
+            log.info(
+                "raising eval.max_length %d → %d to match data.max_length",
+                self.cfg.eval.max_length,
+                self.cfg.data.max_length,
+            )
+            self.cfg.eval.max_length = self.cfg.data.max_length

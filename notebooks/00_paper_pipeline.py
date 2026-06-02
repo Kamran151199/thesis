@@ -160,12 +160,22 @@ def result_path(run_name: str) -> Path:
     return experiment_dir(run_name) / "results.json"
 
 
+def sync_eval_length(cfg) -> None:
+    if cfg.eval.max_length < cfg.data.max_length:
+        print(
+            f"raising {cfg.name} eval.max_length "
+            f"{cfg.eval.max_length} -> {cfg.data.max_length}"
+        )
+        cfg.eval.max_length = cfg.data.max_length
+
+
 def load_run(name: str):
     out = experiment_dir(name)
     cfg_path = out / "config.resolved.yaml"
     if not cfg_path.exists():
         raise FileNotFoundError(f"missing resolved config for {name}: {cfg_path}")
     cfg = load_config(cfg_path)
+    sync_eval_length(cfg)
     wrapper = build_model(cfg.model)
     load_checkpoint(wrapper, out)
     template = build_template(cfg.data.prompt_variant)
@@ -1077,6 +1087,7 @@ TRANSFER_TARGETS = {
 def transfer_eval_loaded(wrapper, target_cfg_path: str, n_eval: int = 200) -> dict[str, float]:
     cfg_t = load_config(target_cfg_path)
     cfg_t.data.max_eval = n_eval
+    sync_eval_length(cfg_t)
     target_template = build_template(cfg_t.data.prompt_variant)
     ds_t = build_dataset(cfg_t.data, split=cfg_t.data.split_eval)
     ev = Evaluator(wrapper, ds_t, target_template, cfg_t.eval, build_metrics(cfg_t.eval.metrics))

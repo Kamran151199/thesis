@@ -37,6 +37,7 @@ train:
 eval:
   metrics: [relaxed_accuracy, exact_match]   # open-ended chart answers
   cot: true
+  max_length: 2048
 
 wandb:
   tags: [rq4, qwen2_vl, chartqa, chart-domain]
