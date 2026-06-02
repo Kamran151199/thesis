@@ -27,7 +27,9 @@ generalized so it runs for any (backbone, dataset, objective, metric) combo.
 
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 from typing import Any
 
 from src.config.schema import ExperimentConfig
@@ -55,12 +57,12 @@ class ExperimentRunner:
         log.info("=== %s (%s) on %s ===", cfg.name, cfg.rq, describe_device())
 
         # ── build the four axes ────────────────────────────────────────────────
-        wrapper = build_model(cfg.model)
         objective = build_objective(cfg.objective)
         template = build_template(cfg.data.prompt_variant)
-
         train_ds = build_dataset(cfg.data, split=cfg.data.split_train)
         eval_ds = build_dataset(cfg.data, split=cfg.data.split_eval)
+
+        wrapper = build_model(cfg.model)
         collator = build_collator(
             cfg.data, wrapper, tag_spans=objective.requires_span_ids
         )
@@ -69,8 +71,7 @@ class ExperimentRunner:
         evaluator = Evaluator(wrapper, eval_ds, template, cfg.eval, metrics)
 
         # ── baseline (before any training) ──────────────────────────────────────
-        log.info("measuring baseline (pre-fine-tune)...")
-        baseline = evaluator.evaluate()
+        baseline = self._load_or_measure_baseline(evaluator)
         log.info("baseline: %s", baseline)
 
         # ── train (final eval runs inside Trainer.train) ────────────────────────
@@ -113,3 +114,60 @@ class ExperimentRunner:
                 final[k],
                 final[k] - baseline[k],
             )
+
+    def _load_or_measure_baseline(self, evaluator: Evaluator) -> dict[str, float]:
+        """Reuse identical zero-shot baselines across objective sweeps.
+
+        Alpha sweeps change only the training objective, so the pre-fine-tune
+        baseline is identical. Caching avoids repeated generation/scoring while
+        keeping each run's ``results.json`` self-contained.
+        """
+        if os.environ.get("THESIS_DISABLE_BASELINE_CACHE") == "1":
+            log.info("measuring baseline (cache disabled)...")
+            return evaluator.evaluate()
+
+        key, payload = self._baseline_cache_key()
+        cache_dir = experiment_dir("_baseline_cache")
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_path = cache_dir / f"{key}.json"
+
+        if cache_path.exists():
+            try:
+                cached = json.loads(cache_path.read_text())
+                if cached.get("key_payload") == payload:
+                    log.info("baseline cache hit: %s", cache_path)
+                    return cached["baseline"]
+                log.warning("baseline cache key collision or stale payload: %s", cache_path)
+            except Exception as exc:  # noqa: BLE001
+                log.warning("could not read baseline cache %s: %s", cache_path, exc)
+
+        log.info("measuring baseline (pre-fine-tune)...")
+        baseline = evaluator.evaluate()
+        record = {
+            "key": key,
+            "key_payload": payload,
+            "source_run": self.cfg.name,
+            "baseline": baseline,
+        }
+        tmp = cache_path.with_name(cache_path.name + ".tmp")
+        tmp.write_text(json.dumps(record, indent=2, default=str))
+        tmp.replace(cache_path)
+        log.info("baseline cache saved: %s", cache_path)
+        return baseline
+
+    def _baseline_cache_key(self) -> tuple[str, dict[str, Any]]:
+        cfg = self.cfg.to_dict()
+        model = dict(cfg["model"])
+        # The BLIP-2 contrastive projection is an auxiliary training head. It is
+        # not read during generation/scoring, so it should not split the baseline
+        # cache between generative and contrastive RQ2 runs.
+        model["contrastive_projection"] = False
+        payload = {
+            "version": 1,
+            "seed": cfg["seed"],
+            "model": model,
+            "data": cfg["data"],
+            "eval": cfg["eval"],
+        }
+        raw = json.dumps(payload, sort_keys=True, default=str)
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16], payload

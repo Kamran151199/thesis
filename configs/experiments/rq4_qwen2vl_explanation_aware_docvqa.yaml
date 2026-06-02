@@ -1,9 +1,10 @@
 # RQ4/RQ7 · Qwen2-VL-2B · answer-only fallback · DocVQA
 #
-# Document-domain run. DocVQA has no gold rationales, so the explanation-aware
-# template falls back to an answer-only target per example; the config name keeps
-# it grouped with the domain-comparison lane, but result interpretation must not
-# claim rationale supervision for this dataset.
+# Document-domain run. The HuggingFaceM4/DocumentVQA mirror exposes labeled
+# validation data and a test split whose labels may be held back, so the paper
+# run uses disjoint validation slices: the first 80% for adapter training and the
+# last 20% for held-out evaluation. DocVQA has no gold rationales, so the
+# explanation-aware template falls back to answer-only targets per example.
 
 name: rq4_qwen2vl_explanation_aware_docvqa
 rq: RQ4
@@ -17,8 +18,8 @@ model:
 
 data:
   name: docvqa
-  split_train: train
-  split_eval: validation
+  split_train: validation[:80%]
+  split_eval: validation[80%:]
   max_train: 2000
   max_eval: 200
   prompt_variant: explanation_then_answer

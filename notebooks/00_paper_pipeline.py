@@ -401,12 +401,13 @@ print("All configs load cleanly.")
 
 # %% Cell 4 - masking and contrastive preflight
 def preflight_masking(cfg) -> dict[str, Any]:
+    obj = build_objective(cfg.objective)
+    ds = build_dataset(cfg.data, split=cfg.data.split_train)
+    if len(ds) == 0:
+        raise ValueError(f"{cfg.name}: dataset is empty after filtering")
+
     wrapper = build_model(cfg.model)
     try:
-        obj = build_objective(cfg.objective)
-        ds = build_dataset(cfg.data, split=cfg.data.split_train)
-        if len(ds) == 0:
-            raise ValueError(f"{cfg.name}: dataset is empty after filtering")
         n = min(2, len(ds))
         collator = build_collator(cfg.data, wrapper, tag_spans=obj.requires_span_ids)
         batch = collator([ds[i] for i in range(n)])
@@ -1073,18 +1074,13 @@ TRANSFER_TARGETS = {
 }
 
 
-def transfer_eval(source_run: str, target_cfg_path: str, n_eval: int = 200) -> dict[str, float]:
-    _, wrapper, _, _ = load_run(source_run)
-    try:
-        cfg_t = load_config(target_cfg_path)
-        cfg_t.data.max_eval = n_eval
-        target_template = build_template(cfg_t.data.prompt_variant)
-        ds_t = build_dataset(cfg_t.data, split=cfg_t.data.split_eval)
-        ev = Evaluator(wrapper, ds_t, target_template, cfg_t.eval, build_metrics(cfg_t.eval.metrics))
-        return ev.evaluate()
-    finally:
-        del wrapper
-        free_gpu()
+def transfer_eval_loaded(wrapper, target_cfg_path: str, n_eval: int = 200) -> dict[str, float]:
+    cfg_t = load_config(target_cfg_path)
+    cfg_t.data.max_eval = n_eval
+    target_template = build_template(cfg_t.data.prompt_variant)
+    ds_t = build_dataset(cfg_t.data, split=cfg_t.data.split_eval)
+    ev = Evaluator(wrapper, ds_t, target_template, cfg_t.eval, build_metrics(cfg_t.eval.metrics))
+    return ev.evaluate()
 
 
 TX_PATH = ART_DIR / "transfer_matrix.json"
@@ -1095,12 +1091,20 @@ for source_label, source_run in TRANSFER_SOURCES.items():
     if not result_path(source_run).exists():
         print(f"skip transfer source {source_label}: missing {source_run}")
         continue
+    pending_targets = [
+        (target_label, target_cfg)
+        for target_label, target_cfg in TRANSFER_TARGETS.items()
+        if f"{source_label}->{target_label}" not in tx
+    ]
+    if not pending_targets:
+        continue
+    _, source_wrapper, _, _ = load_run(source_run)
     for target_label, target_cfg in TRANSFER_TARGETS.items():
         label = f"{source_label}->{target_label}"
         if label in tx:
             continue
         try:
-            tx[label] = transfer_eval(source_run, target_cfg, n_eval=transfer_n)
+            tx[label] = transfer_eval_loaded(source_wrapper, target_cfg, n_eval=transfer_n)
             save_json(tx, "transfer_matrix")
         except Exception as exc:  # noqa: BLE001
             tx[f"{label}__error"] = {
@@ -1108,6 +1112,8 @@ for source_label, source_run in TRANSFER_SOURCES.items():
                 "traceback": traceback.format_exc(),
             }
             save_json(tx, "transfer_matrix")
+    del source_wrapper
+    free_gpu()
 
 transfer_rows = []
 for label, metrics in tx.items():
