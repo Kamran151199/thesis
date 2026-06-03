@@ -84,7 +84,7 @@ class PromptTemplate:
 
 @PROMPT_VARIANTS.register("answer_only")
 class AnswerOnlyTemplate(PromptTemplate):
-    """Target = just the answer. The α=1.0 arm of the RQ3 sweep (no reasoning).
+    """Target = just the answer. This is the clean no-rationale control.
 
     >>> AnswerOnlyTemplate().target(ex)
     ' Answer: Carbon dioxide.'

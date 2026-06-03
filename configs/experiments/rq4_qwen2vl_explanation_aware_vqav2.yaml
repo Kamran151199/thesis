@@ -1,8 +1,8 @@
 # RQ4/RQ7 · Qwen2-VL-2B · answer-only fallback · VQAv2
 #
 # Broad natural-image VQA control. VQAv2 has no gold rationale field, so this
-# uses the same fallback as ChartQA/DocVQA: answer-only targets under the shared
-# prompt/evaluation machinery.
+# uses the same fallback as ChartQA/DocVQA: answer-only generative targets under
+# the shared prompt/evaluation machinery.
 #
 # Default uses an explicit 1k-row VQAv2 sample so the full paper notebook remains
 # Colab-runnable without downloading the full COCO train/val image zips. Report
@@ -26,12 +26,11 @@ data:
   split_eval: test
   max_train: 900
   max_eval: 100
-  prompt_variant: explanation_then_answer
+  prompt_variant: answer_only
   max_length: 1024
 
 objective:
-  name: explanation_aware
-  alpha: 0.5
+  name: generative
 
 train:
   epochs: 1
@@ -43,7 +42,8 @@ train:
 
 eval:
   metrics: [vqa_accuracy, exact_match]
-  cot: true
+  cot: false
+  max_new_tokens: 24
 
 wandb:
   tags: [rq4, rq7, qwen2_vl, vqav2, natural-image-domain]

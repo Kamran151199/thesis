@@ -15,12 +15,16 @@ collator tagged for us::
 
 α is the dial RQ3 sweeps over {0.0, 0.5, 1.0}:
 
-    α = 1.0  →  pure answer supervision      (≡ the generative / answer-only arm)
+    α = 1.0  →  answer-span-only supervision
     α = 0.5  →  balanced: learn to reason AND answer
     α = 0.0  →  pure explanation supervision  (learns to reason, answer unweighted)
 
-Holding the data, backbone and hyperparameters fixed and moving only α turns
-"does explaining help?" into a clean, measurable curve.
+If the target template contains a gold rationale, α=1 still predicts answer
+tokens after rationale tokens in the teacher-forced sequence. It is therefore
+not the same as a clean answer-only control; that control uses the
+``answer_only`` prompt template and the plain generative objective. Holding the
+data, backbone and hyperparameters fixed and moving only α measures how the
+span weighting behaves inside the rationale-producing setup.
 
 WHY NOT JUST USE THE MODEL'S BUILT-IN LOSS? Because that averages the whole
 target uniformly — it can't put different weights on the reasoning vs the answer.

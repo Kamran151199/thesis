@@ -122,6 +122,27 @@ def test_retrieval_recall_perfect():
     assert out["R@1"] == 1.0 and out["MRR"] == 1.0
 
 
+def test_open_ended_answer_cleanup_stops_repeated_answer_loops():
+    from src.evaluation.scoring import clean_generated_answer, split_reasoning_answer
+
+    _, answer = split_reasoning_answer(
+        "Answer: 2,500.00. Answer: Answer: Answer: Answer:"
+    )
+    assert answer == "2,500.00"
+
+    _, answer = split_reasoning_answer(
+        "Reasoning: I read the invoice. Answer: Regional Medical Program. Answer:"
+    )
+    assert answer == "Regional Medical Program"
+
+    _, answer = split_reasoning_answer(
+        "2,500.00. Answer: Answer: Answer: Answer:"
+    )
+    assert answer == "2,500.00"
+
+    assert clean_generated_answer("KEEP IT") == "KEEP IT"
+
+
 def test_per_row_neg_ce_matches_per_row_reference():
     # The anchor for batched eval: per_row_neg_ce over a B-row batch must equal
     # B independent single-item scores. HF's model(labels=…).loss for ONE row is

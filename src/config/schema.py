@@ -101,8 +101,8 @@ class DataConfig:
     """Which dataset, how much of it, and which prompt template.
 
     ``prompt_variant`` is the lever for RQ3 (explanation-aware training):
-      - ``"answer_only"``        → target is just the answer        (α = 1.0 arm)
-      - ``"explanation_then_answer"`` → target is "Reasoning: … Answer: …" (α < 1)
+      - ``"answer_only"``        → target is just the answer
+      - ``"explanation_then_answer"`` → target is "Reasoning: … Answer: …"
     Same underlying data, different supervision — a controlled comparison.
     """
 
@@ -127,8 +127,10 @@ class ObjectiveConfig:
 
     - ``"generative"``        — plain next-token cross-entropy on the target.
     - ``"explanation_aware"`` — ``L = α·L_answer + (1−α)·L_explanation``.
-      ``alpha`` swept over {0.0, 0.5, 1.0} per the proposal. α=1 ⇒ answer-only;
-      α=0 ⇒ explanation-only; 0.5 ⇒ balanced.
+      ``alpha`` swept over {0.0, 0.5, 1.0} per the proposal. α=1 weights only
+      the answer span, but if the template still contains a gold rationale then
+      the answer is trained after rationale tokens. A true answer-only control
+      uses ``prompt_variant="answer_only"`` with the generative objective.
     - ``"contrastive"``       — generative loss + ``contrastive_weight`` × InfoNCE
       between projected image features and answer sentence embeddings (RQ2's
       contrastive-enhanced arm).

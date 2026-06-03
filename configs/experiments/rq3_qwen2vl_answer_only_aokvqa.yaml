@@ -1,0 +1,43 @@
+# RQ3/RQ7 · Qwen2-VL-2B · true answer-only · A-OKVQA
+#
+# Clean natural-image commonsense control for explanation-aware training.
+# A-OKVQA has gold rationales, but this run deliberately excludes them from the
+# supervised target so transfer can compare answer-only and rationale-aware
+# adapters from the same source domain.
+
+name: rq3_qwen2vl_answer_only_aokvqa
+rq: RQ3
+seed: 42
+
+model:
+  name: qwen2_vl
+  pretrained: Qwen/Qwen2-VL-2B-Instruct
+  dtype: bfloat16
+  use_qlora: true
+
+data:
+  name: aokvqa
+  split_train: train
+  split_eval: validation
+  max_train: 2000
+  max_eval: 200
+  prompt_variant: answer_only
+  max_length: 1024
+
+objective:
+  name: generative
+
+train:
+  epochs: 1
+  batch_size: 4
+  grad_accum_steps: 8
+  lr: 2.0e-4
+  scheduler: cosine
+  warmup_ratio: 0.03
+
+eval:
+  metrics: [mc_accuracy]
+  cot: false
+
+wandb:
+  tags: [rq3, rq7, qwen2_vl, answer_only, aokvqa]

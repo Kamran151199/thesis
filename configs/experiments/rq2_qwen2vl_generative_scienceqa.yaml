@@ -1,7 +1,10 @@
-# RQ2 · Qwen2-VL-2B · generative · ScienceQA  (the proposal's PRIMARY backbone, QLoRA)
+# RQ2/RQ3 · Qwen2-VL-2B · rationale+answer generative CE · ScienceQA
 #
 # QLoRA path: 4-bit NF4 base + rank-16 adapters on the LLM attention/MLP, vision
 # frozen. Hyperparameters follow proposal §7.4 (lr 2e-4, effective batch 32).
+# The target contains the gold rationale followed by the final answer and uses
+# uniform next-token CE. For the clean answer-only control, use
+# rq3_qwen2vl_answer_only_scienceqa.yaml.
 
 name: rq2_qwen2vl_generative_scienceqa
 rq: RQ2

@@ -1,0 +1,25 @@
+\begin{table}
+\caption{All completed expected experiments. Headline uses the native task metric.}
+\label{tab:all_results}
+\begin{tabular}{lrrrrrrrrrrrrr}
+\toprule
+run & rq & domain & backbone & objective & alpha & headline & mc_acc & rouge_l & bleu & relaxed_acc & anls & vqa_accuracy & exact_match \\
+\midrule
+rq2_blip2_contrastive_scienceqa & RQ2 & science & BLIP-2 OPT-2.7B & contrastive_enhanced & -- & 0.480000 & 0.480000 & -- & -- & -- & -- & -- & -- \\
+rq2_blip2_generative_scienceqa & RQ2 & science & BLIP-2 OPT-2.7B & generative & -- & 0.495000 & 0.495000 & -- & -- & -- & -- & -- & -- \\
+rq3_qwen2vl_explanation_aware_aokvqa & RQ3/RQ4 & commonsense & Qwen2-VL-2B & explanation_aware_alpha_0.5 & -- & 0.795000 & 0.795000 & 0.337500 & 0.087200 & -- & -- & -- & -- \\
+rq4_qwen2vl_explanation_aware_chartqa & RQ4/RQ7 & charts & Qwen2-VL-2B & answer_only_fallback & -- & 0.615000 & -- & -- & -- & 0.615000 & -- & -- & 0.225000 \\
+rq4_qwen2vl_explanation_aware_docvqa & RQ4/RQ7 & documents & Qwen2-VL-2B & answer_only_fallback & -- & 0.067800 & -- & -- & -- & -- & 0.067800 & -- & 0.060000 \\
+rq4_qwen2vl_explanation_aware_vqav2 & RQ4/RQ7 & natural & Qwen2-VL-2B & answer_only_fallback & -- & 0.720000 & -- & -- & -- & -- & -- & 0.720000 & 0.720000 \\
+rq2_qwen2vl_generative_aokvqa & RQ2/RQ3 & commonsense & Qwen2-VL-2B & generative & -- & 0.790000 & 0.790000 & 0.330200 & 0.082800 & -- & -- & -- & -- \\
+rq2_qwen2vl_generative_scienceqa & RQ2/RQ3 & science & Qwen2-VL-2B & generative & -- & 0.775000 & 0.775000 & 0.700200 & 0.568900 & -- & -- & -- & -- \\
+rq6_qwen2vl_7b_explanation_aware_scienceqa & RQ6 & science & Qwen2-VL-7B & explanation_aware_alpha_0.5 & -- & 0.895000 & 0.895000 & 0.748300 & 0.653700 & -- & -- & -- & -- \\
+rq3_alpha_000 & RQ3 & science & Qwen2-VL-2B & explanation_aware_alpha_0 & 0.000000 & 0.675000 & 0.675000 & 0.449200 & 0.334200 & -- & -- & -- & -- \\
+rq3_alpha_010 & RQ3 & science & Qwen2-VL-2B & explanation_aware_alpha_0.1 & 0.100000 & 0.775000 & 0.775000 & 0.706300 & 0.578900 & -- & -- & -- & -- \\
+rq3_alpha_025 & RQ3 & science & Qwen2-VL-2B & explanation_aware_alpha_0.25 & 0.250000 & 0.770000 & 0.770000 & 0.685000 & 0.544600 & -- & -- & -- & -- \\
+rq3_alpha_050 & RQ3 & science & Qwen2-VL-2B & explanation_aware_alpha_0.5 & 0.500000 & 0.740000 & 0.740000 & 0.653400 & 0.504600 & -- & -- & -- & -- \\
+rq3_alpha_075 & RQ3 & science & Qwen2-VL-2B & explanation_aware_alpha_0.75 & 0.750000 & 0.720000 & 0.720000 & 0.616300 & 0.455200 & -- & -- & -- & -- \\
+rq3_alpha_100 & RQ3 & science & Qwen2-VL-2B & explanation_aware_alpha_1 & 1.000000 & 0.680000 & 0.680000 & -- & -- & -- & -- & -- & -- \\
+\bottomrule
+\end{tabular}
+\end{table}

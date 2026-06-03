@@ -4,7 +4,7 @@
 # OBJECTIVE changes (generative → explanation_aware). That isolation is the RQ3
 # experiment: does weighting reasoning vs answer help? Sweep α with
 #   --set objective.alpha=0.0   (explanation-only)
-#   --set objective.alpha=1.0   (answer-only ≡ the generative baseline)
+#   --set objective.alpha=1.0   (answer-span-only inside the rationale target)
 
 name: rq3_blip2_explanation_aware_scienceqa
 rq: RQ3

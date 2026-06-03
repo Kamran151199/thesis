@@ -1,0 +1,42 @@
+# RQ3/RQ7 · Qwen2-VL-2B · true answer-only · ScienceQA
+#
+# Clean control for explanation-aware training. The model sees the same image,
+# question, and choices, but the supervised target contains only the final
+# answer. No gold rationale tokens are present in the target.
+
+name: rq3_qwen2vl_answer_only_scienceqa
+rq: RQ3
+seed: 42
+
+model:
+  name: qwen2_vl
+  pretrained: Qwen/Qwen2-VL-2B-Instruct
+  dtype: bfloat16
+  use_qlora: true
+
+data:
+  name: scienceqa
+  split_train: train
+  split_eval: validation
+  max_train: 2000
+  max_eval: 200
+  prompt_variant: answer_only
+  max_length: 1024
+
+objective:
+  name: generative
+
+train:
+  epochs: 1
+  batch_size: 4
+  grad_accum_steps: 8
+  lr: 2.0e-4
+  scheduler: cosine
+  warmup_ratio: 0.03
+
+eval:
+  metrics: [mc_accuracy]
+  cot: false
+
+wandb:
+  tags: [rq3, rq7, qwen2_vl, answer_only, scienceqa]

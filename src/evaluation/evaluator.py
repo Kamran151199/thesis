@@ -31,6 +31,7 @@ from src.data.example import VLMExample
 from src.data.prompts import PromptTemplate
 from src.evaluation.base import BaseMetric, Prediction
 from src.evaluation.scoring import (
+    clean_generated_answer,
     generate_batch,
     score_batch,
     split_reasoning_answer,
@@ -123,7 +124,7 @@ class Evaluator:
                 out.append(
                     Prediction(
                         example=ex,
-                        predicted_text=answer or cont.strip(),
+                        predicted_text=answer or clean_generated_answer(cont),
                         reasoning=gen_reasoning,
                     )
                 )

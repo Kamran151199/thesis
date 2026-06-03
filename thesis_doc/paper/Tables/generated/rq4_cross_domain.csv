@@ -1,0 +1,6 @@
+domain,dataset,objective,headline,mc_acc,relaxed_acc,anls,vqa_accuracy
+commonsense,aokvqa,explanation_aware_alpha_0.5,0.795,0.795,,,
+charts,chartqa,answer_only_fallback,0.615,,0.615,,
+documents,docvqa,answer_only_fallback,0.0678,,,0.0678,
+natural,vqav2,answer_only_fallback,0.72,,,,0.72
+science,scienceqa,explanation_aware_alpha_0.5,0.74,0.74,,,

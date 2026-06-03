@@ -25,6 +25,8 @@ score includes context tokens and the comparison is meaningless.
 
 from __future__ import annotations
 
+import re
+
 import torch
 import torch.nn.functional as F
 
@@ -218,17 +220,49 @@ def generate_batch(
     ]
 
 
+_ANSWER_CUE_RE = re.compile(r"\b(?:answer|final answer)\s*:", re.IGNORECASE)
+_STOP_CUE_RE = re.compile(
+    r"\b(?:answer|final answer|reasoning|question|options)\s*:", re.IGNORECASE
+)
+
+
+def clean_generated_answer(text: str) -> str:
+    """Return the first clean answer span from an open-ended generation.
+
+    Open-ended VLM decoding can fall into loops such as ``"2,500.00. Answer:
+    Answer: ..."``. Metrics like ANLS and exact match should score the first
+    answer span, not the repeated control tokens after it.
+    """
+    text = text.strip()
+    text = re.sub(r"^(?:\s*(?:Answer|Final answer)\s*:\s*)+", "", text).strip()
+    stop = _STOP_CUE_RE.search(text)
+    if stop:
+        text = text[: stop.start()]
+    lines = text.splitlines()
+    text = lines[0].strip() if lines else ""
+    return text.rstrip(".").strip()
+
+
 def split_reasoning_answer(continuation: str) -> tuple[str, str]:
     """Split a generated continuation into (reasoning, answer) on the "Answer:" cue.
 
     >>> split_reasoning_answer("Reasoning: plants need CO2. Answer: Carbon dioxide.")
     ('plants need CO2.', 'Carbon dioxide.')
     """
-    if "Answer:" in continuation:
-        reasoning, answer = continuation.split("Answer:", 1)
+    match = _ANSWER_CUE_RE.search(continuation)
+    if match:
+        reasoning = continuation[: match.start()]
+        answer = continuation[match.end() :]
     else:
         reasoning, answer = continuation, ""
     reasoning = reasoning.strip()
     if reasoning.lower().startswith("reasoning:"):
         reasoning = reasoning[len("reasoning:") :].strip()
-    return reasoning, answer.strip().rstrip(".").strip()
+    cleaned_answer = clean_generated_answer(answer)
+    if cleaned_answer:
+        return reasoning, cleaned_answer
+    if match and reasoning:
+        # Open-ended answer-only prompts can produce "answer. Answer: Answer: ..."
+        # loops. In that case the useful answer is before the repeated cue.
+        return "", clean_generated_answer(reasoning)
+    return reasoning, ""

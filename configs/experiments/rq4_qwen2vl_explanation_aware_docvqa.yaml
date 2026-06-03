@@ -3,8 +3,9 @@
 # Document-domain run. The HuggingFaceM4/DocumentVQA mirror exposes labeled
 # validation data and a test split whose labels may be held back, so the paper
 # run uses disjoint validation slices: the first 80% for adapter training and the
-# last 20% for held-out evaluation. DocVQA has no gold rationales, so the
-# explanation-aware template falls back to answer-only targets per example.
+# last 20% for held-out evaluation. DocVQA has no gold rationales, so this is
+# intentionally an answer-only/generative fallback run, not explanation-aware
+# rationale supervision.
 
 name: rq4_qwen2vl_explanation_aware_docvqa
 rq: RQ4
@@ -22,12 +23,11 @@ data:
   split_eval: validation[80%:]
   max_train: 2000
   max_eval: 200
-  prompt_variant: explanation_then_answer
+  prompt_variant: answer_only
   max_length: 2048
 
 objective:
-  name: explanation_aware
-  alpha: 0.5
+  name: generative
 
 train:
   epochs: 1
@@ -39,8 +39,9 @@ train:
 
 eval:
   metrics: [anls, exact_match]
-  cot: true
+  cot: false
   max_length: 2048
+  max_new_tokens: 48
 
 wandb:
   tags: [rq4, rq7, qwen2_vl, docvqa, document-domain]
