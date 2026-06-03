@@ -898,7 +898,15 @@ if "rq2_blip2_contrastive_scienceqa" in retrieval_scores:
 def faithfulness_score(wrapper, eval_ds, template, n: int = 30, grid: tuple[int, int] = (3, 3)) -> float:
     drifts = []
     for i in range(min(n, len(eval_ds))):
-        drifts.append(region_importance(wrapper, eval_ds[i], template, grid=grid).mean_drift)
+        drifts.append(
+            region_importance(
+                wrapper,
+                eval_ds[i],
+                template,
+                grid=grid,
+                max_length=getattr(wrapper, "_paper_eval_max_length", 1024),
+            ).mean_drift
+        )
     return float(np.mean(drifts)) if drifts else float("nan")
 
 
@@ -915,6 +923,7 @@ for name in faith_runs:
         continue
     try:
         cfg, wrapper, template, eval_ds = load_run(name)
+        wrapper._paper_eval_max_length = cfg.eval.max_length
         faith[name] = {
             "mean_drift": faithfulness_score(
                 wrapper,
@@ -1008,7 +1017,9 @@ def save_qualitative_views(run_name: str, n: int = 6) -> None:
             if i >= count:
                 continue
             ex = eval_ds[i]
-            res = region_importance(wrapper, ex, template, grid=(4, 4))
+            res = region_importance(
+                wrapper, ex, template, grid=(4, 4), max_length=cfg.eval.max_length
+            )
             heat = np.array(res.drifts).reshape(res.grid)
             ax.imshow(ex.image.convert("RGB"))
             ax.imshow(
@@ -1218,6 +1229,9 @@ required_files = [
 ]
 
 missing_artifacts = [str(p) for p in required_files if not p.exists()]
+if "run_status" not in globals():
+    RUN_STATUS_PATH = LOG_DIR / "run_status.json"
+    run_status = json.loads(RUN_STATUS_PATH.read_text()) if RUN_STATUS_PATH.exists() else {}
 failed_runs = {
     name: status
     for name, status in run_status.items()

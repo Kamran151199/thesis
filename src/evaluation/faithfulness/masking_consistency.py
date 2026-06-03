@@ -67,6 +67,7 @@ def region_importance(
     ex: VLMExample,
     template: PromptTemplate,
     grid: tuple[int, int] = (2, 2),
+    max_length: int = 1024,
 ) -> MaskingResult:
     """Drift in the gold answer's likelihood when each image region is masked.
 
@@ -76,6 +77,10 @@ def region_importance(
     ex:        the example (uses its gold ``answer`` as the scored continuation).
     template:  prompt template (the context the answer is scored in).
     grid:      (rows, cols) to divide the image into.
+    max_length:
+        Token cap for image+text encoding. High-resolution Qwen2-VL chart/doc
+        images often need 2048; using 1024 can truncate image placeholders and
+        trigger an image-token mismatch.
 
     Returns
     -------
@@ -85,12 +90,14 @@ def region_importance(
     image = ex.image.convert("RGB")
     context = f"{template.prompt(ex)} Answer:"
 
-    baseline = score_continuation(wrapper, image, context, ex.answer)
+    baseline = score_continuation(wrapper, image, context, ex.answer, max_length=max_length)
     drifts: list[float] = []
     for r in range(rows):
         for c in range(cols):
             masked = _mask_region(image, r, c, rows, cols)
-            masked_score = score_continuation(wrapper, masked, context, ex.answer)
+            masked_score = score_continuation(
+                wrapper, masked, context, ex.answer, max_length=max_length
+            )
             drifts.append(baseline - masked_score)  # >0 ⇒ region mattered
 
     return MaskingResult(
