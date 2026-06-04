@@ -40,6 +40,7 @@ from IPython.display import Markdown, display
 
 from src.config import load_config
 from src.data import build_collator, build_dataset, build_template
+from src.data.constants import LABEL_IGNORE, SPAN_ANSWER, SPAN_EXPLANATION, SPAN_IGNORE
 from src.evaluation import Evaluator, build_metrics
 from src.evaluation.faithfulness import region_importance
 from src.evaluation.metrics.retrieval import retrieval_recall
@@ -605,6 +606,14 @@ print("All configs load cleanly.")
 #                                   └─ metric calculation
 # ```
 #
+# The sample trace cell below goes one level deeper: it records the exact text
+# provided to the template, the model-facing text after backbone wrapping, every
+# collated tensor, every token id, every label id, which positions are masked
+# with `-100`, the span tags used for explanation-aware loss, the forward logits
+# shape, the generated token ids, and the decoded/evaluated output. The notebook
+# displays the boundary window where supervision starts; the full token table is
+# saved as `sample_trace_tokens.csv`.
+#
 # The generated markdown/CSV/JSON/figures are saved into `paper_artifacts/data`
 # and `paper_artifacts/figures`. The sample figures can be included in the paper
 # if the journal page budget allows it.
@@ -705,6 +714,346 @@ def decoded_supervised_target(wrapper, labels) -> str:
     return wrapper.processor.tokenizer.decode(supervised, skip_special_tokens=False)
 
 
+SPAN_NAMES = {
+    SPAN_IGNORE: "ignore",
+    SPAN_EXPLANATION: "explanation",
+    SPAN_ANSWER: "answer",
+}
+
+
+def tensor_summary(batch: dict[str, Any]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for key, value in batch.items():
+        if torch.is_tensor(value):
+            row = {
+                "tensor": key,
+                "shape": tuple(value.shape),
+                "dtype": str(value.dtype),
+                "device": str(value.device),
+            }
+            if value.numel() and value.is_floating_point():
+                row["min"] = float(value.detach().float().min().item())
+                row["max"] = float(value.detach().float().max().item())
+            elif value.numel():
+                row["min"] = int(value.detach().min().item())
+                row["max"] = int(value.detach().max().item())
+            rows.append(row)
+        else:
+            rows.append({"tensor": key, "type": type(value).__name__})
+    return rows
+
+
+def token_label_table(
+    wrapper,
+    batch: dict[str, torch.Tensor],
+    span_ids: torch.Tensor | None,
+    prompt_len: int,
+    run_name: str,
+) -> list[dict[str, Any]]:
+    tok = wrapper.processor.tokenizer
+    input_ids = batch["input_ids"][0].detach().cpu().tolist()
+    labels = batch["labels"][0].detach().cpu().tolist()
+    attention = batch.get("attention_mask")
+    attention_values = (
+        attention[0].detach().cpu().tolist()
+        if torch.is_tensor(attention)
+        else [None] * len(input_ids)
+    )
+    span_values = (
+        span_ids[0].detach().cpu().tolist()
+        if span_ids is not None
+        else [SPAN_IGNORE] * len(input_ids)
+    )
+    tokens = tok.convert_ids_to_tokens(input_ids)
+    pad_id = tok.pad_token_id
+    rows: list[dict[str, Any]] = []
+    for pos, (input_id, label_id, attn, span_id, token) in enumerate(
+        zip(input_ids, labels, attention_values, span_values, tokens)
+    ):
+        supervised = label_id != LABEL_IGNORE
+        if attn == 0 or input_id == pad_id:
+            segment = "padding"
+        elif pos < prompt_len:
+            segment = "image+prompt masked"
+        elif supervised:
+            segment = "target supervised"
+        else:
+            segment = "target/special masked"
+        label_token = "IGNORE" if not supervised else tok.convert_ids_to_tokens([label_id])[0]
+        rows.append(
+            {
+                "run": run_name,
+                "position": pos,
+                "segment": segment,
+                "input_id": int(input_id),
+                "input_token": token,
+                "input_decoded": tok.decode([input_id], skip_special_tokens=False),
+                "attention_mask": attn,
+                "label_id": int(label_id),
+                "label_token": label_token,
+                "label_decoded": "" if not supervised else tok.decode([label_id], skip_special_tokens=False),
+                "supervised": bool(supervised),
+                "span_id": int(span_id),
+                "span_name": SPAN_NAMES.get(int(span_id), f"unknown_{span_id}"),
+            }
+        )
+    return rows
+
+
+def boundary_window(rows: list[dict[str, Any]], radius: int = 45) -> pd.DataFrame:
+    supervised_positions = [r["position"] for r in rows if r["supervised"]]
+    if supervised_positions:
+        start = max(min(supervised_positions) - radius, 0)
+        end = min(min(supervised_positions) + radius, len(rows) - 1)
+    else:
+        start = 0
+        end = min(2 * radius, len(rows) - 1)
+    return pd.DataFrame([r for r in rows if start <= r["position"] <= end])
+
+
+def generation_trace(wrapper, ex, template, cfg) -> dict[str, Any]:
+    prompt = template.prompt(ex)
+    enc = wrapper.build_inputs(
+        [ex.image.convert("RGB")],
+        [prompt],
+        padding=False,
+        truncation=True,
+        max_length=cfg.eval.max_length,
+        for_generation=True,
+    )
+    enc_device = move_to_device(dict(enc), wrapper.device, wrapper.dtype)
+    with torch.no_grad():
+        out_ids = wrapper.model.generate(
+            **enc_device,
+            max_new_tokens=cfg.eval.max_new_tokens,
+            do_sample=False,
+        )
+    tok = wrapper.processor.tokenizer
+    full_decoded = tok.decode(out_ids[0], skip_special_tokens=True)
+    input_len = int(enc["input_ids"].shape[1])
+    new_ids = out_ids[0][input_len:] if out_ids.shape[1] > input_len else out_ids[0]
+    continuation = tok.decode(new_ids, skip_special_tokens=True).strip()
+    if full_decoded.startswith(prompt):
+        continuation = full_decoded[len(prompt) :].strip()
+    reasoning, answer = split_reasoning_answer(continuation)
+    if not answer:
+        answer = clean_generated_answer(continuation)
+    return {
+        "prompt": prompt,
+        "model_prompt": wrapper.prompt_to_model_text(prompt, add_generation_prompt=True),
+        "generation_input_shape": tuple(enc["input_ids"].shape),
+        "generated_full_token_count": int(out_ids.shape[1]),
+        "generated_new_token_count": int(new_ids.shape[0]),
+        "new_token_ids": [int(x) for x in new_ids.detach().cpu().tolist()[:80]],
+        "decoded_full": full_decoded,
+        "decoded_continuation": continuation,
+        "parsed_reasoning": reasoning,
+        "parsed_answer": answer,
+    }
+
+
+def build_sample_trace(run_names: list[str]) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    summary_rows: list[dict[str, Any]] = []
+    tensor_rows: list[dict[str, Any]] = []
+    token_rows: list[dict[str, Any]] = []
+
+    groups: dict[tuple[str, str], list[str]] = {}
+    for run_name in run_names:
+        cfg = materialize_exp_config(RUN_BY_NAME[run_name])
+        groups.setdefault((cfg.model.name, cfg.model.pretrained), []).append(run_name)
+
+    for _, group_runs in groups.items():
+        first_cfg = materialize_exp_config(RUN_BY_NAME[group_runs[0]])
+        print(f"\nloading trace model: {first_cfg.model.name} / {first_cfg.model.pretrained}")
+        wrapper = build_model(first_cfg.model)
+        wrapper.eval()
+        try:
+            for run_name in group_runs:
+                exp = RUN_BY_NAME[run_name]
+                cfg = materialize_exp_config(exp)
+                obj = build_objective(cfg.objective)
+                template = build_template(cfg.data.prompt_variant)
+                train_ds = build_dataset(cfg.data, split=cfg.data.split_train)
+                eval_ds = build_dataset(cfg.data, split=cfg.data.split_eval)
+                ex = train_ds[0]
+                prompt, target = template(ex)
+                full_text = prompt + target
+                image = ex.image.convert("RGB")
+                prompt_len = wrapper.input_length(image, prompt, cfg.data.max_length)
+                full_len = wrapper.input_length(image, full_text, cfg.data.max_length)
+
+                actual_collator = build_collator(cfg.data, wrapper, tag_spans=obj.requires_span_ids)
+                batch_cpu = actual_collator([ex])
+                span_cpu = batch_cpu.get("span_ids")
+                span_used_by_objective = span_cpu is not None
+                if span_cpu is None:
+                    span_preview_collator = build_collator(cfg.data, wrapper, tag_spans=True)
+                    span_cpu = span_preview_collator([ex])["span_ids"]
+
+                batch = move_to_device(batch_cpu, wrapper.device, wrapper.dtype)
+                with torch.no_grad():
+                    loss_out = obj.compute(wrapper, batch)
+                    forward_batch = {k: v for k, v in batch.items() if k != "span_ids"}
+                    out = wrapper.forward(forward_batch)
+
+                trace_tokens = token_label_table(wrapper, batch_cpu, span_cpu, prompt_len, run_name)
+                token_rows.extend(trace_tokens)
+                for row in tensor_summary(batch_cpu):
+                    tensor_rows.append({"run": run_name, "stage": "collator_cpu", **row})
+                tensor_rows.append(
+                    {
+                        "run": run_name,
+                        "stage": "model_forward",
+                        "tensor": "logits",
+                        "shape": tuple(out.logits.shape),
+                        "dtype": str(out.logits.dtype),
+                        "device": str(out.logits.device),
+                    }
+                )
+
+                gen = generation_trace(wrapper, eval_ds[0], template, cfg)
+                ev = Evaluator(wrapper, eval_ds, template, cfg.eval, build_metrics(cfg.eval.metrics))
+                pred = ev._predict_one(eval_ds[0])
+                one_metrics: dict[str, float] = {}
+                for metric in ev.metrics:
+                    if ev._applicable(metric, [pred]):
+                        one_metrics.update(metric.compute([pred]))
+
+                supervised_decoded = decoded_supervised_target(wrapper, batch_cpu["labels"][0])
+                summary_rows.append(
+                    {
+                        "run": run_name,
+                        "dataset": cfg.data.name,
+                        "objective_label": exp["objective"],
+                        "objective_impl": cfg.objective.name,
+                        "prompt_variant": cfg.data.prompt_variant,
+                        "span_ids_used_by_objective": span_used_by_objective,
+                        "question": ex.question,
+                        "gold_answer": ex.answer,
+                        "gold_explanation": ex.explanation,
+                        "prompt_text": prompt,
+                        "target_text": target,
+                        "full_training_text": full_text,
+                        "model_full_text_prefix": short(wrapper.prompt_to_model_text(full_text), 1500),
+                        "image_size": getattr(image, "size", None),
+                        "prompt_token_len": prompt_len,
+                        "full_token_len": full_len,
+                        "collated_seq_len": int(batch_cpu["input_ids"].shape[1]),
+                        "supervised_token_count": int((batch_cpu["labels"][0] != LABEL_IGNORE).sum().item()),
+                        "decoded_supervised_target": supervised_decoded,
+                        "loss_components": loss_out.components,
+                        "generation_prompt": gen["prompt"],
+                        "generation_input_shape": gen["generation_input_shape"],
+                        "generated_new_token_count": gen["generated_new_token_count"],
+                        "generation_new_token_ids_first80": gen["new_token_ids"],
+                        "decoded_generation_full": gen["decoded_full"],
+                        "decoded_generation_continuation": gen["decoded_continuation"],
+                        "parsed_reasoning": gen["parsed_reasoning"],
+                        "parsed_answer": gen["parsed_answer"],
+                        "evaluator_prediction": pred.predicted_text,
+                        "evaluator_reasoning": pred.reasoning,
+                        "one_example_metrics": one_metrics,
+                    }
+                )
+                print(f"trace complete: {run_name}")
+        finally:
+            del wrapper
+            free_gpu()
+    return summary_rows, tensor_rows, token_rows
+
+
+def sample_trace_markdown(
+    summary_rows: list[dict[str, Any]],
+    tensor_rows: list[dict[str, Any]],
+    token_rows: list[dict[str, Any]],
+) -> str:
+    lines = ["# End-to-end sample trace\n"]
+    tensor_df = pd.DataFrame(tensor_rows)
+    for row in summary_rows:
+        run = row["run"]
+        token_window = boundary_window([r for r in token_rows if r["run"] == run], radius=35)
+        tensor_sub = tensor_df[tensor_df["run"] == run] if not tensor_df.empty else pd.DataFrame()
+        lines.extend(
+            [
+                f"## {run}",
+                f"- dataset: `{row['dataset']}`",
+                f"- objective label: `{row['objective_label']}`",
+                f"- objective implementation: `{row['objective_impl']}`",
+                f"- prompt variant: `{row['prompt_variant']}`",
+                f"- span IDs used by objective: `{row['span_ids_used_by_objective']}`",
+                f"- image size: `{row['image_size']}`",
+                f"- prompt tokens: `{row['prompt_token_len']}`",
+                f"- full training tokens: `{row['full_token_len']}`",
+                f"- collated sequence length: `{row['collated_seq_len']}`",
+                f"- supervised tokens: `{row['supervised_token_count']}`",
+                "",
+                "### 1. Raw dataset example",
+                "```text",
+                wrap(f"Question: {row['question']}", 100),
+                wrap(f"Gold answer: {row['gold_answer']}", 100),
+                wrap(f"Gold rationale: {row['gold_explanation']}", 100),
+                "```",
+                "### 2. Prompt and target",
+                "```text",
+                "PROMPT:",
+                wrap(row["prompt_text"], 100),
+                "",
+                "TARGET:",
+                wrap(row["target_text"], 100),
+                "```",
+                "### 3. Model-facing full text",
+                "```text",
+                wrap(row["model_full_text_prefix"], 100),
+                "```",
+                "### 4. Collator tensors",
+                "```text",
+                tensor_sub[["stage", "tensor", "shape", "dtype", "device"]].to_string(index=False)
+                if not tensor_sub.empty
+                else "(no tensor summary)",
+                "```",
+                "### 5. Token/label boundary window",
+                "```text",
+                token_window[
+                    [
+                        "position",
+                        "segment",
+                        "input_id",
+                        "input_token",
+                        "label_id",
+                        "label_token",
+                        "supervised",
+                        "span_name",
+                    ]
+                ].to_string(index=False),
+                "```",
+                "### 6. Decoded supervised target",
+                "```text",
+                wrap(row["decoded_supervised_target"], 100),
+                "```",
+                "### 7. Objective and forward pass",
+                f"- loss components: `{row['loss_components']}`",
+                "",
+                "### 8. Generation and decoding",
+                "```text",
+                "PROMPT:",
+                wrap(row["generation_prompt"], 100),
+                "",
+                "NEW TOKEN IDS (first 80):",
+                str(row["generation_new_token_ids_first80"]),
+                "",
+                "DECODED CONTINUATION:",
+                wrap(row["decoded_generation_continuation"], 100),
+                "```",
+                f"- parsed reasoning: `{short(row['parsed_reasoning'], 300)}`",
+                f"- parsed answer: `{row['parsed_answer']}`",
+                f"- evaluator prediction: `{row['evaluator_prediction']}`",
+                f"- one-example metrics: `{row['one_example_metrics']}`",
+                "",
+            ]
+        )
+    return "\n".join(lines)
+
+
 def inspect_model_group(run_names: list[str]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     groups: dict[tuple[str, str], list[str]] = {}
@@ -795,6 +1144,73 @@ def inspect_model_group(run_names: list[str]) -> list[dict[str, Any]]:
 
 
 explain_dataset_and_prompt(EXPLAIN_RUNS)
+
+TRACE_RUNS = [
+    r.strip()
+    for r in os.environ.get(
+        "PAPER_TRACE_RUNS",
+        ",".join(
+            [
+                "rq3_qwen2vl_answer_only_scienceqa",
+                "rq2_qwen2vl_generative_scienceqa",
+                "rq3_alpha_050",
+                "rq4_qwen2vl_explanation_aware_chartqa",
+            ]
+        ),
+    ).split(",")
+    if r.strip()
+]
+
+if os.environ.get("PAPER_SKIP_MODEL_TRACE", "0") != "1":
+    trace_summary_rows, trace_tensor_rows, trace_token_rows = build_sample_trace(TRACE_RUNS)
+    trace_summary_df = pd.DataFrame(trace_summary_rows)
+    trace_tensor_df = pd.DataFrame(trace_tensor_rows)
+    trace_token_df = pd.DataFrame(trace_token_rows)
+    save_json(trace_summary_rows, "sample_trace_summary")
+    save_json(trace_tensor_rows, "sample_trace_tensors")
+    save_csv(trace_summary_df, "sample_trace_summary")
+    save_csv(trace_tensor_df, "sample_trace_tensors")
+    save_csv(trace_token_df, "sample_trace_tokens")
+    save_markdown(
+        sample_trace_markdown(trace_summary_rows, trace_tensor_rows, trace_token_rows),
+        "sample_trace_walkthrough",
+    )
+    display(
+        trace_summary_df[
+            [
+                "run",
+                "dataset",
+                "objective_label",
+                "prompt_variant",
+                "prompt_token_len",
+                "collated_seq_len",
+                "supervised_token_count",
+                "loss_components",
+                "parsed_answer",
+                "one_example_metrics",
+            ]
+        ]
+    )
+    for run_name in TRACE_RUNS:
+        run_tokens = [r for r in trace_token_rows if r["run"] == run_name]
+        if run_tokens:
+            display(Markdown(f"### Token/label boundary window: `{run_name}`"))
+            display(
+                boundary_window(run_tokens, radius=int(os.environ.get("PAPER_TRACE_TOKEN_RADIUS", "45")))[
+                    [
+                        "position",
+                        "segment",
+                        "input_id",
+                        "input_token",
+                        "label_id",
+                        "label_token",
+                        "supervised",
+                        "span_name",
+                    ]
+                ]
+            )
+else:
+    print("Skipping model trace because PAPER_SKIP_MODEL_TRACE=1")
 
 if os.environ.get("PAPER_SKIP_MODEL_DIAGNOSTICS", "0") != "1":
     diagnostic_rows = inspect_model_group(EXPLAIN_RUNS)
@@ -1274,7 +1690,7 @@ def controlled_block(block: str, run_names: list[str]) -> list[dict[str, Any]]:
                 "method": pretty_objective(row["objective"]),
                 "score": row["headline"],
                 "metric": headline_metric_name(row["dataset"]),
-                "run": row["run"],
+                "run": run_name,
             }
         )
     return rows_out
@@ -2006,6 +2422,17 @@ if os.environ.get("PAPER_SKIP_MODEL_DIAGNOSTICS", "0") != "1":
         [
             ART_DIR / "model_io_loss_metric_preview.json",
             ART_DIR / "model_io_loss_metric_preview.md",
+        ]
+    )
+if os.environ.get("PAPER_SKIP_MODEL_TRACE", "0") != "1":
+    required_files.extend(
+        [
+            ART_DIR / "sample_trace_summary.csv",
+            ART_DIR / "sample_trace_summary.json",
+            ART_DIR / "sample_trace_tensors.csv",
+            ART_DIR / "sample_trace_tensors.json",
+            ART_DIR / "sample_trace_tokens.csv",
+            ART_DIR / "sample_trace_walkthrough.md",
         ]
     )
 
