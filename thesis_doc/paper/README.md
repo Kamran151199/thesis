@@ -10,7 +10,7 @@ structure, macros, and rules below are *mandatory* — the professor grades to t
 
 | File | What |
 |------|------|
-| `main.tex` | the manuscript on the professor's template; front matter + abstract + RQs filled, body kept as template to fill section-by-section |
+| `main.tex` | the manuscript on the professor's template; front matter, methodology, results, discussion, and conclusion filled from the completed artifact run |
 | `Bibliography.bib` | `\bibliography{Bibliography}` — published-venue anchors, flagged VERIFY |
 | *(no `references.bib`)* | removed — the template uses `Bibliography.bib` |
 
@@ -50,13 +50,13 @@ Front: Title · Authors · Abstract (2 bg / 2 gap+problem / 2 method / 3 results
 | Part | Status |
 |------|--------|
 | Front matter (title, authors, affiliations, journal, keywords) | 🟢 done |
-| Abstract (structure + 4 non-result sentences) | 🟢 drafted · ⬜ 3 result + 1 contribution sentences await runs |
+| Abstract | 🟢 updated with completed run results |
 | 1.2 Research Questions (our 7 RQs) + 1.4 Novelty bullets | 🟢 done |
-| 1.1 Gap / 1.3 Problem / 1.5 Significance / Intro paragraphs | ⬜ to draft |
-| 2 Literature Review (2.1–2.4 + matrix) | 🟡 with RQ1 survey |
-| 3 Methodology (prose, equation drafted; figures/tables) | 🟡 prose stable; figures pending |
-| 4 Results (RQ1–RQ7) | 🟡 RQ3 α=0.5: tied acc, *worse* expl-quality than generative → α-sweep is the core experiment (`results/RESULTS.md`) |
-| 5 Discussion / 6 Conclusion / Declarations | ⬜ after results |
+| 1.1 Gap / 1.3 Problem / 1.5 Significance / Intro paragraphs | 🟢 filled |
+| 2 Literature Review (2.1–2.4 + matrix) | 🟢 filled with 2024–2025 survey anchors |
+| 3 Methodology (prose, equation drafted; figures/tables) | 🟢 filled with generated pipeline/architecture figures |
+| 4 Results (RQ1–RQ7) | 🟢 filled from `paper_artifacts-20260604T091316Z-3-001.zip` |
+| 5 Discussion / 6 Conclusion / Declarations | 🟢 filled |
 
 ## Open issues to resolve
 
@@ -64,8 +64,9 @@ Front: Title · Authors · Abstract (2 bg / 2 gap+problem / 2 method / 3 results
    and the recent faithfulness papers (ChartHal, EDCT, Chart-RVR) are arXiv-only.
    Either find published versions or ask the professor whether a few foundational
    arXiv cites are acceptable. Bulk of refs should be 2022–2025 journal/conference.
-2. **Figures** must be hand-made (PPT/Canva → PDF). The template's sample figures
-   are neutralized (`\todo` placeholders) so it compiles; replace as we go.
+2. **Figure selection.** The generated result figures are now copied into
+   `Figures/generated/`. Keep the qualitative/sample grids as audit artifacts
+   unless the final submission needs an appendix.
 
 ## Compiling
 

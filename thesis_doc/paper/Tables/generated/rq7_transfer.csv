@@ -1,6 +1,19 @@
-trained_on,science,aokvqa,charts,documents,vqav2
-science,0.74,0.775,0.525,0.1499,0.08
-aokvqa,0.675,0.795,0.6,0.2792,0.15
-charts,0.41,0.43,0.615,0.2802,0.26
-documents,0.45,0.44,0.56,0.0678,0.03
-vqav2,0.42,0.555,0.625,0.3595,0.72
+trained_on,trained_on_label,science,aokvqa,charts,documents,vqav2
+science_answer_only,"ScienceQA
+answer-only",0.785,0.815,0.65,0.7037,0.63
+science_rationale_ce,"ScienceQA
+rationale CE",0.775,0.755,0.45,0.5643,0.3
+science_expl_aware,"ScienceQA
+expl.-aware",0.74,0.775,0.475,0.4875,0.41
+aokvqa_answer_only,"A-OKVQA
+answer-only",0.69,0.82,0.625,0.6807,0.7
+aokvqa_rationale_ce,"A-OKVQA
+rationale CE",0.665,0.79,0.63,0.7538,0.58
+aokvqa_expl_aware,"A-OKVQA
+expl.-aware",0.675,0.795,0.615,0.7596,0.64
+charts_answer_only,"ChartQA
+answer-only",0.4,0.42,0.66,0.8359,0.68
+documents_answer_only,"DocVQA
+answer-only",0.445,0.435,0.69,0.9052,0.66
+vqav2_answer_only,"VQAv2
+answer-only",0.41,0.575,0.66,0.7125,0.73

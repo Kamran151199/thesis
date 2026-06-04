@@ -25,6 +25,7 @@
 import gc
 import hashlib
 import json
+import math
 import os
 import shutil
 import textwrap
@@ -42,9 +43,9 @@ from src.config import load_config
 from src.data import build_collator, build_dataset, build_template
 from src.data.constants import LABEL_IGNORE, SPAN_ANSWER, SPAN_EXPLANATION, SPAN_IGNORE
 from src.evaluation import Evaluator, build_metrics
-from src.evaluation.faithfulness import region_importance
+from src.evaluation.faithfulness import mask_region, region_importance
 from src.evaluation.metrics.retrieval import retrieval_recall
-from src.evaluation.scoring import clean_generated_answer, generate_continuation, split_reasoning_answer
+from src.evaluation.scoring import clean_generated_answer, generate_continuation, score_continuation, split_reasoning_answer
 from src.experiment.runner import ExperimentRunner
 from src.models import build_model
 from src.objectives import build_objective
@@ -415,6 +416,30 @@ EXPERIMENTS.extend(
             objective="explanation_aware_alpha_0.5",
             role="domain_explanation_aware",
         ),
+        spec(
+            name="rq3_qwen2vl_length_aware_scienceqa",
+            config=f"{BASE}/rq3_qwen2vl_explanation_aware_scienceqa.yaml",
+            overrides=["objective.alpha_mode=length_aware", "objective.answer_weight_multiplier=1.0"],
+            metrics=MC_METRICS,
+            rq="RQ3",
+            domain="science",
+            dataset="scienceqa",
+            backbone="Qwen2-VL-2B",
+            objective="explanation_aware_length_aware",
+            role="length_aware_alpha_control",
+        ),
+        spec(
+            name="rq3_qwen2vl_length_aware_aokvqa",
+            config=f"{BASE}/rq3_qwen2vl_explanation_aware_aokvqa.yaml",
+            overrides=["objective.alpha_mode=length_aware", "objective.answer_weight_multiplier=1.0"],
+            metrics=MC_METRICS,
+            rq="RQ3",
+            domain="commonsense",
+            dataset="aokvqa",
+            backbone="Qwen2-VL-2B",
+            objective="explanation_aware_length_aware",
+            role="length_aware_alpha_control",
+        ),
     ]
 )
 
@@ -510,6 +535,7 @@ OBJECTIVE_LABELS = {
     "explanation_aware_alpha_0.5": "Expl.-aware alpha=0.50",
     "explanation_aware_alpha_0.75": "Expl.-aware alpha=0.75",
     "explanation_aware_alpha_1": "Answer-span only",
+    "explanation_aware_length_aware": "Expl.-aware length-aware",
     "answer_only_fallback": "Answer-only fallback",
 }
 
@@ -550,6 +576,30 @@ def headline_metric_name(dataset: str) -> str:
     return HEADLINE_METRIC_BY_DATASET.get(dataset, "native score")
 
 
+def rationale_availability(dataset: str) -> str:
+    return "gold rationales" if dataset in {"scienceqa", "aokvqa"} else "answer labels only"
+
+
+def supported_question_label(rq: str) -> str:
+    return rq.replace("RQ", "question ")
+
+
+def prompt_family_name(prompt_variant: str) -> str:
+    if prompt_variant == "answer_only":
+        return "answer-only"
+    if prompt_variant == "explanation_then_answer":
+        return "rationale+answer"
+    return prompt_variant.replace("_", " ")
+
+
+def cfg_alpha_summary(cfg) -> dict[str, Any]:
+    return {
+        "alpha": getattr(cfg.objective, "alpha", None),
+        "alpha_mode": getattr(cfg.objective, "alpha_mode", "fixed"),
+        "answer_weight_multiplier": getattr(cfg.objective, "answer_weight_multiplier", 1.0),
+    }
+
+
 def pretty_transfer_source(name: str) -> str:
     return TRANSFER_LABELS.get(name, name.replace("_", " "))
 
@@ -561,6 +611,54 @@ save_json(EXPERIMENTS, "paper_run_matrix")
 print(f"{len(EXPERIMENTS)} runs queued:")
 for e in EXPERIMENTS:
     print(f"  {e['name']:48s} | {e['backbone']:14s} | {e['dataset']:9s} | {e['objective']}")
+
+ledger_rows: list[dict[str, Any]] = []
+for e in EXPERIMENTS:
+    cfg = materialize_exp_config(e)
+    ledger_rows.append(
+        {
+            "run": e["name"],
+            "display_label": pretty_run_label(e),
+            "backbone": e["backbone"],
+            "dataset": pretty_dataset(e["dataset"]),
+            "domain": e["domain"],
+            "train_cap": cfg.data.max_train,
+            "eval_cap": cfg.data.max_eval,
+            "rationale_availability": rationale_availability(e["dataset"]),
+            "objective": pretty_objective(e["objective"]),
+            "objective_impl": cfg.objective.name,
+            "alpha_mode": getattr(cfg.objective, "alpha_mode", "fixed"),
+            "alpha": getattr(cfg.objective, "alpha", np.nan),
+            "answer_weight_multiplier": getattr(cfg.objective, "answer_weight_multiplier", 1.0),
+            "prompt_family": prompt_family_name(cfg.data.prompt_variant),
+            "metric": headline_metric_name(e["dataset"]),
+            "supported_question": supported_question_label(e["rq"]),
+        }
+    )
+
+experiment_ledger = pd.DataFrame(ledger_rows)
+save_csv(experiment_ledger, "experiment_ledger")
+save_json(ledger_rows, "experiment_ledger")
+save_table(
+    experiment_ledger[
+        [
+            "display_label",
+            "backbone",
+            "dataset",
+            "train_cap",
+            "eval_cap",
+            "rationale_availability",
+            "objective",
+            "alpha_mode",
+            "prompt_family",
+            "metric",
+            "supported_question",
+        ]
+    ],
+    "experiment_ledger",
+    "Experiment ledger: datasets, caps, prompt family, objective, and supported research question.",
+    "tab:experiment_ledger",
+)
 
 
 # %% Cell 3 - config validation without loading any model
@@ -623,8 +721,10 @@ EXPLAIN_RUNS = [
     "rq3_qwen2vl_answer_only_scienceqa",
     "rq2_qwen2vl_generative_scienceqa",
     "rq3_alpha_050",
+    "rq3_qwen2vl_length_aware_scienceqa",
     "rq3_qwen2vl_answer_only_aokvqa",
     "rq3_qwen2vl_explanation_aware_aokvqa",
+    "rq3_qwen2vl_length_aware_aokvqa",
     "rq4_qwen2vl_explanation_aware_chartqa",
     "rq4_qwen2vl_explanation_aware_docvqa",
     "rq4_qwen2vl_explanation_aware_vqav2",
@@ -1145,6 +1245,108 @@ def inspect_model_group(run_names: list[str]) -> list[dict[str, Any]]:
 
 explain_dataset_and_prompt(EXPLAIN_RUNS)
 
+
+def stable_example_id(ex) -> str | None:
+    meta = getattr(ex, "metadata", None) or {}
+    for key in ("id", "question_id", "qid", "image_id", "questionId", "question_id_str"):
+        value = meta.get(key)
+        if value is not None:
+            return f"{key}:{value}"
+    return None
+
+
+def fallback_example_fingerprint(ex) -> str:
+    payload = {
+        "question": ex.question,
+        "answer": ex.answer,
+        "choices": ex.choices,
+        "image_size": getattr(ex.image, "size", None),
+    }
+    raw = json.dumps(payload, sort_keys=True, default=str)
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:20]
+
+
+def collect_split_keys(ds, cap: int) -> tuple[set[str], bool]:
+    keys: set[str] = set()
+    has_native_id = True
+    for i in range(min(cap, len(ds))):
+        ex = ds[i]
+        key = stable_example_id(ex)
+        if key is None:
+            has_native_id = False
+            key = f"fingerprint:{fallback_example_fingerprint(ex)}"
+        keys.add(key)
+    return keys, has_native_id
+
+
+split_audit_rows: list[dict[str, Any]] = []
+seen_split_sigs: set[tuple[str, str, str, int, int]] = set()
+for exp in EXPERIMENTS:
+    cfg = materialize_exp_config(exp)
+    sig = (
+        cfg.data.name,
+        cfg.data.split_train,
+        cfg.data.split_eval,
+        int(cfg.data.max_train),
+        int(cfg.data.max_eval),
+    )
+    if sig in seen_split_sigs:
+        continue
+    seen_split_sigs.add(sig)
+    try:
+        train_ds = build_dataset(cfg.data, split=cfg.data.split_train)
+        eval_ds = build_dataset(cfg.data, split=cfg.data.split_eval)
+        train_keys, train_native = collect_split_keys(train_ds, cfg.data.max_train)
+        eval_keys, eval_native = collect_split_keys(eval_ds, cfg.data.max_eval)
+        overlap = sorted(train_keys & eval_keys)
+        split_audit_rows.append(
+            {
+                "dataset": cfg.data.name,
+                "train_split": cfg.data.split_train,
+                "eval_split": cfg.data.split_eval,
+                "train_cap": cfg.data.max_train,
+                "eval_cap": cfg.data.max_eval,
+                "train_rows_loaded": len(train_ds),
+                "eval_rows_loaded": len(eval_ds),
+                "native_ids_available": bool(train_native and eval_native),
+                "overlap_count": len(overlap),
+                "overlap_keys_preview": overlap[:10],
+                "audit_method": "native ids" if train_native and eval_native else "question/answer/image fingerprint fallback",
+            }
+        )
+    except Exception as exc:  # noqa: BLE001
+        split_audit_rows.append(
+            {
+                "dataset": cfg.data.name,
+                "train_split": cfg.data.split_train,
+                "eval_split": cfg.data.split_eval,
+                "train_cap": cfg.data.max_train,
+                "eval_cap": cfg.data.max_eval,
+                "error": f"{type(exc).__name__}: {exc}",
+            }
+        )
+
+split_audit = pd.DataFrame(split_audit_rows)
+save_csv(split_audit, "split_leakage_audit")
+save_json(split_audit_rows, "split_leakage_audit")
+save_table(
+    split_audit.reindex(
+        columns=[
+            "dataset",
+            "train_split",
+            "eval_split",
+            "train_cap",
+            "eval_cap",
+            "native_ids_available",
+            "overlap_count",
+            "audit_method",
+        ]
+    ),
+    "split_leakage_audit",
+    "Split and leakage audit for capped training/evaluation data.",
+    "tab:split_leakage_audit",
+)
+
 TRACE_RUNS = [
     r.strip()
     for r in os.environ.get(
@@ -1512,6 +1714,7 @@ for exp in EXPERIMENTS:
         else:
             stale_runs[name] = state
         continue
+    cfg = materialize_exp_config(exp)
     path = result_path(name)
     raw = json.loads(path.read_text())
     base = raw.get("baseline", {})
@@ -1525,6 +1728,13 @@ for exp in EXPERIMENTS:
         "objective": exp["objective"],
         "role": exp["role"],
         "alpha": alpha_of(name),
+        "configured_alpha": getattr(cfg.objective, "alpha", np.nan),
+        "alpha_mode": getattr(cfg.objective, "alpha_mode", "fixed"),
+        "answer_weight_multiplier": getattr(cfg.objective, "answer_weight_multiplier", 1.0),
+        "train_cap": cfg.data.max_train,
+        "eval_cap": cfg.data.max_eval,
+        "prompt_family": prompt_family_name(cfg.data.prompt_variant),
+        "headline_metric": headline_metric_name(exp["dataset"]),
     }
     for key in METRIC_KEYS:
         out_key = {
@@ -1543,6 +1753,69 @@ if not df.empty:
 save_csv(df, "all_results")
 save_json(missing_runs, "missing_expected_runs", LOG_DIR)
 save_json(stale_runs, "stale_expected_runs", LOG_DIR)
+
+
+ACCURACY_LIKE_HEADLINES = {"MC accuracy", "relaxed accuracy", "VQA accuracy"}
+
+
+def normal_approx_ci(score: float | None, n: int | float | None, z: float = 1.96) -> tuple[float, float, float]:
+    if score is None or pd.isna(score) or n is None or pd.isna(n) or float(n) <= 0:
+        return (np.nan, np.nan, np.nan)
+    p = min(max(float(score), 0.0), 1.0)
+    se = math.sqrt(p * (1.0 - p) / float(n))
+    return se, max(0.0, p - z * se), min(1.0, p + z * se)
+
+
+uncertainty_rows: list[dict[str, Any]] = []
+if not df.empty:
+    for row in df.to_dict(orient="records"):
+        metric = row.get("headline_metric", headline_metric_name(row["dataset"]))
+        n_eval = row.get("eval_cap")
+        if metric in ACCURACY_LIKE_HEADLINES:
+            se, lo, hi = normal_approx_ci(row.get("headline"), n_eval)
+            base_se, base_lo, base_hi = normal_approx_ci(row.get("headline_base"), n_eval)
+            method_note = "binomial normal approximation from configured evaluation cap"
+        else:
+            se = lo = hi = base_se = base_lo = base_hi = np.nan
+            method_note = "aggregate-only metric; bootstrap needs per-example retained scores"
+        uncertainty_rows.append(
+            {
+                "run": row["run"],
+                "dataset": row["dataset"],
+                "metric": metric,
+                "n_eval_config": n_eval,
+                "headline": row.get("headline"),
+                "headline_se_approx": se,
+                "headline_ci95_low_approx": lo,
+                "headline_ci95_high_approx": hi,
+                "baseline": row.get("headline_base"),
+                "baseline_se_approx": base_se,
+                "baseline_ci95_low_approx": base_lo,
+                "baseline_ci95_high_approx": base_hi,
+                "method_note": method_note,
+            }
+        )
+
+uncertainty = pd.DataFrame(uncertainty_rows)
+save_csv(uncertainty, "uncertainty_estimates")
+save_json(uncertainty_rows, "uncertainty_estimates")
+if not uncertainty.empty:
+    save_table(
+        uncertainty[
+            [
+                "run",
+                "metric",
+                "n_eval_config",
+                "headline",
+                "headline_se_approx",
+                "headline_ci95_low_approx",
+                "headline_ci95_high_approx",
+            ]
+        ].round(4),
+        "uncertainty_estimates",
+        "Approximate uncertainty estimates for headline metrics.",
+        "tab:uncertainty",
+    )
 df
 
 
@@ -1557,6 +1830,11 @@ master_cols = [
     "backbone",
     "objective",
     "alpha",
+    "alpha_mode",
+    "answer_weight_multiplier",
+    "train_cap",
+    "eval_cap",
+    "headline_metric",
     "headline",
     "mc_acc",
     "rouge_l",
@@ -1589,9 +1867,11 @@ rq3_cmp_runs = [
     "rq3_qwen2vl_answer_only_scienceqa",
     "rq2_qwen2vl_generative_scienceqa",
     "rq3_alpha_050",
+    "rq3_qwen2vl_length_aware_scienceqa",
     "rq3_qwen2vl_answer_only_aokvqa",
     "rq2_qwen2vl_generative_aokvqa",
     "rq3_qwen2vl_explanation_aware_aokvqa",
+    "rq3_qwen2vl_length_aware_aokvqa",
 ]
 rq3_cmp = df[df["run"].isin(rq3_cmp_runs)].copy()
 if not rq3_cmp.empty:
@@ -1710,6 +1990,7 @@ controlled_rows.extend(
             "rq3_qwen2vl_answer_only_scienceqa",
             "rq2_qwen2vl_generative_scienceqa",
             "rq3_alpha_050",
+            "rq3_qwen2vl_length_aware_scienceqa",
         ],
     )
 )
@@ -1720,6 +2001,7 @@ controlled_rows.extend(
             "rq3_qwen2vl_answer_only_aokvqa",
             "rq2_qwen2vl_generative_aokvqa",
             "rq3_qwen2vl_explanation_aware_aokvqa",
+            "rq3_qwen2vl_length_aware_aokvqa",
         ],
     )
 )
@@ -1747,6 +2029,7 @@ if not controlled.empty:
         "Rationale+answer CE": "#64748B",
         "Generative + contrastive": "#0F766E",
         "Expl.-aware alpha=0.50": "#0F766E",
+        "Expl.-aware length-aware": "#7C3AED",
     }
     for ax, group in zip(axes, groups):
         sub = plot[plot["comparison_group"] == group].reset_index(drop=True)
@@ -1865,9 +2148,21 @@ if len(scale) == 2:
 # This stage additionally tests whether the learned image-answer representation
 # is better aligned using image-to-answer retrieval R@K/MRR.
 
-# %% Cell 10 - BLIP-2 contrastive retrieval R@K/MRR
-def contrastive_retrieval_eval(run_name: str, n_eval: int = 200, batch_size: int = 16) -> dict[str, float]:
-    cfg, wrapper, _, eval_ds = load_run(run_name)
+# %% Cell 10 - BLIP-2 retrieval R@K/MRR with controls
+def blip_retrieval_eval(
+    run_name: str,
+    *,
+    checkpoint: bool,
+    n_eval: int = 200,
+    batch_size: int = 16,
+) -> dict[str, float]:
+    if checkpoint:
+        cfg, wrapper, _, eval_ds = load_run(run_name)
+    else:
+        cfg = materialize_exp_config(RUN_BY_NAME[run_name])
+        wrapper = build_model(cfg.model)
+        eval_ds = build_dataset(cfg.data, split=cfg.data.split_eval)
+        wrapper.eval()
     try:
         collator = build_collator(cfg.data, wrapper, tag_spans=True)
         image_chunks = []
@@ -1890,45 +2185,132 @@ def contrastive_retrieval_eval(run_name: str, n_eval: int = 200, batch_size: int
         free_gpu()
 
 
-RET_PATH = ART_DIR / "rq2_contrastive_retrieval.json"
+def random_retrieval_reference(n: int, ks: tuple[int, ...] = (1, 5, 10)) -> dict[str, float]:
+    n = max(int(n), 1)
+    out = {f"R@{k}": min(int(k), n) / n for k in ks}
+    out["MRR"] = float(sum(1.0 / r for r in range(1, n + 1)) / n)
+    out["n_eval"] = n
+    return out
+
+
+RET_PATH = ART_DIR / "rq2_retrieval_comparison.json"
 retrieval_scores = json.loads(RET_PATH.read_text()) if RET_PATH.exists() else {}
-ret_run = "rq2_blip2_contrastive_scienceqa"
-ret_digest = config_digest(materialize_exp_config(RUN_BY_NAME[ret_run]))
-ret_cached = retrieval_scores.get(ret_run)
-ret_current = isinstance(ret_cached, dict) and ret_cached.get("config_digest") == ret_digest
-if result_ready(ret_run) and not ret_current:
+retrieval_n = int(os.environ.get("PAPER_RETRIEVAL_N", "200"))
+retrieval_batch = int(os.environ.get("PAPER_RETRIEVAL_BATCH", "16"))
+retrieval_specs = {
+    "frozen_blip2": {
+        "display": "Frozen BLIP-2",
+        "run": "rq2_blip2_generative_scienceqa",
+        "checkpoint": False,
+    },
+    "blip2_generative": {
+        "display": "BLIP-2 generative",
+        "run": "rq2_blip2_generative_scienceqa",
+        "checkpoint": True,
+    },
+    "blip2_contrastive": {
+        "display": "BLIP-2 contrastive-enhanced",
+        "run": "rq2_blip2_contrastive_scienceqa",
+        "checkpoint": True,
+    },
+}
+
+for key, spec_row in retrieval_specs.items():
+    run_name = spec_row["run"]
+    if spec_row["checkpoint"] and not result_ready(run_name):
+        retrieval_scores[f"{key}__status"] = result_state(RUN_BY_NAME[run_name])
+        save_json(retrieval_scores, "rq2_retrieval_comparison")
+        continue
+    digest_payload = {
+        "run_digest": config_digest(materialize_exp_config(RUN_BY_NAME[run_name])),
+        "checkpoint": spec_row["checkpoint"],
+        "n_eval": retrieval_n,
+    }
+    digest = hashlib.sha256(json.dumps(digest_payload, sort_keys=True).encode("utf-8")).hexdigest()[:16]
+    cached = retrieval_scores.get(key)
+    if isinstance(cached, dict) and cached.get("diagnostic_digest") == digest:
+        continue
     try:
-        retrieval_scores[ret_run] = {
-            **contrastive_retrieval_eval(
-                ret_run,
-                n_eval=int(os.environ.get("PAPER_RETRIEVAL_N", "200")),
-                batch_size=int(os.environ.get("PAPER_RETRIEVAL_BATCH", "16")),
+        retrieval_scores[key] = {
+            **blip_retrieval_eval(
+                run_name,
+                checkpoint=bool(spec_row["checkpoint"]),
+                n_eval=retrieval_n,
+                batch_size=retrieval_batch,
             ),
-            "config_digest": ret_digest,
+            "display": spec_row["display"],
+            "source_run": run_name,
+            "diagnostic_digest": digest,
         }
-        save_json(retrieval_scores, "rq2_contrastive_retrieval")
+        save_json(retrieval_scores, "rq2_retrieval_comparison")
     except Exception as exc:  # noqa: BLE001
-        retrieval_scores[f"{ret_run}_error"] = {
+        retrieval_scores[f"{key}__error"] = {
             "error": f"{type(exc).__name__}: {exc}",
             "traceback": traceback.format_exc(),
         }
-        save_json(retrieval_scores, "rq2_contrastive_retrieval")
+        save_json(retrieval_scores, "rq2_retrieval_comparison")
 
-if ret_run in retrieval_scores and isinstance(retrieval_scores[ret_run], dict):
-    ret = pd.DataFrame(
-        [
-            {"metric": k, "score": v}
-            for k, v in retrieval_scores[ret_run].items()
-            if k not in {"n_eval", "config_digest"}
-        ]
+if any(isinstance(v, dict) and "n_eval" in v for v in retrieval_scores.values()):
+    n_for_random = max(
+        [int(v["n_eval"]) for v in retrieval_scores.values() if isinstance(v, dict) and "n_eval" in v]
+        or [retrieval_n]
     )
-    save_table(ret.round(4), "rq2_contrastive_retrieval", "RQ2 BLIP-2 contrastive image-to-answer retrieval.", "tab:rq2_retrieval")
-    fig, ax = plt.subplots(figsize=(4.8, 3.4))
-    ax.bar(ret["metric"], ret["score"], color="dimgray", edgecolor="black")
+    retrieval_scores["random_rank"] = {
+        **random_retrieval_reference(n_for_random),
+        "display": "Random rank",
+        "source_run": "random",
+        "diagnostic_digest": f"random-{n_for_random}",
+    }
+    save_json(retrieval_scores, "rq2_retrieval_comparison")
+    save_json(retrieval_scores, "rq2_contrastive_retrieval")
+
+ret_rows = []
+for key, value in retrieval_scores.items():
+    if not isinstance(value, dict) or "n_eval" not in value:
+        continue
+    for metric in ("R@1", "R@5", "R@10", "MRR"):
+        if metric in value:
+            ret_rows.append(
+                {
+                    "method": value.get("display", key),
+                    "metric": metric,
+                    "score": value[metric],
+                    "n_eval": value.get("n_eval"),
+                    "source_run": value.get("source_run"),
+                }
+            )
+
+if ret_rows:
+    ret = pd.DataFrame(ret_rows)
+    save_table(
+        ret.pivot(index="method", columns="metric", values="score").reset_index().round(4),
+        "rq2_retrieval_comparison",
+        "BLIP-2 image-to-answer retrieval diagnostic with frozen, generative, contrastive, and random controls.",
+        "tab:rq2_retrieval",
+    )
+    # Backward-compatible artifact names used by earlier paper drafts.
+    save_table(
+        ret.pivot(index="method", columns="metric", values="score").reset_index().round(4),
+        "rq2_contrastive_retrieval",
+        "BLIP-2 image-to-answer retrieval diagnostic with frozen, generative, contrastive, and random controls.",
+        "tab:rq2_retrieval_old",
+    )
+    metrics = ["R@1", "R@5", "R@10", "MRR"]
+    fig, ax = plt.subplots(figsize=(7.2, 3.8))
+    pivot = ret.pivot(index="method", columns="metric", values="score").reindex(columns=metrics)
+    x = np.arange(len(pivot.index))
+    width = 0.18
+    colors = ["#E5E7EB", "#CBD5E1", "#0F766E", "#111827"]
+    for i, metric in enumerate(metrics):
+        ax.bar(x + (i - 1.5) * width, pivot[metric], width, label=metric, color=colors[i], edgecolor="#111827", linewidth=0.7)
+    ax.set_xticks(x)
+    ax.set_xticklabels(pivot.index, rotation=15, ha="right")
     ax.set_ylim(0, 1)
-    ax.set_ylabel("score")
-    ax.set_title("RQ2: contrastive retrieval")
+    ax.set_ylabel("retrieval score")
+    ax.set_title("BLIP-2 image-to-answer retrieval diagnostic")
     ax.grid(axis="y", alpha=0.2)
+    ax.legend(frameon=False, ncol=4, fontsize=8)
+    save_fig(fig, "rq2_retrieval_comparison", data=ret)
     save_fig(fig, "rq2_contrastive_retrieval", data=ret)
     plt.show()
 
@@ -1941,7 +2323,17 @@ if ret_run in retrieval_scores and isinstance(retrieval_scores[ret_run], dict):
 # likelihood drops when image evidence is occluded.
 
 # %% Cell 11 - evidence-masking drift scores
-def faithfulness_score(wrapper, eval_ds, template, n: int = 30, grid: tuple[int, int] = (3, 3)) -> float:
+def bootstrap_ci(values: list[float], n_boot: int = 1000, seed: int = 42) -> tuple[float, float]:
+    arr = np.array([v for v in values if not pd.isna(v)], dtype=float)
+    if len(arr) < 2:
+        return (float("nan"), float("nan"))
+    rng = np.random.default_rng(seed)
+    boot = rng.choice(arr, size=(n_boot, len(arr)), replace=True).mean(axis=1)
+    lo, hi = np.quantile(boot, [0.025, 0.975])
+    return float(lo), float(hi)
+
+
+def faithfulness_distribution(wrapper, eval_ds, template, n: int = 30, grid: tuple[int, int] = (3, 3)) -> list[float]:
     drifts = []
     for i in range(min(n, len(eval_ds))):
         drifts.append(
@@ -1953,7 +2345,7 @@ def faithfulness_score(wrapper, eval_ds, template, n: int = 30, grid: tuple[int,
                 max_length=getattr(wrapper, "_paper_eval_max_length", 1024),
             ).mean_drift
         )
-    return float(np.mean(drifts)) if drifts else float("nan")
+    return [float(x) for x in drifts]
 
 
 FAITH_PATH = ART_DIR / "faithfulness_scores.json"
@@ -1972,15 +2364,20 @@ for name in faith_runs:
     try:
         cfg, wrapper, template, eval_ds = load_run(name)
         wrapper._paper_eval_max_length = cfg.eval.max_length
+        drift_values = faithfulness_distribution(
+            wrapper,
+            eval_ds,
+            template,
+            n=int(os.environ.get("PAPER_FAITH_N", "30")),
+            grid=(3, 3),
+        )
+        ci_low, ci_high = bootstrap_ci(drift_values)
         faith[name] = {
-            "mean_drift": faithfulness_score(
-                wrapper,
-                eval_ds,
-                template,
-                n=int(os.environ.get("PAPER_FAITH_N", "30")),
-                grid=(3, 3),
-            ),
-            "n_eval": int(os.environ.get("PAPER_FAITH_N", "30")),
+            "mean_drift": float(np.mean(drift_values)) if drift_values else float("nan"),
+            "bootstrap_ci95_low": ci_low,
+            "bootstrap_ci95_high": ci_high,
+            "drift_values": drift_values,
+            "n_eval": len(drift_values),
             "grid": [3, 3],
             "config_digest": digest,
         }
@@ -1996,7 +2393,13 @@ for name in faith_runs:
         free_gpu()
 
 faith_rows = [
-    {"run": k, "mean_drift": v["mean_drift"], "n_eval": v["n_eval"]}
+    {
+        "run": k,
+        "mean_drift": v["mean_drift"],
+        "ci95_low": v.get("bootstrap_ci95_low"),
+        "ci95_high": v.get("bootstrap_ci95_high"),
+        "n_eval": v["n_eval"],
+    }
     for k, v in faith.items()
     if isinstance(v, dict) and "mean_drift" in v
 ]
@@ -2005,12 +2408,171 @@ if faith_rows:
     save_table(fs.round(4), "rq5_faithfulness", "RQ5 evidence-masking drift by model.", "tab:rq5_faithfulness")
     fig, ax = plt.subplots(figsize=(7.8, 0.42 * len(fs) + 1.8))
     ax.barh(fs["run"], fs["mean_drift"], color="dimgray", edgecolor="black")
+    if {"ci95_low", "ci95_high"}.issubset(fs.columns):
+        xerr = np.vstack(
+            [
+                (fs["mean_drift"] - fs["ci95_low"]).clip(lower=0).fillna(0).to_numpy(),
+                (fs["ci95_high"] - fs["mean_drift"]).clip(lower=0).fillna(0).to_numpy(),
+            ]
+        )
+        ax.errorbar(fs["mean_drift"], fs["run"], xerr=xerr, fmt="none", ecolor="#111827", capsize=2, linewidth=0.8)
     ax.set_xlabel("mean masking drift")
     ax.set_title("RQ5: visual evidence sensitivity")
     plt.setp(ax.get_yticklabels(), fontsize=7)
     ax.grid(axis="x", alpha=0.2)
     save_fig(fig, "rq5_faithfulness", data=fs)
     plt.show()
+
+
+def image_preprocess_diff(wrapper, img_a, img_b, prompt: str, max_length: int) -> float:
+    enc_a = wrapper.build_inputs([img_a], [prompt], padding=False, truncation=True, max_length=max_length)
+    enc_b = wrapper.build_inputs([img_b], [prompt], padding=False, truncation=True, max_length=max_length)
+    diffs: list[float] = []
+    for key in sorted(set(enc_a) & set(enc_b)):
+        va, vb = enc_a[key], enc_b[key]
+        if torch.is_tensor(va) and torch.is_tensor(vb) and va.shape == vb.shape and va.is_floating_point():
+            diffs.append(float((va.float() - vb.float()).abs().sum().item()))
+    return float(sum(diffs))
+
+
+def blank_image_like(img):
+    return img.copy().point(lambda _: 128)
+
+
+def save_masking_example(run_name: str, idx: int = 0, grid: tuple[int, int] = (3, 3)) -> dict[str, Any]:
+    cfg, wrapper, template, eval_ds = load_run(run_name)
+    try:
+        if idx >= len(eval_ds):
+            idx = 0
+        ex = eval_ds[idx]
+        image = ex.image.convert("RGB")
+        context = f"{template.prompt(ex)} Answer:"
+        res = region_importance(wrapper, ex, template, grid=grid, max_length=cfg.eval.max_length)
+        top_idx = int(np.argmax(res.drifts))
+        rows, cols = grid
+        top_r, top_c = divmod(top_idx, cols)
+        random_idx = (top_idx + max(1, (rows * cols) // 2)) % (rows * cols)
+        random_r, random_c = divmod(random_idx, cols)
+
+        top_mask = mask_region(image, top_r, top_c, rows, cols)
+        random_mask = mask_region(image, random_r, random_c, rows, cols)
+        blank = blank_image_like(image)
+
+        full_score = score_continuation(wrapper, image, context, ex.answer, max_length=cfg.eval.max_length)
+        top_score = score_continuation(wrapper, top_mask, context, ex.answer, max_length=cfg.eval.max_length)
+        random_score = score_continuation(wrapper, random_mask, context, ex.answer, max_length=cfg.eval.max_length)
+        blank_score = score_continuation(wrapper, blank, context, ex.answer, max_length=cfg.eval.max_length)
+
+        top_tensor_diff = image_preprocess_diff(wrapper, image, top_mask, template.prompt(ex), cfg.eval.max_length)
+        random_tensor_diff = image_preprocess_diff(wrapper, image, random_mask, template.prompt(ex), cfg.eval.max_length)
+        if top_tensor_diff <= 0:
+            raise AssertionError(f"{run_name}: top masked image did not alter preprocessed image tensor")
+        if random_tensor_diff <= 0:
+            raise AssertionError(f"{run_name}: random masked image did not alter preprocessed image tensor")
+
+        fig, axes = plt.subplots(1, 4, figsize=(14.0, 3.8))
+        panels = [
+            ("original", image, full_score, 0.0),
+            (f"top-drift cell ({top_r},{top_c})", top_mask, top_score, full_score - top_score),
+            (f"random cell ({random_r},{random_c})", random_mask, random_score, full_score - random_score),
+            ("blank image", blank, blank_score, full_score - blank_score),
+        ]
+        for ax, (title, panel_img, score, drift) in zip(axes, panels):
+            ax.imshow(panel_img)
+            ax.axis("off")
+            ax.set_title(f"{title}\nscore={score:.3f}, drift={drift:.3f}", fontsize=8)
+        fig.suptitle(f"Masking example - {run_name}\nQ: {short(ex.question, 150)} | Gold: {short(ex.answer, 80)}", fontsize=10)
+        save_fig(fig, f"masking_example_{run_name}")
+        plt.show()
+
+        return {
+            "run": run_name,
+            "idx": idx,
+            "dataset": cfg.data.name,
+            "question": ex.question,
+            "gold_answer": ex.answer,
+            "grid": list(grid),
+            "full_score": full_score,
+            "top_region": [top_r, top_c],
+            "top_score": top_score,
+            "top_drift": full_score - top_score,
+            "random_region": [random_r, random_c],
+            "random_score": random_score,
+            "random_drift": full_score - random_score,
+            "blank_score": blank_score,
+            "blank_drift": full_score - blank_score,
+            "mean_drift": res.mean_drift,
+            "max_drift": res.max_drift,
+            "top_tensor_diff_l1": top_tensor_diff,
+            "random_tensor_diff_l1": random_tensor_diff,
+            "interpretation": "masking drift measures evidence sensitivity, not direct proof of rationale faithfulness",
+        }
+    finally:
+        del wrapper
+        free_gpu()
+
+
+masking_example_runs = [
+    r.strip()
+    for r in os.environ.get(
+        "PAPER_MASKING_EXAMPLE_RUNS",
+        "rq4_qwen2vl_explanation_aware_chartqa,rq4_qwen2vl_explanation_aware_docvqa,rq3_alpha_050",
+    ).split(",")
+    if r.strip()
+]
+masking_example_log_path = ART_DIR / "masking_examples.json"
+masking_examples = json.loads(masking_example_log_path.read_text()) if masking_example_log_path.exists() else {}
+for run_name in masking_example_runs:
+    exp = RUN_BY_NAME.get(run_name)
+    if exp is None:
+        masking_examples[run_name] = {"status": "unknown_run"}
+        save_json(masking_examples, "masking_examples")
+        continue
+    if not result_ready(run_name):
+        masking_examples[run_name] = {"status": result_state(exp)}
+        save_json(masking_examples, "masking_examples")
+        continue
+    digest = config_digest(materialize_exp_config(exp))
+    cached = masking_examples.get(run_name)
+    if isinstance(cached, dict) and cached.get("status") == "done" and cached.get("config_digest") == digest:
+        continue
+    try:
+        masking_examples[run_name] = {
+            "status": "done",
+            "config_digest": digest,
+            **save_masking_example(run_name, idx=int(os.environ.get("PAPER_MASKING_EXAMPLE_IDX", "0"))),
+        }
+    except Exception as exc:  # noqa: BLE001
+        masking_examples[run_name] = {
+            "status": "failed",
+            "error": f"{type(exc).__name__}: {exc}",
+            "traceback": traceback.format_exc(),
+        }
+    finally:
+        save_json(masking_examples, "masking_examples")
+
+masking_example_rows = [
+    v for v in masking_examples.values() if isinstance(v, dict) and v.get("status") == "done"
+]
+if masking_example_rows:
+    masking_example_df = pd.DataFrame(masking_example_rows)
+    save_csv(masking_example_df, "masking_examples")
+    save_table(
+        masking_example_df[
+            [
+                "run",
+                "dataset",
+                "full_score",
+                "top_drift",
+                "random_drift",
+                "blank_drift",
+                "top_tensor_diff_l1",
+            ]
+        ].round(4),
+        "masking_examples",
+        "Masking example controls and preprocessing validation.",
+        "tab:masking_examples",
+    )
 
 
 # %% [markdown]
@@ -2348,13 +2910,82 @@ if transfer_rows:
 
 
 # %% [markdown]
+# ## Claim-to-evidence map
+#
+# This artifact is a writing guardrail. A claim can stay in the abstract,
+# highlights, discussion, or conclusion only if this table points to the result
+# table/figure/artifact that supports it.
+
+# %% Cell 14 - claim-to-evidence map
+claim_evidence_rows = [
+    {
+        "paper_location": "Abstract / Highlights",
+        "claim": "The study compares BLIP-2 generative and BLIP-2 contrastive-enhanced alignment under the same ScienceQA setting.",
+        "evidence": "tab:rq2_blip2; tab:rq2_retrieval; Figures/generated/rq2_blip2_objective.pdf; Figures/generated/rq2_retrieval_comparison.pdf",
+        "claim_strength": "direct controlled comparison",
+    },
+    {
+        "paper_location": "Abstract / Results",
+        "claim": "Qwen2-VL answer-only, rationale-generative, and explanation-aware controls are separated on ScienceQA and A-OKVQA.",
+        "evidence": "tab:controlled_strategy; tab:rq3_objective; Figures/generated/controlled_strategy_comparison.pdf",
+        "claim_strength": "direct controlled comparison when all expected runs are current",
+    },
+    {
+        "paper_location": "Methodology",
+        "claim": "Answer-only adapters do not receive gold rationale targets, while rationale adapters train on reasoning plus answer.",
+        "evidence": "data/prompt_template_preview.csv; data/sample_trace_walkthrough.md; tab:experiment_ledger",
+        "claim_strength": "pipeline audit artifact",
+    },
+    {
+        "paper_location": "Methodology / Results",
+        "claim": "Length-aware alpha is audited as token-weighted rationale CE, while the fixed-alpha sweep remains an ablation.",
+        "evidence": "data/experiment_ledger.csv; data/all_results.csv; tab:rq3_alpha; tab:controlled_strategy",
+        "claim_strength": "implementation and result artifact",
+    },
+    {
+        "paper_location": "Results",
+        "claim": "ChartQA, DocVQA, and VQAv2 rows are answer-only fallback/domain rows, not rationale-supervised explanation-aware rows.",
+        "evidence": "tab:experiment_ledger; tab:comparison_design; tab:rq4_domain",
+        "claim_strength": "scope boundary",
+    },
+    {
+        "paper_location": "Results / Discussion",
+        "claim": "Masking drift measures evidence sensitivity and should not be described as proof that rationales are faithful.",
+        "evidence": "tab:rq5_faithfulness; tab:masking_examples; data/masking_examples.json; Figures/generated/masking_example_*.pdf",
+        "claim_strength": "diagnostic, not causal proof of rationale text",
+    },
+    {
+        "paper_location": "Results",
+        "claim": "The scale comparison is Qwen2-VL-2B vs Qwen2-VL-7B under the selected explanation-aware QLoRA setup.",
+        "evidence": "tab:rq6_scale; Figures/generated/rq6_scale.pdf",
+        "claim_strength": "narrow scale comparison",
+    },
+    {
+        "paper_location": "Results",
+        "claim": "Transfer is evaluated by applying each source-domain adapter to target domains while preserving the adapter prompt family.",
+        "evidence": "tab:rq7_transfer; tab:rq7_transfer_long; data/transfer_matrix.json",
+        "claim_strength": "cross-domain transfer artifact",
+    },
+]
+claim_evidence = pd.DataFrame(claim_evidence_rows)
+save_csv(claim_evidence, "claim_to_evidence_map")
+save_json(claim_evidence_rows, "claim_to_evidence_map")
+save_table(
+    claim_evidence,
+    "claim_to_evidence_map",
+    "Claim-to-evidence map used to keep paper claims within the completed artifacts.",
+    "tab:claim_evidence",
+)
+
+
+# %% [markdown]
 # ## Final manifest and strict validation
 #
 # The final cell writes a manifest and raises if expected runs or required paper
 # artifacts are missing. Set `PAPER_STRICT_FINAL=0` only when you intentionally
 # want a partial artifact pass.
 
-# %% Cell 14 - manifest and final validation
+# %% Cell 15 - manifest and final validation
 def manifest_for(root: Path) -> pd.DataFrame:
     records = []
     for path in sorted(root.rglob("*")):
@@ -2389,6 +3020,7 @@ required_files = [
     FIG_DIR / "dataset_sample_vqav2_0.pdf",
     FIG_DIR / "rq2_blip2_objective.pdf",
     FIG_DIR / "rq2_contrastive_retrieval.pdf",
+    FIG_DIR / "rq2_retrieval_comparison.pdf",
     FIG_DIR / "rq3_alpha_sweep.pdf",
     FIG_DIR / "rq3_objective_comparison.pdf",
     FIG_DIR / "rq4_cross_domain.pdf",
@@ -2396,16 +3028,23 @@ required_files = [
     FIG_DIR / "rq6_scale.pdf",
     FIG_DIR / "rq7_transfer.pdf",
     TAB_DIR / "all_results.tex",
+    TAB_DIR / "claim_to_evidence_map.tex",
     TAB_DIR / "comparison_design.tex",
     TAB_DIR / "controlled_strategy_comparison.tex",
+    TAB_DIR / "experiment_ledger.tex",
+    TAB_DIR / "split_leakage_audit.tex",
+    TAB_DIR / "uncertainty_estimates.tex",
     TAB_DIR / "rq2_blip2.tex",
     TAB_DIR / "rq2_contrastive_retrieval.tex",
+    TAB_DIR / "rq2_retrieval_comparison.tex",
     TAB_DIR / "rq3_alpha_sweep.tex",
     TAB_DIR / "rq4_cross_domain.tex",
     TAB_DIR / "rq5_faithfulness.tex",
+    TAB_DIR / "masking_examples.tex",
     TAB_DIR / "rq6_scale.tex",
     TAB_DIR / "rq7_transfer.tex",
     ART_DIR / "all_results.csv",
+    ART_DIR / "claim_to_evidence_map.csv",
     ART_DIR / "comparison_design.csv",
     ART_DIR / "controlled_strategy_comparison.csv",
     ART_DIR / "dataset_prompt_preview.md",
@@ -2413,8 +3052,13 @@ required_files = [
     ART_DIR / "dataset_sample_preview.json",
     ART_DIR / "prompt_template_preview.csv",
     ART_DIR / "prompt_template_preview.json",
+    ART_DIR / "experiment_ledger.csv",
+    ART_DIR / "split_leakage_audit.csv",
+    ART_DIR / "uncertainty_estimates.csv",
     ART_DIR / "rq2_contrastive_retrieval.json",
+    ART_DIR / "rq2_retrieval_comparison.json",
     ART_DIR / "faithfulness_scores.json",
+    ART_DIR / "masking_examples.json",
     ART_DIR / "transfer_matrix.json",
 ]
 if os.environ.get("PAPER_SKIP_MODEL_DIAGNOSTICS", "0") != "1":

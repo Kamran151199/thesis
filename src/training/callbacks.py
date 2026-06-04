@@ -39,8 +39,13 @@ class ConsoleCallback(Callback):
 
     def on_step_end(self, trainer, step, lr, components):
         if step % trainer.cfg.train.log_every == 0:
+            def _fmt(key, value):
+                if isinstance(value, (int, float)):
+                    return f"{key}={value:.4f}"
+                return f"{key}={value}"
+
             comp = "  ".join(
-                f"{k}={v:.4f}" for k, v in components.items() if k != "alpha"
+                _fmt(k, v) for k, v in components.items() if k != "alpha"
             )
             log.info("step %d/%d | lr %.2e | %s", step, trainer.total_steps, lr, comp)
 

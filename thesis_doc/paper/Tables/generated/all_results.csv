@@ -2,11 +2,13 @@ run,rq,domain,backbone,objective,alpha,headline,mc_acc,rouge_l,bleu,relaxed_acc,
 rq2_blip2_contrastive_scienceqa,RQ2,science,BLIP-2 OPT-2.7B,contrastive_enhanced,,0.48,0.48,,,,,,
 rq2_blip2_generative_scienceqa,RQ2,science,BLIP-2 OPT-2.7B,generative,,0.495,0.495,,,,,,
 rq3_qwen2vl_explanation_aware_aokvqa,RQ3/RQ4,commonsense,Qwen2-VL-2B,explanation_aware_alpha_0.5,,0.795,0.795,0.3375,0.0872,,,,
-rq4_qwen2vl_explanation_aware_chartqa,RQ4/RQ7,charts,Qwen2-VL-2B,answer_only_fallback,,0.615,,,,0.615,,,0.225
-rq4_qwen2vl_explanation_aware_docvqa,RQ4/RQ7,documents,Qwen2-VL-2B,answer_only_fallback,,0.0678,,,,,0.0678,,0.06
-rq4_qwen2vl_explanation_aware_vqav2,RQ4/RQ7,natural,Qwen2-VL-2B,answer_only_fallback,,0.72,,,,,,0.72,0.72
-rq2_qwen2vl_generative_aokvqa,RQ2/RQ3,commonsense,Qwen2-VL-2B,generative,,0.79,0.79,0.3302,0.0828,,,,
-rq2_qwen2vl_generative_scienceqa,RQ2/RQ3,science,Qwen2-VL-2B,generative,,0.775,0.775,0.7002,0.5689,,,,
+rq4_qwen2vl_explanation_aware_chartqa,RQ4/RQ7,charts,Qwen2-VL-2B,answer_only_fallback,,0.66,,,,0.66,,,0.415
+rq4_qwen2vl_explanation_aware_docvqa,RQ4/RQ7,documents,Qwen2-VL-2B,answer_only_fallback,,0.9052,,,,,0.9052,,0.855
+rq4_qwen2vl_explanation_aware_vqav2,RQ4/RQ7,natural,Qwen2-VL-2B,answer_only_fallback,,0.73,,,,,,0.73,0.73
+rq3_qwen2vl_answer_only_aokvqa,RQ3/RQ7,commonsense,Qwen2-VL-2B,answer_only,,0.82,0.82,,,,,,
+rq3_qwen2vl_answer_only_scienceqa,RQ3/RQ7,science,Qwen2-VL-2B,answer_only,,0.785,0.785,,,,,,
+rq2_qwen2vl_generative_aokvqa,RQ2/RQ3,commonsense,Qwen2-VL-2B,rationale_generative,,0.79,0.79,0.3302,0.0828,,,,
+rq2_qwen2vl_generative_scienceqa,RQ2/RQ3,science,Qwen2-VL-2B,rationale_generative,,0.775,0.775,0.7002,0.5689,,,,
 rq6_qwen2vl_7b_explanation_aware_scienceqa,RQ6,science,Qwen2-VL-7B,explanation_aware_alpha_0.5,,0.895,0.895,0.7483,0.6537,,,,
 rq3_alpha_000,RQ3,science,Qwen2-VL-2B,explanation_aware_alpha_0,0.0,0.675,0.675,0.4492,0.3342,,,,
 rq3_alpha_010,RQ3,science,Qwen2-VL-2B,explanation_aware_alpha_0.1,0.1,0.775,0.775,0.7063,0.5789,,,,

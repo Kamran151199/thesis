@@ -7,8 +7,10 @@ rq3_alpha_025,0.0242,30
 rq3_alpha_050,0.0208,30
 rq3_alpha_075,0.0188,30
 rq3_alpha_100,0.0296,30
+rq3_qwen2vl_answer_only_aokvqa,0.0231,30
+rq3_qwen2vl_answer_only_scienceqa,0.0796,30
 rq3_qwen2vl_explanation_aware_aokvqa,0.0227,30
-rq4_qwen2vl_explanation_aware_chartqa,0.2271,30
-rq4_qwen2vl_explanation_aware_docvqa,0.3732,30
-rq4_qwen2vl_explanation_aware_vqav2,0.1147,30
+rq4_qwen2vl_explanation_aware_chartqa,0.2203,30
+rq4_qwen2vl_explanation_aware_docvqa,0.3756,30
+rq4_qwen2vl_explanation_aware_vqav2,0.1157,30
 rq6_qwen2vl_7b_explanation_aware_scienceqa,0.0141,30

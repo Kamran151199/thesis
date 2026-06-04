@@ -1,0 +1,30 @@
+run,stage,tensor,shape,dtype,device,min,max
+rq3_qwen2vl_answer_only_scienceqa,collator_cpu,input_ids,"(1, 348)",torch.int64,cpu,8.0,151655.0
+rq3_qwen2vl_answer_only_scienceqa,collator_cpu,attention_mask,"(1, 348)",torch.int64,cpu,1.0,1.0
+rq3_qwen2vl_answer_only_scienceqa,collator_cpu,mm_token_type_ids,"(1, 348)",torch.int64,cpu,0.0,1.0
+rq3_qwen2vl_answer_only_scienceqa,collator_cpu,pixel_values,"(1064, 1176)",torch.float32,cpu,-1.3835066556930542,2.145897150039673
+rq3_qwen2vl_answer_only_scienceqa,collator_cpu,image_grid_thw,"(1, 3)",torch.int64,cpu,1.0,38.0
+rq3_qwen2vl_answer_only_scienceqa,collator_cpu,labels,"(1, 348)",torch.int64,cpu,-100.0,59950.0
+rq3_qwen2vl_answer_only_scienceqa,model_forward,logits,"(1, 348, 151936)",torch.float32,cuda:0,,
+rq2_qwen2vl_generative_scienceqa,collator_cpu,input_ids,"(1, 533)",torch.int64,cpu,1.0,151655.0
+rq2_qwen2vl_generative_scienceqa,collator_cpu,attention_mask,"(1, 533)",torch.int64,cpu,1.0,1.0
+rq2_qwen2vl_generative_scienceqa,collator_cpu,mm_token_type_ids,"(1, 533)",torch.int64,cpu,0.0,1.0
+rq2_qwen2vl_generative_scienceqa,collator_cpu,pixel_values,"(1064, 1176)",torch.float32,cpu,-1.3835066556930542,2.145897150039673
+rq2_qwen2vl_generative_scienceqa,collator_cpu,image_grid_thw,"(1, 3)",torch.int64,cpu,1.0,38.0
+rq2_qwen2vl_generative_scienceqa,collator_cpu,labels,"(1, 533)",torch.int64,cpu,-100.0,68833.0
+rq2_qwen2vl_generative_scienceqa,model_forward,logits,"(1, 533, 151936)",torch.float32,cuda:0,,
+rq3_alpha_050,collator_cpu,input_ids,"(1, 533)",torch.int64,cpu,1.0,151655.0
+rq3_alpha_050,collator_cpu,attention_mask,"(1, 533)",torch.int64,cpu,1.0,1.0
+rq3_alpha_050,collator_cpu,mm_token_type_ids,"(1, 533)",torch.int64,cpu,0.0,1.0
+rq3_alpha_050,collator_cpu,pixel_values,"(1064, 1176)",torch.float32,cpu,-1.3835066556930542,2.145897150039673
+rq3_alpha_050,collator_cpu,image_grid_thw,"(1, 3)",torch.int64,cpu,1.0,38.0
+rq3_alpha_050,collator_cpu,labels,"(1, 533)",torch.int64,cpu,-100.0,68833.0
+rq3_alpha_050,collator_cpu,span_ids,"(1, 533)",torch.int64,cpu,0.0,2.0
+rq3_alpha_050,model_forward,logits,"(1, 533, 151936)",torch.float32,cuda:0,,
+rq4_qwen2vl_explanation_aware_chartqa,collator_cpu,input_ids,"(1, 602)",torch.int64,cpu,13.0,151655.0
+rq4_qwen2vl_explanation_aware_chartqa,collator_cpu,attention_mask,"(1, 602)",torch.int64,cpu,1.0,1.0
+rq4_qwen2vl_explanation_aware_chartqa,collator_cpu,mm_token_type_ids,"(1, 602)",torch.int64,cpu,0.0,1.0
+rq4_qwen2vl_explanation_aware_chartqa,collator_cpu,pixel_values,"(2320, 1176)",torch.float32,cpu,-1.7922625541687012,2.145897150039673
+rq4_qwen2vl_explanation_aware_chartqa,collator_cpu,image_grid_thw,"(1, 3)",torch.int64,cpu,1.0,58.0
+rq4_qwen2vl_explanation_aware_chartqa,collator_cpu,labels,"(1, 602)",torch.int64,cpu,-100.0,21806.0
+rq4_qwen2vl_explanation_aware_chartqa,model_forward,logits,"(1, 602, 151936)",torch.float32,cuda:0,,

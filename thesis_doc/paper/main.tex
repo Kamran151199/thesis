@@ -14,6 +14,7 @@
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{url}
+\usepackage{placeins}
 
 \setlength{\emergencystretch}{2em}
 
@@ -54,14 +55,15 @@ If the model gives an explanation, that explanation should also be connected to 
 This is especially important for charts and documents, where the evidence is usually visible somewhere in the input.
 In the literature, contrastive training, generative training, and explanation-based training are often tested with different models, datasets, or compute budgets.
 That makes it hard to know what the training objective itself is doing.
-This thesis compares four controlled variants: a zero-shot baseline, BLIP-2 contrastive-enhanced alignment, Qwen2-VL generative alignment, and Qwen2-VL explanation-aware generative alignment.
-The experiments use DocVQA, ChartQA, ScienceQA, A-OKVQA, and a VQAv2 subset, and the same generate-then-score evaluation is used wherever possible.
-On ScienceQA, Qwen2-VL-2B improves from 0.450 to 0.775 accuracy with the best low-answer-weight explanation-aware setting, and Qwen2-VL-7B reaches 0.895 with the same explanation-aware setup.
-The same framework improves A-OKVQA from 0.490 to 0.795, ChartQA relaxed accuracy from 0.335 to 0.615, and the VQAv2 subset from 0.350 to 0.720.
-DocVQA is the main failure case, dropping from 0.349 ANLS to 0.068 under the answer-only fallback.
-BLIP-2 contrastive-enhanced training also does not beat the BLIP-2 generative control on ScienceQA (0.480 versus 0.495), and its retrieval check is close to random (R@1=0.010).
-The masking analysis shows strong visual sensitivity for chart and document runs, but it does not prove that explanation-aware training always makes rationales more faithful.
-The main finding is practical: rationale supervision and model scale can help under a single-GPU budget, but the gain depends on the domain, the objective balance, and how evidence use is measured.
+This study compares the objective under one resource-constrained pipeline rather than comparing unrelated systems.
+It evaluates BLIP-2 generative fine-tuning, BLIP-2 contrastive-enhanced fine-tuning, Qwen2-VL answer-only fine-tuning, Qwen2-VL rationale-generative fine-tuning, and Qwen2-VL explanation-aware fine-tuning.
+The experiments use ScienceQA, A-OKVQA, ChartQA, DocVQA, and a VQAv2 subset, with capped single-seed runs and the same evaluation code wherever possible.
+On ScienceQA, Qwen2-VL-2B reaches 0.775 accuracy with both rationale-generative training and the best low-answer-weight explanation-aware setting, while the fixed balanced setting reaches 0.740.
+On A-OKVQA, explanation-aware training reaches 0.795 accuracy, slightly above the rationale-generative control at 0.790.
+For domains without gold rationales, the completed ChartQA, DocVQA, and VQAv2 runs are answer-only fallback runs, improving their native headline metrics but not testing rationale supervision.
+BLIP-2 contrastive-enhanced training does not beat the BLIP-2 generative control on ScienceQA (0.480 versus 0.495), and retrieval diagnostics are used to check whether the image--answer space improves beyond frozen and random controls.
+The masking analysis is reported as evidence sensitivity, not as proof of faithful rationale text.
+Overall, the results support a careful view of explanation-aware alignment: rationale supervision can help under a single-GPU budget, but answer-only controls, objective balance, model scale, transfer, and evidence sensitivity must be reported separately.
 \end{abstract}
 
 \begin{graphicalabstract}
@@ -69,10 +71,10 @@ The main finding is practical: rationale supervision and model scale can help un
 \end{graphicalabstract}
 
 \begin{highlights}
-\item The paper compares BLIP-2 contrastive-enhanced, Qwen2-VL generative, and Qwen2-VL explanation-aware alignment under one fixed-budget protocol.
-\item Explanation supervision helps on ScienceQA and A-OKVQA, but only when the answer and rationale loss are balanced carefully.
-\item BLIP-2 contrastive-enhanced training does not beat the BLIP-2 generative control, while the Qwen2-VL-7B run gives the clearest improvement.
-\item The domain results are mixed: ChartQA and VQAv2 improve, DocVQA fails under the fallback setup, and evidence sensitivity is not the same thing as explanation quality.
+\item The study separates zero-shot, answer-only, rationale-generative, explanation-aware, and BLIP-2 contrastive-enhanced controls under a capped single-GPU protocol.
+\item On rationale-bearing datasets, explanation-aware training is useful only when compared against both answer-only and rationale-generative controls.
+\item BLIP-2 contrastive-enhanced training does not beat the BLIP-2 generative control in the completed ScienceQA run.
+\item Masking drift is treated as evidence sensitivity, so chart/document gains and rationale-faithfulness claims are not mixed together.
 \end{highlights}
 
 \begin{keyword}
@@ -91,16 +93,16 @@ For charts, the answer can depend on axis labels, bar heights, colours, or trend
 For science and commonsense VQA, the model often has to combine the image with background knowledge.
 In all of these cases, a correct-looking answer is not enough if the reasoning is not grounded.
 A model can sound confident and still use the wrong evidence.
-This is why this thesis studies both the answer and the explanation.
+This is why this study studies both the answer and the explanation.
 
 The technical idea behind these systems is cross-modal alignment: the visual signal has to be connected to the language model in a useful way.
 Recent work shows that this behaviour depends on many choices, including visual resolution, data mixture, connector design, instruction tuning, and the adaptation method~\cite{laurencon2024whatmatters,zhang2025mm15,deitke2025molmo}.
-Open model families such as Qwen2-VL, Qwen2.5-VL, LLaVA-OneVision, and PaliGemma make this kind of controlled study possible because they provide strong backbones that can still be adapted in an academic setting~\cite{wang2024qwen2vl,bai2025qwen25vl,li2025llavaonevision,beyer2024paligemma}.
+Open model families such as Qwen2-VL, BLIP-2, and LLaVA-OneVision make this kind of controlled study possible because they provide strong backbones that can still be adapted in an academic setting~\cite{wang2024qwen2vl,li2023blip2,li2025llavaonevision}.
 At the same time, recent document and chart work shows that general visual instruction following is not enough for text-heavy and structured images~\cite{fu2025textrichsurvey,wang2024docllm,masry2024chartinstruct,masry2025chartgemma}.
 The practical point is also important.
 Most students and small research teams cannot fully fine-tune a large multimodal model.
 Low-rank methods such as DoRA make it realistic to update only a small number of parameters while the base model stays frozen or quantised~\cite{liu2024dora}.
-That is the setting used in this thesis.
+That is the setting used in this study.
 The goal is not to chase the best leaderboard score, but to understand what happens when the alignment objective changes under a realistic budget.
 
 \subsection{Gap Analysis}
@@ -112,20 +114,20 @@ Generative learning trains answer generation directly, but fluent text does not 
 Explanation-aware training is promising because it supervises the reasoning text, but it can also teach the model to write a nice explanation after the fact.
 Most hallucination and faithfulness work also focuses on natural images.
 Documents and charts need more attention because their evidence is more structured and easier to inspect.
-This thesis addresses that gap by changing the alignment objective while keeping the rest of the pipeline as stable as possible.
+This study addresses that gap by changing the alignment objective while keeping the rest of the pipeline as stable as possible.
 
 \subsection{Research Questions}
 The main question is: how should a resource-constrained vision--language model be aligned when the goal is both accurate and faithful visual reasoning?
 The following research questions make that question measurable.
 
 \begin{enumerate}
-    \item RQ1: How have vision--language alignment strategies evolved, and what principles underpin cross-modal representation learning?
-    \item RQ2: How does BLIP-2 generative alignment compare to BLIP-2 contrastive-enhanced alignment for visual reasoning?
-    \item RQ3: To what extent does explanation-aware training improve reasoning accuracy and explanation quality across visual domains?
-    \item RQ4: Which architectural and training factors most determine cross-modal reasoning performance, and how do they differ across domains?
-    \item RQ5: To what extent does explanation-aware training reduce hallucination and improve the faithfulness of rationales relative to the visual evidence?
-    \item RQ6: How does QLoRA compare across model scales in preserving the benefits of explanation-aware alignment?
-    \item RQ7: How well does explanation-aware alignment learned on one visual domain transfer to unseen domains?
+    \item RQ1: How have vision--language alignment methods evolved for grounded visual reasoning and explanation generation?
+    \item RQ2: How does BLIP-2 generative fine-tuning compare with BLIP-2 contrastive-enhanced fine-tuning on visual reasoning?
+    \item RQ3: Does explanation-aware fine-tuning improve answer accuracy and explanation quality on datasets with gold rationales?
+    \item RQ4: How does the same fine-tuning framework perform across document, chart, science, commonsense, and natural-image domains?
+    \item RQ5: How sensitive are the model's answers to visual evidence under image-masking perturbations?
+    \item RQ6: How does the selected explanation-aware QLoRA setup scale from Qwen2-VL-2B to Qwen2-VL-7B?
+    \item RQ7: How well do fine-tuned adapters transfer across visual domains and prompt formats?
 \end{enumerate}
 
 \subsection{Problem Statement}
@@ -159,14 +161,13 @@ Methodologically, it separates answer accuracy, explanation quality, and evidenc
 This matters most for documents and charts because the evidence should usually be traceable in the image.
 The framework is also reusable because each dataset is converted into the same neutral format and each experiment is selected through configuration.
 The final results are not a simple success story.
-Rationale supervision helps in the science and commonsense runs, but contrastive alignment and DocVQA expose clear failure cases.
+Rationale supervision helps in the science and commonsense runs, but answer-only controls are strong and the BLIP-2 contrastive arm exposes a clear negative result.
 
 \section{Literature Review}
-This review focuses on recent work.
+This review focuses on the work that is closest to the present study.
 The aim is not to repeat the full history of vision--language modelling.
-The aim is to place this thesis next to the 2024--2025 work that is closest to it.
-For that reason, the bibliography is kept to recent sources, and older benchmark papers are not repeated here.
-The review is grouped around the parts that matter for this thesis: model design, text-rich images, chart reasoning, faithfulness, and low-budget adaptation.
+The review is grouped around the parts that matter here: model design, text-rich images, chart reasoning, faithfulness, datasets, metrics, and low-budget adaptation.
+Older dataset and metric papers are cited where the experimental protocol depends on them.
 
 \subsection{Recent vision--language model design}
 Recent VLMs are not built around one simple alignment trick.
@@ -175,11 +176,11 @@ Recent ablation work argues that many of these design choices are still not well
 MM1.5 also shows that OCR data, synthetic captions, instruction mixtures, and specialised variants can matter as much as scale~\cite{zhang2025mm15}.
 Molmo and PixMo are useful here because they emphasise open weights and open data, so the training recipe is easier to inspect~\cite{deitke2025molmo}.
 LLaVA-OneVision shows that one model family can transfer across image and video settings when the data mixture is chosen carefully~\cite{li2025llavaonevision}.
-The lesson for this thesis is straightforward: if the model, data, and budget all change together, it is hard to say what the objective contributed.
+The lesson for this study is straightforward: if the model, data, and budget all change together, it is hard to say what the objective contributed.
 
 Open model families are also important for budget reasons.
-Qwen2-VL and Qwen2.5-VL are relevant because they target dynamic resolution, documents, charts, diagrams, and other text-heavy visual inputs~\cite{wang2024qwen2vl,bai2025qwen25vl}.
-PaliGemma is also relevant because it is compact but still covers many VLM tasks~\cite{beyer2024paligemma}.
+Qwen2-VL is relevant because it targets dynamic resolution, documents, charts, diagrams, and other text-heavy visual inputs~\cite{wang2024qwen2vl}.
+BLIP-2 is relevant because its Q-Former provides a natural place to test a contrastive image--answer auxiliary loss while keeping the large vision and language components frozen~\cite{li2023blip2}.
 These papers are not used as leaderboard references.
 They show the kind of backbone that makes parameter-efficient experiments possible.
 
@@ -189,7 +190,7 @@ It is not only object recognition.
 A recent survey shows how quickly text-rich image understanding has moved toward multimodal large language models for OCR-heavy and layout-heavy inputs~\cite{fu2025textrichsurvey}.
 DocLLM is a good example because it treats layout as part of the generative document understanding problem~\cite{wang2024docllm}.
 OmniDocBench takes the same issue toward benchmark coverage by evaluating diverse PDF parsing cases with detailed annotations~\cite{ouyang2025omnidocbench}.
-This thesis uses DocVQA as the document task.
+This study uses DocVQA as the document task.
 The focus is narrower than document modelling in general: what happens when the objective changes while the rest of the training path stays fixed?
 
 \subsection{Charts and structured visual reasoning}
@@ -211,10 +212,10 @@ Hallucination-augmented contrastive learning treats hallucinated visual text as 
 VISCO and Critic-V are also relevant because they evaluate critique, correction, and error detection instead of only final-answer accuracy~\cite{wu2025visco,zhang2025criticv}.
 Together, these papers motivate measuring faithfulness separately from accuracy.
 
-Efficient adaptation is the practical constraint in this thesis.
+Efficient adaptation is the practical constraint in this study.
 DoRA is cited as a recent low-rank adaptation method with the same broad motivation: improve adaptation without paying for full-model fine-tuning~\cite{liu2024dora}.
 Reason-RFT is relevant because it shows the move toward post-training methods that explicitly reward visual reasoning~\cite{tan2025reasonrft}.
-This thesis stays with supervised objective comparisons, but it keeps the same concern in mind.
+This study stays with supervised objective comparisons, but it keeps the same concern in mind.
 The model is evaluated as a reasoning system, not only as an answer generator.
 
 Table~\ref{tab:LiteratureSummary} summarises the closest lines of work and the gap addressed here.
@@ -231,7 +232,7 @@ It is meant to show why a fixed-budget objective comparison is still useful even
 \hline
 \textbf{Work} & \textbf{Main focus} & \textbf{Generation} & \textbf{Structured VQA} & \textbf{Rationales} & \textbf{Efficient FT} & \textbf{Relation to this study} \\ \hline
 Recent VLM construction~\cite{laurencon2024whatmatters,deitke2025molmo,li2025llavaonevision,zhang2025mm15} & Backbone and data recipe & \cmark & \pmark & \pmark & \pmark & Shows why architecture and data must be controlled before claiming an objective-level effect. \\ \hline
-Open VLM backbones~\cite{wang2024qwen2vl,bai2025qwen25vl,beyer2024paligemma} & Adaptable model families & \cmark & \pmark & \pmark & \pmark & Provide practical backbone candidates for fixed-budget experiments. \\ \hline
+Open VLM backbones~\cite{wang2024qwen2vl,li2023blip2} & Adaptable model families & \cmark & \pmark & \pmark & \pmark & Provide practical backbone candidates for fixed-budget experiments. \\ \hline
 Text-rich document work~\cite{fu2025textrichsurvey,wang2024docllm,ouyang2025omnidocbench} & Documents and PDF parsing & \cmark & \cmark & \pmark & \pmark & Motivates document evaluation, but does not isolate training objectives under one backbone. \\ \hline
 Chart reasoning work~\cite{masry2024chartinstruct,masry2025chartgemma,tang2025chartmuseum,yang2025chartmimic} & Chart understanding & \cmark & \cmark & \pmark & \pmark & Shows that chart reasoning remains difficult and needs explicit structured evaluation. \\ \hline
 Recent reasoning benchmarks~\cite{lu2024mathvista,yue2024mmmu,chen2024mmstar,yue2025mmmupro,yao2025mmreason} & Harder multimodal evaluation & \pmark & \cmark & \pmark & \xmark & Motivate stricter evaluation for visual, mathematical, and multi-step reasoning. \\ \hline
@@ -248,7 +249,7 @@ A dataset is first converted into a shared format.
 Then the selected model is loaded, QLoRA adapters are attached when needed, the selected objective is trained, and the model is evaluated with the same generate-then-score procedure.
 Figure~\ref{Fig:Figure1} shows the full pipeline.
 This setup is intentionally conservative.
-For this thesis, a controlled comparison is more useful than a large leaderboard-style run.
+For this study, a controlled comparison is more useful than a large leaderboard-style run.
 Each experiment is selected through a configuration file that records the dataset, backbone, objective, adapter settings, metrics, and seed.
 The same implementation path is used for baseline evaluation, fine-tuning, and final evaluation.
 This reduces hidden differences between runs.
@@ -262,11 +263,11 @@ Datasets are normalised into a shared multimodal example format, the selected ba
 
 \subsection{Dataset}
 The experiments use five public benchmarks.
-DocVQA represents documents, where the answer usually depends on scanned text, layout, and local visual context.
-ChartQA represents chart reasoning, where the answer can depend on labels, axes, values, and comparisons.
-ScienceQA provides multimodal science questions with answer choices and explanations, so it is useful for rationale supervision.
-A-OKVQA gives commonsense visual questions and rationales over natural images.
-VQAv2 is used as a general natural-image VQA control subset.
+DocVQA represents documents, where the answer usually depends on scanned text, layout, and local visual context~\cite{mathew2021docvqa}.
+ChartQA represents chart reasoning, where the answer can depend on labels, axes, values, and comparisons~\cite{masry2022chartqa}.
+ScienceQA provides multimodal science questions with answer choices and explanations, so it is useful for rationale supervision~\cite{lu2022scienceqa}.
+A-OKVQA gives commonsense visual questions and rationales over natural images~\cite{schwenk2022aokvqa}.
+VQAv2 is used as a general natural-image VQA control subset~\cite{goyal2017vqav2}.
 Every dataset is converted into the same schema: image, question, optional answer choices, target answer, and optional rationale.
 If a dataset has no gold rationale, it is treated as answer-only unless a separate rationale experiment is explicitly marked.
 
@@ -287,10 +288,27 @@ VQAv2 subset & Natural image & run-specific & open ended & no & VQA accuracy \\ 
 \end{adjustbox}
 \end{table}
 
+\begin{table*}[!ht]
+\centering
+\caption{Input construction examples. The complete token, label, span, and collator traces are saved as pipeline artifacts; this table gives the paper-level view of what each prompt family means.}
+\label{tab:InputConstruction}
+\scriptsize
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{|p{2.5cm}|p{3.6cm}|p{4.5cm}|p{4.5cm}|p{2.8cm}|}
+\hline
+\textbf{Prompt family} & \textbf{Raw fields} & \textbf{Prompt seen by model} & \textbf{Supervised target} & \textbf{Supervised spans} \\ \hline
+Answer-only & image, question, answer & \texttt{Question: ...} plus choices when available & \texttt{Answer: <answer>.} & answer tokens only \\
+Rationale-generative & image, question, answer, gold rationale & \texttt{Question: ...} plus choices when available & \texttt{Reasoning: <rationale> Answer: <answer>.} & full target under uniform CE \\
+Explanation-aware & image, question, answer, gold rationale & \texttt{Question: ...} plus choices when available & \texttt{Reasoning: <rationale> Answer: <answer>.} & rationale and answer spans weighted separately \\
+Answer-only fallback & image, question, answer, no gold rationale & \texttt{Question: ...} & \texttt{Answer: <answer>.} & answer tokens only \\ \hline
+\end{tabular}
+\end{adjustbox}
+\end{table*}
+
 \subsection{Detailed Methodology}
 Figure~\ref{Fig:Architecture} shows the model-level setup.
 Each backbone is wrapped behind a common interface, so the training code does not need a separate path for every model.
-For Qwen2-VL, the base model is loaded in 4-bit precision and adapted with rank-16 QLoRA adapters.
+For Qwen2-VL, the base model is loaded in 4-bit precision and adapted with rank-16 QLoRA adapters~\cite{hu2022lora,dettmers2023qlora}.
 For the BLIP-2 contrastive arm, the vision encoder and OPT language model stay frozen.
 Only the Q-Former-side components, the language projection, and a small answer-projection head are trained.
 The baseline variant evaluates the model before task fine-tuning.
@@ -326,6 +344,18 @@ The auxiliary reference lane summarises the BLIP-2 contrastive path used for rep
     \label{Eq:Loss}
 \end{equation}
 where $\mathcal{L}_{\text{answer}}$ and $\mathcal{L}_{\text{explanation}}$ are the masked cross-entropy losses over the answer and explanation token spans, and $\alpha$ controls their relative weight.
+The experiments report two alpha modes.
+In fixed-alpha mode, $\alpha$ is set by configuration and is used as an ablation knob.
+In length-aware mode, the effective answer weight is derived from the supervised token counts:
+
+\begin{equation}
+    \alpha_{\text{eff}} =
+    \frac{\lambda\,n_{\text{answer}}}{\lambda\,n_{\text{answer}} + n_{\text{explanation}}},
+    \label{Eq:LengthAlpha}
+\end{equation}
+where $n_{\text{answer}}$ and $n_{\text{explanation}}$ are the answer and explanation token counts after collation, and $\lambda$ is the answer-weight multiplier.
+With $\lambda=1$, this is equivalent to uniform token-level cross-entropy over the rationale-plus-answer target.
+The fixed-alpha sweep is therefore an ablation, while the length-aware run is an audit control for the natural token-weighted setting.
 
 At inference time, multiple-choice datasets are evaluated in two steps.
 The model first generates a short reasoning trace from the image and question.
@@ -339,10 +369,10 @@ Generated rationales are saved whenever the model produces them, and those ratio
 The evaluation has three parts: answer quality, rationale quality, and evidence faithfulness.
 Answer quality uses the native metric of each benchmark.
 ScienceQA and A-OKVQA use multiple-choice accuracy.
-DocVQA uses average normalised Levenshtein similarity.
-ChartQA uses relaxed accuracy for numerical answers.
-The VQAv2 subset uses VQA consensus accuracy when annotator answers are available.
-Rationale quality is measured with BLEU and ROUGE-L when gold rationales exist.
+DocVQA uses average normalised Levenshtein similarity, following the benchmark convention~\cite{mathew2021docvqa}.
+ChartQA uses relaxed accuracy for numerical answers~\cite{masry2022chartqa}.
+The VQAv2 subset uses VQA consensus accuracy when annotator answers are available~\cite{antol2015vqa,goyal2017vqav2}.
+Rationale quality is measured with BLEU and ROUGE-L when gold rationales exist~\cite{papineni2002bleu,lin2004rouge}.
 These metrics are not perfect, but they give a basic lexical and sequence-level check of the explanation.
 Faithfulness is tested by checking whether the answer likelihood changes when visual evidence is masked.
 The main faithfulness measure is evidence-masking consistency, defined in Equation~\ref{Eq:Drift}.
@@ -363,9 +393,9 @@ For that reason, faithfulness is reported beside answer accuracy, not only as po
 All variants are run under the fixed-budget protocol, and any run-specific deviation is recorded in the experiment ledger.
 The Qwen2-VL runs use AdamW, a learning rate of $2 \times 10^{-4}$, cosine decay, three percent warm-up, weight decay of 0.01, bf16 compute, and an effective batch size of 32 through gradient accumulation.
 The Qwen2-VL base model is loaded with 4-bit NormalFloat quantisation.
-QLoRA adapters use rank 16 and scaling factor 32 unless a result table states otherwise.
+QLoRA adapters use rank 16 and scaling factor 32 unless a result table states otherwise~\cite{hu2022lora,dettmers2023qlora}.
 The primary backbone is Qwen2-VL-2B-Instruct because it is strong enough for the target tasks while still fitting the available compute budget~\cite{wang2024qwen2vl}.
-The BLIP-2 comparison uses Salesforce BLIP-2 OPT-2.7B with the vision tower and OPT language model frozen.
+The BLIP-2 comparison uses Salesforce BLIP-2 OPT-2.7B with the vision tower and OPT language model frozen~\cite{li2023blip2}.
 Only the Q-Former-side alignment components are trained.
 Qwen2-VL-7B is used for the scale ablation with the same QLoRA recipe.
 Each run logs the dataset split, filtered count, seed, objective, adapter configuration, and metrics.
@@ -389,11 +419,41 @@ Primary seed policy & one seed per complete configuration \\ \hline
 \end{tabular}
 \end{table}
 
+\subsection{Experiment ledger}
+Table~\ref{tab:ExperimentLedger} summarises the comparisons before reporting the scores.
+The important distinction is rationale availability.
+ScienceQA and A-OKVQA can test rationale-generative and explanation-aware supervision because they provide gold rationales.
+ChartQA, DocVQA, and VQAv2 are kept as answer-only fallback and transfer/domain runs unless a future experiment adds separate rationale supervision.
+
+\begin{table*}[!ht]
+\centering
+\caption{Main experiment ledger. The full generated ledger includes exact caps, seeds, prompt variants, alpha mode, and configuration hashes.}
+\label{tab:ExperimentLedger}
+\scriptsize
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{|l|l|l|l|l|}
+\hline
+\textbf{Comparison} & \textbf{Backbone} & \textbf{Dataset(s)} & \textbf{Objective / prompt family} & \textbf{Use in the paper} \\ \hline
+BLIP-2 objective pair & BLIP-2 OPT-2.7B & ScienceQA & generative vs generative+contrastive & contrastive objective test \\
+ScienceQA controls & Qwen2-VL-2B & ScienceQA & answer-only, rationale-generative, explanation-aware sweep & rationale supervision and alpha ablation \\
+A-OKVQA controls & Qwen2-VL-2B & A-OKVQA & answer-only, rationale-generative, explanation-aware & second gold-rationale domain \\
+Fallback domains & Qwen2-VL-2B & ChartQA, DocVQA, VQAv2 & answer-only fallback & in-domain adaptation and transfer, not rationale supervision \\
+Scale & Qwen2-VL-2B/7B & ScienceQA & same explanation-aware QLoRA setting & model-scale check \\
+Transfer & Qwen2-VL-2B & all target domains & source adapter evaluated on target prompts & cross-domain transfer analysis \\
+Masking & Qwen2-VL runs & selected domains & image-region perturbation & evidence sensitivity diagnostic \\ \hline
+\end{tabular}
+\end{adjustbox}
+\end{table*}
+
+\FloatBarrier
+
 \section{Results}
-All runs in the final experiment matrix completed.
-The validation log reported no failed runs and no missing required paper artifacts.
-The results below come from the capped single-seed protocol described in Section~3.
-They should be read as controlled results inside this framework, not as leaderboard numbers.
+The results are organised by the comparison type in the experiment ledger.
+First, the BLIP-2 objective pair tests whether the auxiliary contrastive term helps beyond generative fine-tuning.
+Second, the ScienceQA and A-OKVQA runs separate answer-only, rationale-generative, and explanation-aware supervision on datasets with gold rationales.
+Third, the chart, document, and VQAv2 runs show in-domain adaptation behaviour for datasets without gold rationales.
+The final subsections report masking-based evidence sensitivity, the Qwen2-VL scale check, and cross-domain transfer.
+All scores come from the capped single-seed protocol described above, so they should be read as controlled framework results rather than leaderboard numbers.
 
 \subsection{Objective-Level Comparison}
 Table~\ref{tab:objective_comparison} shows the direct objective comparisons.
@@ -403,12 +463,14 @@ The retrieval check is also weak: R@1 is 0.010, R@5 is 0.020, R@10 is 0.025, and
 For Qwen2-VL-2B, generative fine-tuning reaches 0.775 on ScienceQA and 0.790 on A-OKVQA.
 The explanation-aware A-OKVQA run reaches 0.795 accuracy, 0.337 ROUGE-L, and 0.087 BLEU.
 That is slightly above the generative A-OKVQA control.
+The true answer-only controls are strong: 0.785 on ScienceQA and 0.820 on A-OKVQA.
+Those rows use answer-only prompts, so their frozen baselines differ from rationale-prompt baselines.
 On ScienceQA, the fixed $\alpha=0.50$ explanation-aware run reaches 0.740 accuracy.
 The $\alpha$-sweep below shows that the lower-answer-weight setting reaches 0.775.
 
 \begin{table*}[!ht]
 \centering
-\caption{Objective-level results under the controlled protocol. The baseline column is the pre-fine-tuning score for the same backbone and dataset. Accuracy is multiple-choice accuracy for ScienceQA and A-OKVQA.}
+\caption{Objective-level results under the controlled protocol. The baseline column is the pre-fine-tuning score for the same backbone, dataset, and prompt family. Accuracy is multiple-choice accuracy for ScienceQA and A-OKVQA.}
 \label{tab:objective_comparison}
 \scriptsize
 \begin{adjustbox}{max width=\textwidth}
@@ -417,8 +479,10 @@ The $\alpha$-sweep below shows that the lower-answer-weight setting reaches 0.77
 \textbf{Backbone} & \textbf{Dataset} & \textbf{Objective} & \textbf{Baseline} & \textbf{Final} & \textbf{ROUGE-L} & \textbf{BLEU} \\ \hline
 BLIP-2 OPT-2.7B & ScienceQA & Generative & 0.465 & 0.495 & -- & -- \\
 BLIP-2 OPT-2.7B & ScienceQA & Contrastive-enhanced & 0.465 & 0.480 & -- & -- \\
+Qwen2-VL-2B & ScienceQA & Answer-only & 0.385 & \textbf{0.785} & -- & -- \\
 Qwen2-VL-2B & ScienceQA & Generative & 0.450 & 0.775 & 0.700 & 0.569 \\
 Qwen2-VL-2B & ScienceQA & Explanation-aware, $\alpha=0.50$ & 0.450 & 0.740 & 0.653 & 0.505 \\
+Qwen2-VL-2B & A-OKVQA & Answer-only & 0.355 & \textbf{0.820} & -- & -- \\
 Qwen2-VL-2B & A-OKVQA & Generative & 0.490 & 0.790 & 0.330 & 0.083 \\
 Qwen2-VL-2B & A-OKVQA & Explanation-aware, $\alpha=0.50$ & 0.490 & 0.795 & 0.337 & 0.087 \\ \hline
 \end{tabular}
@@ -426,25 +490,27 @@ Qwen2-VL-2B & A-OKVQA & Explanation-aware, $\alpha=0.50$ & 0.490 & 0.795 & 0.337
 \end{table*}
 
 \begin{figure}[!ht]
-\centerline{\includegraphics[width=0.82\linewidth]{./Figures/generated/blip2_objective}}
+\centerline{\includegraphics[width=0.82\linewidth]{./Figures/generated/rq2_blip2_objective}}
 \caption{BLIP-2 generative and contrastive-enhanced ScienceQA results.
 Both runs improve over the frozen baseline, but the contrastive-enhanced variant does not beat the generative control.}
 \label{Fig:BlipObjective}
 \end{figure}
 
 \begin{figure}[!ht]
-\centerline{\includegraphics[width=0.82\linewidth]{./Figures/generated/contrastive_retrieval}}
-\caption{BLIP-2 contrastive retrieval diagnostic.
-The retrieval scores remain close to random, which matches the answer-accuracy result and indicates that the auxiliary contrastive branch did not learn a useful image--answer matching space in this run.}
+\centerline{\includegraphics[width=0.82\linewidth]{./Figures/generated/rq2_contrastive_retrieval}}
+\caption{BLIP-2 image-to-answer retrieval diagnostic.
+The refreshed pipeline reports frozen BLIP-2, BLIP-2 generative, BLIP-2 contrastive-enhanced, and random-rank controls so the contrastive branch is not interpreted without a reference point.}
 \label{Fig:ContrastiveRetrieval}
 \end{figure}
 
 \begin{figure}[!ht]
-\centerline{\includegraphics[width=0.82\linewidth]{./Figures/generated/objective_comparison}}
-\caption{Qwen2-VL-2B generative and explanation-aware objective comparison on ScienceQA and A-OKVQA.
-The A-OKVQA explanation-aware run slightly improves the generative control, while the fixed $\alpha=0.50$ ScienceQA run is below the generative control.}
+\centerline{\includegraphics[width=0.82\linewidth]{./Figures/generated/controlled_strategy_comparison}}
+\caption{Controlled strategy comparison for BLIP-2 and Qwen2-VL.
+The refreshed pipeline shows zero-shot, answer-only, rationale-generative, explanation-aware, and contrastive variants where those controls are available.}
 \label{Fig:ObjectiveComparison}
 \end{figure}
+
+\FloatBarrier
 
 \subsection{Effect of Explanation-Aware Training}
 Table~\ref{tab:alpha_sweep} and Figure~\ref{Fig:AlphaSweep} show the ScienceQA $\alpha$-sweep.
@@ -456,7 +522,8 @@ The explanation metrics show the same pattern.
 ROUGE-L and BLEU are highest at $\alpha=0.10$ (0.706 and 0.579), and they fall as $\alpha$ increases.
 At $\alpha=1.00$, only the answer span is supervised, so the rationale span receives no direct loss and the rationale metrics are zero.
 The $\alpha=0.10$ run matches the generative control in accuracy and slightly improves its rationale metrics.
-Removing rationale supervision entirely lowers accuracy by about ten points compared with $\alpha=0.10$.
+The $\alpha=1.00$ row should not be confused with the true answer-only control, because the model still sees a rationale-shaped target template but the rationale span is unsupervised.
+The true answer-only ScienceQA control reaches 0.785 under an answer-only prompt family.
 Because this sweep uses one seed with 2{,}000 training examples and 200 evaluation examples, these differences are treated as observed effects, not as final statistical proof.
 
 \begin{table}[!ht]
@@ -478,23 +545,25 @@ $\alpha=1.00$ (answer-span only) & 0.680 & 0.000 & 0.000 \\ \hline
 \end{table}
 
 \begin{figure}[!ht]
-\centerline{\includegraphics[width=0.82\linewidth]{./Figures/generated/alpha_sweep}}
-\caption{Explanation-aware $\alpha$-sweep on ScienceQA.
-Answer accuracy peaks at the natural answer-span weight ($\alpha\approx0.1$, where the objective coincides with uniform generative cross-entropy) and declines toward both extremes.
+\centerline{\includegraphics[width=0.82\linewidth]{./Figures/generated/rq3_alpha_sweep}}
+\caption{Fixed-alpha explanation-aware sweep on ScienceQA.
+Answer accuracy peaks at the low-answer-weight setting and declines toward both extremes inside the rationale-plus-answer target.
 Explanation quality (ROUGE-L, BLEU) peaks at the same point and falls monotonically as $\alpha$ increases, reaching zero at $\alpha=1$ where the explanation span is unsupervised.
 Series are distinguished by marker shape and line style; the dashed grey line marks random-choice accuracy. Single seed.}
 \label{Fig:AlphaSweep}
 \end{figure}
 
+\FloatBarrier
+
 \subsection{Domain-Level Behaviour}
-Table~\ref{tab:domain_results} and Figure~\ref{Fig:CrossDomain} summarise the best completed run for each domain.
-The largest positive changes are on A-OKVQA, VQAv2, and ChartQA.
+Table~\ref{tab:domain_results} and Figure~\ref{Fig:CrossDomain} summarise the selected domain runs from the final experiment matrix.
+The ScienceQA row uses the fixed $\alpha=0.50$ explanation-aware run so that it matches the in-domain adaptation figure; the stronger $\alpha=0.10$ ScienceQA setting is reported in the sweep above.
+The largest positive changes are on DocVQA, VQAv2, ChartQA, and A-OKVQA.
 A-OKVQA improves from 0.490 to 0.795 accuracy.
-The VQAv2 subset improves from 0.350 to 0.720 VQA accuracy.
-ChartQA relaxed accuracy improves from 0.335 to 0.615.
-However, ChartQA exact match drops from 0.275 to 0.225, so the model becomes better under the relaxed numerical rule but not better at exact string matching.
-DocVQA is the main failure case.
-ANLS falls from 0.349 to 0.068, and exact match falls from 0.310 to 0.060.
+The VQAv2 subset improves from 0.350 to 0.730 VQA accuracy.
+ChartQA relaxed accuracy improves from 0.335 to 0.660, and exact match improves from 0.280 to 0.415.
+DocVQA improves from 0.349 to 0.905 ANLS, with exact match rising from 0.310 to 0.855.
+This DocVQA result is strong under the capped run, but it should still be read carefully because the qualitative samples show short extractive answers and the setup uses an answer-only fallback rather than gold rationales.
 
 \begin{table*}[!ht]
 \centering
@@ -505,34 +574,36 @@ ANLS falls from 0.349 to 0.068, and exact match falls from 0.310 to 0.060.
 \begin{tabular}{|l|l|l|c|c|c|}
 \hline
 \textbf{Domain} & \textbf{Dataset} & \textbf{Objective} & \textbf{Baseline} & \textbf{Final} & \textbf{Secondary metric} \\ \hline
-Science & ScienceQA & Explanation-aware, $\alpha=0.10$ & 0.450 & 0.775 & ROUGE-L 0.706, BLEU 0.579 \\
+Science & ScienceQA & Explanation-aware, $\alpha=0.50$ & 0.450 & 0.740 & ROUGE-L 0.653, BLEU 0.505 \\
 Commonsense & A-OKVQA & Explanation-aware, $\alpha=0.50$ & 0.490 & 0.795 & ROUGE-L 0.337, BLEU 0.087 \\
-Charts & ChartQA & Answer-only fallback & 0.335 & 0.615 & Exact match 0.275 $\rightarrow$ 0.225 \\
-Documents & DocVQA & Answer-only fallback & 0.349 & 0.068 & Exact match 0.310 $\rightarrow$ 0.060 \\
-Natural images & VQAv2 subset & Answer-only fallback & 0.350 & 0.720 & Exact match 0.350 $\rightarrow$ 0.720 \\ \hline
+Charts & ChartQA & Answer-only fallback & 0.335 & 0.660 & Exact match 0.280 $\rightarrow$ 0.415 \\
+Documents & DocVQA & Answer-only fallback & 0.349 & 0.905 & Exact match 0.310 $\rightarrow$ 0.855 \\
+Natural images & VQAv2 subset & Answer-only fallback & 0.350 & 0.730 & Exact match 0.350 $\rightarrow$ 0.730 \\ \hline
 \end{tabular}
 \end{adjustbox}
 \end{table*}
 
 \begin{figure}[!ht]
-\centerline{\includegraphics[width=0.82\linewidth]{./Figures/generated/cross_domain}}
-\caption{Cross-domain headline scores for the completed Qwen2-VL-2B runs.
-The same training framework improves several domains but fails on DocVQA, so the domain result is mixed rather than uniformly positive.}
+\centerline{\includegraphics[width=0.82\linewidth]{./Figures/generated/rq4_cross_domain}}
+\caption{In-domain adaptation results for the selected completed Qwen2-VL-2B domain runs.
+The comparison mixes rationale-supervised ScienceQA/A-OKVQA rows with answer-only fallback rows for domains without gold rationales, so it should not be read as an explanation-aware effect across all domains.}
 \label{Fig:CrossDomain}
 \end{figure}
 
 \begin{figure}[!ht]
 \centerline{\includegraphics[width=0.82\linewidth]{./Figures/generated/headline_lift}}
 \caption{Baseline-to-final headline metric changes across completed runs.
-Most runs improve over their frozen baseline, while DocVQA is the major negative case and BLIP-2 contrastive-enhanced alignment gives only a small lift.}
+Most runs improve over their frozen baseline, while BLIP-2 contrastive-enhanced alignment gives only a small lift and does not beat the BLIP-2 generative control.}
 \label{Fig:HeadlineLift}
 \end{figure}
+
+\FloatBarrier
 
 \subsection{Faithfulness and Hallucination Analysis}
 Table~\ref{tab:faithfulness} and Figure~\ref{Fig:Faithfulness} report the evidence-masking drift check.
 Each value is the mean over 30 evaluation examples.
 A larger positive value means that masking image regions hurts the gold-answer likelihood more, so the model is more sensitive to visual evidence.
-The highest drift values are in DocVQA (0.373), ChartQA (0.227), and VQAv2 (0.115).
+The highest drift values are in DocVQA (0.376), ChartQA (0.220), and VQAv2 (0.116).
 ScienceQA and A-OKVQA are much lower, mostly between 0.016 and 0.028.
 On ScienceQA, drift does not increase in a clean way with explanation supervision.
 For example, $\alpha=0.10$ gives 0.0167, $\alpha=0.50$ gives 0.0208, and answer-span-only $\alpha=1.00$ gives 0.0296 even though it does not produce a supervised rationale.
@@ -555,20 +626,32 @@ ScienceQA $\alpha=0.50$ & 0.0208 & 30 \\
 ScienceQA answer-span-only $\alpha=1.00$ & 0.0296 & 30 \\
 A-OKVQA generative & 0.0283 & 30 \\
 A-OKVQA explanation-aware & 0.0227 & 30 \\
-ChartQA answer-only fallback & 0.2271 & 30 \\
-DocVQA answer-only fallback & 0.3732 & 30 \\
-VQAv2 answer-only fallback & 0.1147 & 30 \\
+ChartQA answer-only fallback & 0.2203 & 30 \\
+DocVQA answer-only fallback & 0.3756 & 30 \\
+VQAv2 answer-only fallback & 0.1157 & 30 \\
 Qwen2-VL-7B ScienceQA $\alpha=0.50$ & 0.0141 & 30 \\ \hline
 \end{tabular}
 \end{adjustbox}
 \end{table}
 
 \begin{figure}[!ht]
-\centerline{\includegraphics[width=0.82\linewidth]{./Figures/generated/faithfulness}}
+\centerline{\includegraphics[width=0.82\linewidth]{./Figures/generated/rq5_faithfulness}}
 \caption{Mean evidence-masking drift across completed runs.
 Structured document and chart runs show much stronger visual sensitivity than the rationale-rich ScienceQA and A-OKVQA runs, but stronger drift does not automatically imply better answer accuracy.}
 \label{Fig:Faithfulness}
 \end{figure}
+
+\IfFileExists{./Figures/generated/masking_example_rq4_qwen2vl_explanation_aware_chartqa.pdf}{
+\begin{figure*}[!ht]
+\centerline{\includegraphics[width=\linewidth]{./Figures/generated/masking_example_rq4_qwen2vl_explanation_aware_chartqa}}
+\caption{Example masking diagnostic for a ChartQA answer-only fallback run.
+The refreshed pipeline saves the original image, the top-drift mask, a random-region mask, and a blank-image control, together with the full-image and masked answer scores.
+This figure is used as an evidence-sensitivity example, not as proof that a generated rationale is faithful.}
+\label{Fig:MaskingExample}
+\end{figure*}
+}{}
+
+\FloatBarrier
 
 \subsection{Efficiency and Scale Trade-offs}
 Table~\ref{tab:scale} and Figure~\ref{Fig:Scale} compare Qwen2-VL-2B and Qwen2-VL-7B using the same ScienceQA explanation-aware setting ($\alpha=0.50$).
@@ -576,7 +659,7 @@ The 7B run improves accuracy from 0.740 to 0.895.
 ROUGE-L improves from 0.653 to 0.748, and BLEU improves from 0.505 to 0.654.
 This is the largest single gain in the completed experiment set.
 Both runs completed under QLoRA.
-However, the Colab logs do not give a stable wall-clock or peak-memory benchmark, so this is reported as a model-scale result rather than a precise efficiency result.
+However, the execution logs do not give a stable wall-clock or peak-memory benchmark, so this is reported as a model-scale result rather than a precise efficiency result.
 
 \begin{table}[!ht]
 \centering
@@ -591,21 +674,24 @@ Qwen2-VL-7B & \textbf{0.895} & \textbf{0.748} & \textbf{0.654} \\ \hline
 \end{table}
 
 \begin{figure}[!ht]
-\centerline{\includegraphics[width=0.82\linewidth]{./Figures/generated/scale_comparison}}
+\centerline{\includegraphics[width=0.82\linewidth]{./Figures/generated/rq6_scale}}
 \caption{Scale comparison for the fixed ScienceQA explanation-aware setting.
 Moving from Qwen2-VL-2B to Qwen2-VL-7B improves both answer accuracy and rationale-overlap metrics.}
 \label{Fig:Scale}
 \end{figure}
 
+\FloatBarrier
+
 \subsection{Cross-Domain Transfer}
 Table~\ref{tab:transfer} and Figure~\ref{Fig:Transfer} show the train-domain versus test-domain transfer matrix.
 Each column uses the metric of the target domain, so the safest comparison is within a column.
-ScienceQA, A-OKVQA, and VQAv2 are strongest on their own domains.
-ChartQA is slightly stronger from the VQAv2-trained adapter (0.625) than from the ChartQA-trained adapter (0.615).
-The A-OKVQA-trained adapter is close behind at 0.600.
-DocVQA is also strongest under the VQAv2-trained adapter (0.360), while the DocVQA-trained adapter itself reaches only 0.068 ANLS.
-The weakest transfer directions are from document and science training to VQAv2 (0.030 and 0.080), and from ScienceQA training to DocVQA (0.150).
-Overall, transfer is target-specific, and the document-domain run is not reliable as either a source or a target under this protocol.
+The matrix reports answer-only, rationale-generative, and explanation-aware sources separately where those controls exist.
+This is important because answer-only training often transfers better than rationale-generative training.
+For example, the ScienceQA answer-only adapter reaches 0.815 on A-OKVQA, 0.650 on ChartQA, 0.704 on DocVQA, and 0.630 on VQAv2.
+The ScienceQA rationale-generative and explanation-aware adapters are stronger than random baselines but transfer less well to ChartQA, DocVQA, and VQAv2.
+For A-OKVQA sources, explanation-aware training gives the best DocVQA transfer among the A-OKVQA group (0.760), while answer-only training gives the best VQAv2 transfer (0.700).
+DocVQA is strongest in-domain (0.905), and the document-trained adapter also transfers well to ChartQA (0.690).
+Overall, transfer is target-specific and objective-specific rather than simply domain-specific.
 
 \begin{table*}[!ht]
 \centering
@@ -616,25 +702,32 @@ Overall, transfer is target-specific, and the document-domain run is not reliabl
 \begin{tabular}{|l|ccccc|}
 \hline
 \textbf{Trained on} & \textbf{ScienceQA} & \textbf{A-OKVQA} & \textbf{ChartQA} & \textbf{DocVQA} & \textbf{VQAv2} \\ \hline
-ScienceQA & 0.740 & 0.775 & 0.525 & 0.150 & 0.080 \\
-A-OKVQA & 0.675 & 0.795 & 0.600 & 0.279 & 0.150 \\
-ChartQA & 0.410 & 0.430 & 0.615 & 0.280 & 0.260 \\
-DocVQA & 0.450 & 0.440 & 0.560 & 0.068 & 0.030 \\
-VQAv2 & 0.420 & 0.555 & 0.625 & 0.360 & 0.720 \\ \hline
+ScienceQA answer-only & 0.785 & 0.815 & 0.650 & 0.704 & 0.630 \\
+ScienceQA rationale CE & 0.775 & 0.755 & 0.450 & 0.564 & 0.300 \\
+ScienceQA explanation-aware & 0.740 & 0.775 & 0.475 & 0.488 & 0.410 \\
+A-OKVQA answer-only & 0.690 & 0.820 & 0.625 & 0.681 & 0.700 \\
+A-OKVQA rationale CE & 0.665 & 0.790 & 0.630 & 0.754 & 0.580 \\
+A-OKVQA explanation-aware & 0.675 & 0.795 & 0.615 & 0.760 & 0.640 \\
+ChartQA answer-only & 0.400 & 0.420 & 0.660 & 0.836 & 0.680 \\
+DocVQA answer-only & 0.445 & 0.435 & 0.690 & 0.905 & 0.660 \\
+VQAv2 answer-only & 0.410 & 0.575 & 0.660 & 0.713 & 0.730 \\ \hline
 \end{tabular}
 \end{adjustbox}
 \end{table*}
 
 \begin{figure}[!ht]
-\centerline{\includegraphics[width=0.86\linewidth]{./Figures/generated/transfer_matrix}}
+\centerline{\includegraphics[width=0.76\linewidth]{./Figures/generated/rq7_transfer}}
 \caption{Cross-domain transfer heatmap.
-The strongest non-diagonal transfer occurs from VQAv2 to ChartQA and DocVQA, while the DocVQA-trained adapter transfers poorly and also performs poorly on its own domain.}
+The strongest non-diagonal transfer is not always from the visually closest domain; answer-only ScienceQA transfers strongly to A-OKVQA, while answer-only document and chart adapters transfer strongly to several open-ended targets.}
 \label{Fig:Transfer}
 \end{figure}
 
+\FloatBarrier
+
 \section{Discussion}
-The results support the thesis idea, but not in a simple way.
-Explanation supervision can help, but it has to be balanced carefully.
+The results support the main idea, but not in a simple way.
+Objective choice matters, but explanation supervision is not automatically better than simpler answer-only fine-tuning.
+Explanation supervision can help, but it has to be balanced carefully and compared against a true answer-only control.
 On ScienceQA, the best explanation-aware run is the low-answer-weight setting.
 The answer-span-only setting is clearly worse for both accuracy and rationale quality.
 On A-OKVQA, explanation-aware training gives a small improvement over the generative control.
@@ -647,18 +740,18 @@ The contrastive-enhanced arm was implemented so the comparison could be tested d
 In the completed ScienceQA run, it does not beat the BLIP-2 generative control.
 The retrieval diagnostic is also close to random.
 This suggests that the auxiliary image--answer InfoNCE term is not enough in this small Q-Former-side setup.
-For this thesis, the stronger supported route is generative or explanation-aware supervision, not contrastive enhancement.
+For this study, the stronger supported route is generative or explanation-aware supervision, not contrastive enhancement.
 
 The domain results show why one benchmark is not enough.
-ChartQA, VQAv2, A-OKVQA, and ScienceQA improve.
-DocVQA does not.
-The DocVQA drop is not a small issue; the trained model falls far below its own zero-shot baseline.
-This points to a mismatch between the answer-only fallback, the capped training budget, and document VQA's dependence on OCR-like text and layout.
-Before making positive claims for document understanding, the setup likely needs stronger OCR grounding, document-specific adaptation, or rationales that point to document evidence.
+ChartQA, DocVQA, VQAv2, A-OKVQA, and ScienceQA all improve in the selected domain runs.
+The interpretation is still mixed because the domains do not all test the same kind of supervision.
+ScienceQA and A-OKVQA use rationale-bearing targets, while ChartQA, DocVQA, and VQAv2 use answer-only fallback training because gold rationales are not available.
+That means the strong DocVQA result should be treated as an extractive document-answering result, not as proof that the model learned faithful document rationales.
+Before making stronger document-reasoning claims, the setup still needs document-specific rationale supervision or a more causal OCR/layout faithfulness test.
 
 The faithfulness results also give an important warning.
-High masking drift means the model is sensitive to visual changes, but it does not automatically mean the model is accurate.
-DocVQA and ChartQA have high drift because they depend strongly on local visual evidence, but DocVQA still performs poorly.
+High masking drift means the model is sensitive to visual changes, but it does not automatically mean the explanation is faithful.
+DocVQA and ChartQA have high drift because they depend strongly on local visual evidence, and in this run both also improve under answer-only fallback training.
 ScienceQA and A-OKVQA have better answer and rationale scores, but their drift values are small and do not improve consistently under explanation-aware training.
 So better rationale text is not the same thing as more faithful visual grounding.
 The masking diagnostic should be kept beside BLEU and ROUGE-L, not replaced by them.
@@ -669,10 +762,10 @@ This does not make the 2B experiments unnecessary, because the smaller model mak
 It does show that some weakness in the 2B runs is probably capacity-related.
 
 The transfer matrix is also mixed.
-Natural-image training transfers surprisingly well to ChartQA and DocVQA under the target metrics.
-The DocVQA-trained adapter performs poorly both in-domain and out-of-domain.
-ScienceQA and A-OKVQA transfer well to each other, which makes sense because both are multiple-choice reasoning tasks with natural language explanations.
-The main point is that transfer depends on the target domain and metric.
+Answer-only ScienceQA transfers strongly to A-OKVQA, while rationale-generative and explanation-aware ScienceQA transfer less well to open-ended targets.
+A-OKVQA shows a similar pattern: explanation-aware training helps some targets, but answer-only training is stronger for VQAv2.
+The answer-only ChartQA and DocVQA adapters transfer well to each other under the target metrics, which suggests that structured text-heavy images share some useful adaptation behaviour.
+The main point is that transfer depends on both the target domain and the source objective.
 
 \subsection{Limitations}
 The main limitation is compute.
@@ -685,7 +778,7 @@ BLEU and ROUGE-L can miss valid explanations that use different wording.
 The masking metric is closer to evidence use, but it depends on the masked regions and can be noisy for dense documents and charts.
 The fourth limitation is that the completed runs use capped training and evaluation subsets with one seed per full configuration.
 This keeps the study feasible and auditable, but small differences should not be treated as statistically settled.
-Finally, the Colab logs are enough to validate the experiment outputs, but not enough for precise wall-clock or peak-memory benchmarking.
+Finally, the execution logs are enough to validate the experiment outputs, but not enough for precise wall-clock or peak-memory benchmarking.
 These limitations define what the paper can and cannot claim.
 
 \subsection{Future Directions}
@@ -702,16 +795,30 @@ This paper studied how the alignment objective changes vision--language reasonin
 The experiments compared zero-shot baselines, BLIP-2 contrastive-enhanced alignment, Qwen2-VL generative alignment, and Qwen2-VL explanation-aware generative alignment across document, chart, science, commonsense, and natural-image benchmarks.
 The evaluation measured answer accuracy, rationale quality, and evidence faithfulness together.
 The strongest supported route in the completed runs is not BLIP-2 contrastive-enhanced alignment.
-It is Qwen2-VL generative or explanation-aware fine-tuning, with the rationale objective balanced carefully.
-ScienceQA, A-OKVQA, ChartQA, and VQAv2 improve under the controlled protocol, while DocVQA is a serious failure case.
+It is Qwen2-VL task adaptation, with rationale supervision used carefully where gold rationales exist and answer-only fallback used where they do not.
+ScienceQA, A-OKVQA, ChartQA, DocVQA, and VQAv2 improve under the selected completed runs.
 The faithfulness analysis shows that better explanation text and stronger visual evidence use are related but not the same.
 Explanation-aware training improves rationale text in some settings, but it does not consistently increase masking-based evidence dependence.
 The Qwen2-VL-7B run shows that scale strengthens the ScienceQA explanation-aware result, while the transfer matrix shows that alignment is target-domain dependent.
-Overall, the thesis supports a careful view of multimodal alignment: supervised rationales can help resource-constrained VLMs, but only when the objective, domain, and evidence test are evaluated together.
+Overall, the study supports a careful view of multimodal alignment: supervised rationales can help resource-constrained VLMs, but the answer-only controls, domain shift, and evidence test must be evaluated together.
 
 \section*{Declarations}
-The authors used generative AI tools for language editing and clarity checks.
-The authors reviewed and edited the manuscript and take full responsibility for the final version.
+\textbf{Author responsibility.}
+The authors wrote, reviewed, and edited the manuscript and take full responsibility for the final content, results, and claims.
+
+\textbf{Use of generative AI.}
+Generative AI tools were used only for language editing, code assistance, and consistency checks.
+All scientific decisions, experiment selection, result interpretation, and final manuscript approval remain the responsibility of the authors.
+
+\textbf{Funding.}
+No external funding was received for this study.
+
+\textbf{Conflict of interest.}
+The authors declare no conflict of interest.
+
+\textbf{Data, code, and artifacts.}
+The experiments use public datasets cited in the paper.
+The code, configuration files, generated tables, figures, execution logs, and claim-to-evidence artifacts are maintained with the project repository and can be made available with the submitted supplementary material.
 
 \bibliographystyle{elsarticle-num}
 \bibliography{Bibliography}

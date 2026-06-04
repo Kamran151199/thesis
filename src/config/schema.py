@@ -127,10 +127,12 @@ class ObjectiveConfig:
 
     - ``"generative"``        — plain next-token cross-entropy on the target.
     - ``"explanation_aware"`` — ``L = α·L_answer + (1−α)·L_explanation``.
-      ``alpha`` swept over {0.0, 0.5, 1.0} per the proposal. α=1 weights only
-      the answer span, but if the template still contains a gold rationale then
-      the answer is trained after rationale tokens. A true answer-only control
-      uses ``prompt_variant="answer_only"`` with the generative objective.
+      With ``alpha_mode="fixed"``, ``alpha`` is the answer-span weight. With
+      ``alpha_mode="length_aware"``, α is derived from the answer/explanation
+      token counts; this is the natural token-weighted rationale CE control
+      unless ``answer_weight_multiplier`` intentionally upweights the answer
+      span. A true answer-only control uses ``prompt_variant="answer_only"``
+      with the generative objective.
     - ``"contrastive"``       — generative loss + ``contrastive_weight`` × InfoNCE
       between projected image features and answer sentence embeddings (RQ2's
       contrastive-enhanced arm).
@@ -138,6 +140,8 @@ class ObjectiveConfig:
 
     name: str = "generative"  # registry key → src/objectives/
     alpha: float = 0.5  # explanation_aware: weight on the ANSWER span
+    alpha_mode: str = "fixed"  # fixed | length_aware
+    answer_weight_multiplier: float = 1.0  # length_aware span preference
     contrastive_weight: float = 0.0  # contrastive: weight on the auxiliary InfoNCE
     temperature: float = 0.07  # InfoNCE temperature (contrastive only)
 

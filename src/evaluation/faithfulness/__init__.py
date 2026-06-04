@@ -20,11 +20,13 @@ from src.evaluation.faithfulness.attention_alignment import (
 )
 from src.evaluation.faithfulness.masking_consistency import (
     MaskingResult,
+    mask_region,
     region_importance,
 )
 
 __all__ = [
     "region_importance",
+    "mask_region",
     "MaskingResult",
     "alignment_score",
     "extract_image_attention",

@@ -31,7 +31,7 @@ class LossOutput:
     """The result of one objective evaluation."""
 
     loss: torch.Tensor  #: scalar tensor with grad — call ``.backward()`` on it
-    components: dict[str, float] = field(default_factory=dict)  #: scalars for logging
+    components: dict[str, object] = field(default_factory=dict)  #: scalars/labels for logging
 
 
 class BaseObjective(ABC):

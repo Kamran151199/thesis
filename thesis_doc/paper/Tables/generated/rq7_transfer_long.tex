@@ -1,35 +1,100 @@
 \begin{table}
 \caption{RQ7 transfer results in long format.}
 \label{tab:rq7_transfer_long}
-\begin{tabular}{lrrrrrrrrrr}
+\begin{tabular}{lrrrrrrrrrrrrr}
 \toprule
-trained_on & eval_on & score & mc_accuracy & rouge_l & bleu & random_baseline & relaxed_accuracy & exact_match & anls & vqa_accuracy \\
+trained_on & source_run & source_prompt_variant & eval_on & score & mc_accuracy & random_baseline & relaxed_accuracy & exact_match & anls & vqa_accuracy & rouge_l & bleu & trained_on_label \\
 \midrule
-science & science & 0.740000 & 0.740000 & 0.653400 & 0.504600 & 0.353900 & -- & -- & -- & -- \\
-science & aokvqa & 0.775000 & 0.775000 & 0.266800 & 0.037000 & 0.250000 & -- & -- & -- & -- \\
-science & charts & 0.525000 & -- & -- & -- & -- & 0.525000 & 0.335000 & -- & -- \\
-science & documents & 0.149900 & -- & -- & -- & -- & -- & 0.130000 & 0.149900 & -- \\
-science & vqav2 & 0.080000 & -- & -- & -- & -- & -- & 0.080000 & -- & 0.080000 \\
-aokvqa & science & 0.675000 & 0.675000 & 0.312600 & 0.050400 & 0.353900 & -- & -- & -- & -- \\
-aokvqa & aokvqa & 0.795000 & 0.795000 & 0.337500 & 0.087200 & 0.250000 & -- & -- & -- & -- \\
-aokvqa & charts & 0.600000 & -- & -- & -- & -- & 0.600000 & 0.355000 & -- & -- \\
-aokvqa & documents & 0.279200 & -- & -- & -- & -- & -- & 0.270000 & 0.279200 & -- \\
-aokvqa & vqav2 & 0.150000 & -- & -- & -- & -- & -- & 0.150000 & -- & 0.150000 \\
-charts & science & 0.410000 & 0.410000 & -- & -- & 0.353900 & -- & -- & -- & -- \\
-charts & aokvqa & 0.430000 & 0.430000 & -- & -- & 0.250000 & -- & -- & -- & -- \\
-charts & charts & 0.615000 & -- & -- & -- & -- & 0.615000 & 0.225000 & -- & -- \\
-charts & documents & 0.280200 & -- & -- & -- & -- & -- & 0.235000 & 0.280200 & -- \\
-charts & vqav2 & 0.260000 & -- & -- & -- & -- & -- & 0.260000 & -- & 0.260000 \\
-documents & science & 0.450000 & 0.450000 & -- & -- & 0.353900 & -- & -- & -- & -- \\
-documents & aokvqa & 0.440000 & 0.440000 & -- & -- & 0.250000 & -- & -- & -- & -- \\
-documents & charts & 0.560000 & -- & -- & -- & -- & 0.560000 & 0.135000 & -- & -- \\
-documents & documents & 0.067800 & -- & -- & -- & -- & -- & 0.060000 & 0.067800 & -- \\
-documents & vqav2 & 0.030000 & -- & -- & -- & -- & -- & 0.030000 & -- & 0.030000 \\
-vqav2 & science & 0.420000 & 0.420000 & 0.210000 & 0.020500 & 0.353900 & -- & -- & -- & -- \\
-vqav2 & aokvqa & 0.555000 & 0.555000 & 0.047600 & 0.000000 & 0.250000 & -- & -- & -- & -- \\
-vqav2 & charts & 0.625000 & -- & -- & -- & -- & 0.625000 & 0.165000 & -- & -- \\
-vqav2 & documents & 0.359500 & -- & -- & -- & -- & -- & 0.320000 & 0.359500 & -- \\
-vqav2 & vqav2 & 0.720000 & -- & -- & -- & -- & -- & 0.720000 & -- & 0.720000 \\
+science_answer_only & rq3_qwen2vl_answer_only_scienceqa & answer_only & science & 0.785000 & 0.785000 & 0.353900 & -- & -- & -- & -- & -- & -- & ScienceQA
+answer-only \\
+science_answer_only & rq3_qwen2vl_answer_only_scienceqa & answer_only & aokvqa & 0.815000 & 0.815000 & 0.250000 & -- & -- & -- & -- & -- & -- & ScienceQA
+answer-only \\
+science_answer_only & rq3_qwen2vl_answer_only_scienceqa & answer_only & charts & 0.650000 & -- & -- & 0.650000 & 0.355000 & -- & -- & -- & -- & ScienceQA
+answer-only \\
+science_answer_only & rq3_qwen2vl_answer_only_scienceqa & answer_only & documents & 0.703700 & -- & -- & -- & 0.610000 & 0.703700 & -- & -- & -- & ScienceQA
+answer-only \\
+science_answer_only & rq3_qwen2vl_answer_only_scienceqa & answer_only & vqav2 & 0.630000 & -- & -- & -- & 0.630000 & -- & 0.630000 & -- & -- & ScienceQA
+answer-only \\
+science_rationale_ce & rq2_qwen2vl_generative_scienceqa & explanation_then_answer & science & 0.775000 & 0.775000 & 0.353900 & -- & -- & -- & -- & 0.700200 & 0.568900 & ScienceQA
+rationale CE \\
+science_rationale_ce & rq2_qwen2vl_generative_scienceqa & explanation_then_answer & aokvqa & 0.755000 & 0.755000 & 0.250000 & -- & -- & -- & -- & 0.253300 & 0.034400 & ScienceQA
+rationale CE \\
+science_rationale_ce & rq2_qwen2vl_generative_scienceqa & explanation_then_answer & charts & 0.450000 & -- & -- & 0.450000 & 0.310000 & -- & -- & -- & -- & ScienceQA
+rationale CE \\
+science_rationale_ce & rq2_qwen2vl_generative_scienceqa & explanation_then_answer & documents & 0.564300 & -- & -- & -- & 0.490000 & 0.564300 & -- & -- & -- & ScienceQA
+rationale CE \\
+science_rationale_ce & rq2_qwen2vl_generative_scienceqa & explanation_then_answer & vqav2 & 0.300000 & -- & -- & -- & 0.300000 & -- & 0.300000 & -- & -- & ScienceQA
+rationale CE \\
+science_expl_aware & rq3_alpha_050 & explanation_then_answer & science & 0.740000 & 0.740000 & 0.353900 & -- & -- & -- & -- & 0.653400 & 0.504600 & ScienceQA
+expl.-aware \\
+science_expl_aware & rq3_alpha_050 & explanation_then_answer & aokvqa & 0.775000 & 0.775000 & 0.250000 & -- & -- & -- & -- & 0.266800 & 0.037000 & ScienceQA
+expl.-aware \\
+science_expl_aware & rq3_alpha_050 & explanation_then_answer & charts & 0.475000 & -- & -- & 0.475000 & 0.355000 & -- & -- & -- & -- & ScienceQA
+expl.-aware \\
+science_expl_aware & rq3_alpha_050 & explanation_then_answer & documents & 0.487500 & -- & -- & -- & 0.435000 & 0.487500 & -- & -- & -- & ScienceQA
+expl.-aware \\
+science_expl_aware & rq3_alpha_050 & explanation_then_answer & vqav2 & 0.410000 & -- & -- & -- & 0.410000 & -- & 0.410000 & -- & -- & ScienceQA
+expl.-aware \\
+aokvqa_answer_only & rq3_qwen2vl_answer_only_aokvqa & answer_only & science & 0.690000 & 0.690000 & 0.353900 & -- & -- & -- & -- & -- & -- & A-OKVQA
+answer-only \\
+aokvqa_answer_only & rq3_qwen2vl_answer_only_aokvqa & answer_only & aokvqa & 0.820000 & 0.820000 & 0.250000 & -- & -- & -- & -- & -- & -- & A-OKVQA
+answer-only \\
+aokvqa_answer_only & rq3_qwen2vl_answer_only_aokvqa & answer_only & charts & 0.625000 & -- & -- & 0.625000 & 0.190000 & -- & -- & -- & -- & A-OKVQA
+answer-only \\
+aokvqa_answer_only & rq3_qwen2vl_answer_only_aokvqa & answer_only & documents & 0.680700 & -- & -- & -- & 0.555000 & 0.680700 & -- & -- & -- & A-OKVQA
+answer-only \\
+aokvqa_answer_only & rq3_qwen2vl_answer_only_aokvqa & answer_only & vqav2 & 0.700000 & -- & -- & -- & 0.700000 & -- & 0.700000 & -- & -- & A-OKVQA
+answer-only \\
+aokvqa_rationale_ce & rq2_qwen2vl_generative_aokvqa & explanation_then_answer & science & 0.665000 & 0.665000 & 0.353900 & -- & -- & -- & -- & 0.310000 & 0.054600 & A-OKVQA
+rationale CE \\
+aokvqa_rationale_ce & rq2_qwen2vl_generative_aokvqa & explanation_then_answer & aokvqa & 0.790000 & 0.790000 & 0.250000 & -- & -- & -- & -- & 0.330200 & 0.082800 & A-OKVQA
+rationale CE \\
+aokvqa_rationale_ce & rq2_qwen2vl_generative_aokvqa & explanation_then_answer & charts & 0.630000 & -- & -- & 0.630000 & 0.415000 & -- & -- & -- & -- & A-OKVQA
+rationale CE \\
+aokvqa_rationale_ce & rq2_qwen2vl_generative_aokvqa & explanation_then_answer & documents & 0.753800 & -- & -- & -- & 0.675000 & 0.753800 & -- & -- & -- & A-OKVQA
+rationale CE \\
+aokvqa_rationale_ce & rq2_qwen2vl_generative_aokvqa & explanation_then_answer & vqav2 & 0.580000 & -- & -- & -- & 0.580000 & -- & 0.580000 & -- & -- & A-OKVQA
+rationale CE \\
+aokvqa_expl_aware & rq3_qwen2vl_explanation_aware_aokvqa & explanation_then_answer & science & 0.675000 & 0.675000 & 0.353900 & -- & -- & -- & -- & 0.312600 & 0.050400 & A-OKVQA
+expl.-aware \\
+aokvqa_expl_aware & rq3_qwen2vl_explanation_aware_aokvqa & explanation_then_answer & aokvqa & 0.795000 & 0.795000 & 0.250000 & -- & -- & -- & -- & 0.337500 & 0.087200 & A-OKVQA
+expl.-aware \\
+aokvqa_expl_aware & rq3_qwen2vl_explanation_aware_aokvqa & explanation_then_answer & charts & 0.615000 & -- & -- & 0.615000 & 0.385000 & -- & -- & -- & -- & A-OKVQA
+expl.-aware \\
+aokvqa_expl_aware & rq3_qwen2vl_explanation_aware_aokvqa & explanation_then_answer & documents & 0.759600 & -- & -- & -- & 0.685000 & 0.759600 & -- & -- & -- & A-OKVQA
+expl.-aware \\
+aokvqa_expl_aware & rq3_qwen2vl_explanation_aware_aokvqa & explanation_then_answer & vqav2 & 0.640000 & -- & -- & -- & 0.640000 & -- & 0.640000 & -- & -- & A-OKVQA
+expl.-aware \\
+charts_answer_only & rq4_qwen2vl_explanation_aware_chartqa & answer_only & science & 0.400000 & 0.400000 & 0.353900 & -- & -- & -- & -- & -- & -- & ChartQA
+answer-only \\
+charts_answer_only & rq4_qwen2vl_explanation_aware_chartqa & answer_only & aokvqa & 0.420000 & 0.420000 & 0.250000 & -- & -- & -- & -- & -- & -- & ChartQA
+answer-only \\
+charts_answer_only & rq4_qwen2vl_explanation_aware_chartqa & answer_only & charts & 0.660000 & -- & -- & 0.660000 & 0.415000 & -- & -- & -- & -- & ChartQA
+answer-only \\
+charts_answer_only & rq4_qwen2vl_explanation_aware_chartqa & answer_only & documents & 0.835900 & -- & -- & -- & 0.750000 & 0.835900 & -- & -- & -- & ChartQA
+answer-only \\
+charts_answer_only & rq4_qwen2vl_explanation_aware_chartqa & answer_only & vqav2 & 0.680000 & -- & -- & -- & 0.680000 & -- & 0.680000 & -- & -- & ChartQA
+answer-only \\
+documents_answer_only & rq4_qwen2vl_explanation_aware_docvqa & answer_only & science & 0.445000 & 0.445000 & 0.353900 & -- & -- & -- & -- & -- & -- & DocVQA
+answer-only \\
+documents_answer_only & rq4_qwen2vl_explanation_aware_docvqa & answer_only & aokvqa & 0.435000 & 0.435000 & 0.250000 & -- & -- & -- & -- & -- & -- & DocVQA
+answer-only \\
+documents_answer_only & rq4_qwen2vl_explanation_aware_docvqa & answer_only & charts & 0.690000 & -- & -- & 0.690000 & 0.495000 & -- & -- & -- & -- & DocVQA
+answer-only \\
+documents_answer_only & rq4_qwen2vl_explanation_aware_docvqa & answer_only & documents & 0.905200 & -- & -- & -- & 0.855000 & 0.905200 & -- & -- & -- & DocVQA
+answer-only \\
+documents_answer_only & rq4_qwen2vl_explanation_aware_docvqa & answer_only & vqav2 & 0.660000 & -- & -- & -- & 0.660000 & -- & 0.660000 & -- & -- & DocVQA
+answer-only \\
+vqav2_answer_only & rq4_qwen2vl_explanation_aware_vqav2 & answer_only & science & 0.410000 & 0.410000 & 0.353900 & -- & -- & -- & -- & -- & -- & VQAv2
+answer-only \\
+vqav2_answer_only & rq4_qwen2vl_explanation_aware_vqav2 & answer_only & aokvqa & 0.575000 & 0.575000 & 0.250000 & -- & -- & -- & -- & -- & -- & VQAv2
+answer-only \\
+vqav2_answer_only & rq4_qwen2vl_explanation_aware_vqav2 & answer_only & charts & 0.660000 & -- & -- & 0.660000 & 0.205000 & -- & -- & -- & -- & VQAv2
+answer-only \\
+vqav2_answer_only & rq4_qwen2vl_explanation_aware_vqav2 & answer_only & documents & 0.712500 & -- & -- & -- & 0.575000 & 0.712500 & -- & -- & -- & VQAv2
+answer-only \\
+vqav2_answer_only & rq4_qwen2vl_explanation_aware_vqav2 & answer_only & vqav2 & 0.730000 & -- & -- & -- & 0.730000 & -- & 0.730000 & -- & -- & VQAv2
+answer-only \\
 \bottomrule
 \end{tabular}
 \end{table}

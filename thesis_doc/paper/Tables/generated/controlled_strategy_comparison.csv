@@ -1,0 +1,12 @@
+comparison_group,method,score,metric,run
+BLIP-2 / ScienceQA,Zero-shot,0.465,MC accuracy,baseline
+BLIP-2 / ScienceQA,Generative,0.495,MC accuracy,rq2_blip2_generative_scienceqa
+BLIP-2 / ScienceQA,Generative + contrastive,0.48,MC accuracy,rq2_blip2_contrastive_scienceqa
+Qwen2-VL / ScienceQA,Zero-shot,0.385,MC accuracy,baseline
+Qwen2-VL / ScienceQA,Answer-only,0.785,MC accuracy,rq3_qwen2vl_answer_only_scienceqa
+Qwen2-VL / ScienceQA,Rationale+answer CE,0.775,MC accuracy,rq2_qwen2vl_generative_scienceqa
+Qwen2-VL / ScienceQA,Expl.-aware alpha=0.50,0.74,MC accuracy,rq3_alpha_050
+Qwen2-VL / A-OKVQA,Zero-shot,0.355,MC accuracy,baseline
+Qwen2-VL / A-OKVQA,Answer-only,0.82,MC accuracy,rq3_qwen2vl_answer_only_aokvqa
+Qwen2-VL / A-OKVQA,Rationale+answer CE,0.79,MC accuracy,rq2_qwen2vl_generative_aokvqa
+Qwen2-VL / A-OKVQA,Expl.-aware alpha=0.50,0.795,MC accuracy,rq3_qwen2vl_explanation_aware_aokvqa

@@ -51,7 +51,7 @@ class MaskingResult:
     mean_drift: float  #: average reliance across regions
 
 
-def _mask_region(img: Image.Image, r: int, c: int, rows: int, cols: int) -> Image.Image:
+def mask_region(img: Image.Image, r: int, c: int, rows: int, cols: int) -> Image.Image:
     """Return a copy of ``img`` with grid cell ``(r, c)`` filled with mid-gray."""
     w, h = img.size
     x0, y0 = c * w // cols, r * h // rows
@@ -94,7 +94,7 @@ def region_importance(
     drifts: list[float] = []
     for r in range(rows):
         for c in range(cols):
-            masked = _mask_region(image, r, c, rows, cols)
+            masked = mask_region(image, r, c, rows, cols)
             masked_score = score_continuation(
                 wrapper, masked, context, ex.answer, max_length=max_length
             )

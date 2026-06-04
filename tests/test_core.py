@@ -14,12 +14,18 @@ Run::
 from __future__ import annotations
 
 import torch
+from PIL import Image
 
 from src.config import ExperimentConfig, dump_config, load_config
 from src.data.example import VLMExample
 from src.data.prompts import build_template
+from src.evaluation.faithfulness import mask_region
 from src.objectives.base import masked_token_ce
 from src.objectives.contrastive import info_nce
+from src.objectives.explanation_aware import (
+    effective_answer_alpha,
+    supervised_span_counts,
+)
 from src.evaluation.metrics.retrieval import retrieval_recall
 
 
@@ -93,6 +99,20 @@ def test_explanation_template_spans():
     ) == [("answer", " Answer: Carbon dioxide.")]
 
 
+def test_answer_only_template_excludes_rationale_text():
+    t = build_template("answer_only")
+    _, target = t(_fake_example())
+    assert "Reasoning:" not in target
+    assert "photosynthesis" not in target
+
+
+def test_rationale_template_includes_rationale_then_answer():
+    t = build_template("explanation_then_answer")
+    _, target = t(_fake_example())
+    assert target.index("Reasoning:") < target.index("Answer:")
+    assert "photosynthesis" in target
+
+
 def test_masked_token_ce_selects_subset():
     torch.manual_seed(0)
     B, T, V = 2, 5, 7
@@ -106,6 +126,101 @@ def test_masked_token_ce_selects_subset():
     # empty mask → differentiable zero, not NaN
     empty = masked_token_ce(logits, labels, mask=torch.zeros(B, T, dtype=torch.bool))
     assert empty.item() == 0.0
+
+
+def test_length_aware_alpha_matches_shifted_span_counts():
+    from src.config.schema import ObjectiveConfig
+    from src.data.constants import SPAN_ANSWER, SPAN_EXPLANATION, SPAN_IGNORE
+
+    labels = torch.tensor([[-100, 10, 11, 12, 13, 14]])
+    span_ids = torch.tensor(
+        [[SPAN_IGNORE, SPAN_EXPLANATION, SPAN_EXPLANATION, SPAN_EXPLANATION, SPAN_ANSWER, SPAN_ANSWER]]
+    )
+    cfg = ObjectiveConfig(
+        name="explanation_aware",
+        alpha_mode="length_aware",
+        answer_weight_multiplier=1.0,
+    )
+    n_expl, n_answer = supervised_span_counts(labels, span_ids)
+    assert (n_expl, n_answer) == (3, 2)
+    assert abs(effective_answer_alpha(cfg, labels, span_ids).item() - 0.4) < 1e-6
+
+
+def test_length_aware_alpha_multiplier_upweights_answer_span():
+    from src.config.schema import ObjectiveConfig
+    from src.data.constants import SPAN_ANSWER, SPAN_EXPLANATION, SPAN_IGNORE
+
+    labels = torch.tensor([[-100, 10, 11, 12, 13, 14]])
+    span_ids = torch.tensor(
+        [[SPAN_IGNORE, SPAN_EXPLANATION, SPAN_EXPLANATION, SPAN_EXPLANATION, SPAN_ANSWER, SPAN_ANSWER]]
+    )
+    cfg = ObjectiveConfig(
+        name="explanation_aware",
+        alpha_mode="length_aware",
+        answer_weight_multiplier=2.0,
+    )
+    # weighted answer = 2 * 2 tokens; explanation = 3 tokens -> 4 / 7
+    assert abs(effective_answer_alpha(cfg, labels, span_ids).item() - (4 / 7)) < 1e-6
+
+
+def test_length_aware_alpha_missing_spans_is_finite():
+    from src.config.schema import ObjectiveConfig
+    from src.data.constants import SPAN_IGNORE
+
+    cfg = ObjectiveConfig(name="explanation_aware", alpha_mode="length_aware")
+    labels = torch.full((1, 4), -100)
+    span_ids = torch.full((1, 4), SPAN_IGNORE)
+    alpha = effective_answer_alpha(cfg, labels, span_ids)
+    assert torch.isfinite(alpha)
+    assert alpha.item() == 0.5
+
+
+def test_length_aware_alpha_equals_uniform_token_ce_weighting():
+    from src.config.schema import ObjectiveConfig
+    from src.data.constants import SPAN_ANSWER, SPAN_EXPLANATION, SPAN_IGNORE
+
+    torch.manual_seed(0)
+    B, T, V = 1, 7, 11
+    logits = torch.randn(B, T, V)
+    labels = torch.randint(0, V, (B, T))
+    labels[:, 0] = -100
+    span_ids = torch.tensor(
+        [[SPAN_IGNORE, SPAN_EXPLANATION, SPAN_EXPLANATION, SPAN_EXPLANATION, SPAN_ANSWER, SPAN_ANSWER, SPAN_ANSWER]]
+    )
+    cfg = ObjectiveConfig(name="explanation_aware", alpha_mode="length_aware")
+    alpha = effective_answer_alpha(cfg, labels, span_ids)
+    l_answer = masked_token_ce(logits, labels, mask=span_ids == SPAN_ANSWER)
+    l_expl = masked_token_ce(logits, labels, mask=span_ids == SPAN_EXPLANATION)
+    natural = alpha * l_answer + (1 - alpha) * l_expl
+    full = masked_token_ce(
+        logits,
+        labels,
+        mask=(span_ids == SPAN_ANSWER) | (span_ids == SPAN_EXPLANATION),
+    )
+    assert torch.allclose(natural, full, atol=1e-6)
+
+
+def test_invalid_alpha_mode_raises():
+    from src.config.schema import ObjectiveConfig
+    from src.data.constants import SPAN_ANSWER
+
+    cfg = ObjectiveConfig(name="explanation_aware", alpha_mode="bad")
+    labels = torch.tensor([[-100, 1]])
+    span_ids = torch.tensor([[0, SPAN_ANSWER]])
+    try:
+        effective_answer_alpha(cfg, labels, span_ids)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("invalid alpha_mode should raise ValueError")
+
+
+def test_mask_region_replaces_only_requested_cell():
+    img = Image.new("RGB", (4, 4), (255, 255, 255))
+    masked = mask_region(img, 1, 0, rows=2, cols=2)
+    assert img.getpixel((0, 2)) == (255, 255, 255)
+    assert masked.getpixel((0, 2)) == (128, 128, 128)
+    assert masked.getpixel((3, 0)) == (255, 255, 255)
 
 
 def test_info_nce_perfect_alignment_is_low():
