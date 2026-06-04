@@ -385,6 +385,7 @@ The qualitative diagnostic then compares high-drift regions with the visual evid
 where $s(a \mid I)$ is the length-normalised log-likelihood of the gold answer $a$ given image $I$, and $I \setminus r$ is the same image with region $r$ occluded.
 A high positive drift means the masked region mattered for the answer.
 A near-zero drift suggests that the answer may come from language priors, shortcuts, or non-visual context.
+The absolute drift scale is not directly comparable across all datasets because answer length, prompt family, image resolution, and task format affect likelihood scores.
 This follows the distinction between a useful explanation and a faithful explanation.
 It also connects to recent hallucination and critique work, where a model may describe or rely on visual content that is not actually present~\cite{guan2024hallusionbench,jiang2024hacl,wu2025visco,zhang2025criticv}.
 For that reason, faithfulness is reported beside answer accuracy, not only as post-hoc examples.
@@ -605,6 +606,7 @@ Each value is the mean over 30 evaluation examples.
 A larger positive value means that masking image regions hurts the gold-answer likelihood more, so the model is more sensitive to visual evidence.
 The highest drift values are in DocVQA (0.376), ChartQA (0.220), and VQAv2 (0.116).
 ScienceQA and A-OKVQA are much lower, mostly between 0.016 and 0.028.
+Low drift on ScienceQA is plausible because many questions include strong language priors, explicit multiple-choice options, diffuse visual evidence, and coarse masked regions that may not remove the one cue the model uses.
 On ScienceQA, drift does not increase in a clean way with explanation supervision.
 For example, $\alpha=0.10$ gives 0.0167, $\alpha=0.50$ gives 0.0208, and answer-span-only $\alpha=1.00$ gives 0.0296 even though it does not produce a supervised rationale.
 On A-OKVQA, the explanation-aware run has lower drift than the generative control (0.0227 versus 0.0283).

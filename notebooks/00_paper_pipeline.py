@@ -170,6 +170,10 @@ def resolved_config_path(run_name: str) -> Path:
     return experiment_dir(run_name) / "config.resolved.yaml"
 
 
+def run_meta_path(run_name: str) -> Path:
+    return experiment_dir(run_name) / "paper_run_meta.json"
+
+
 def sync_eval_length(cfg) -> None:
     if cfg.eval.max_length < cfg.data.max_length:
         print(
@@ -182,6 +186,52 @@ def sync_eval_length(cfg) -> None:
 def config_digest(cfg) -> str:
     raw = json.dumps(cfg.to_dict(), sort_keys=True, default=str)
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+
+
+PIPELINE_CODE_VERSION = 2
+CODE_DIGEST_FILES = [
+    "notebooks/00_paper_pipeline.py",
+    "src/config/schema.py",
+    "src/data/prompts.py",
+    "src/data/collator.py",
+    "src/objectives/base.py",
+    "src/objectives/explanation_aware.py",
+    "src/objectives/contrastive.py",
+    "src/evaluation/evaluator.py",
+    "src/evaluation/scoring.py",
+    "src/evaluation/faithfulness/masking_consistency.py",
+    "src/models/backbones/blip2.py",
+    "src/models/backbones/qwen2_vl.py",
+    "src/training/trainer.py",
+]
+
+
+def code_digest() -> str:
+    h = hashlib.sha256(f"pipeline-code-version:{PIPELINE_CODE_VERSION}".encode("utf-8"))
+    missing: list[str] = []
+    for rel in CODE_DIGEST_FILES:
+        path = REPO_ROOT / rel
+        h.update(rel.encode("utf-8"))
+        if path.exists():
+            h.update(path.read_bytes())
+        else:
+            missing.append(rel)
+            h.update(b"<missing>")
+    if missing:
+        print("code digest warning: missing files", missing)
+    return h.hexdigest()[:16]
+
+
+PIPELINE_CODE_DIGEST = code_digest()
+save_json(
+    {
+        "pipeline_code_version": PIPELINE_CODE_VERSION,
+        "code_digest": PIPELINE_CODE_DIGEST,
+        "files": CODE_DIGEST_FILES,
+    },
+    "paper_pipeline_code_digest",
+    LOG_DIR,
+)
 
 
 def materialize_exp_config(exp: dict[str, Any]):
@@ -199,7 +249,20 @@ def config_is_current(exp: dict[str, Any]) -> bool:
         return False
     current = materialize_exp_config(exp).to_dict()
     previous = load_config(cfg_path).to_dict()
-    return current == previous
+    if current != previous:
+        return False
+    meta_path = run_meta_path(exp["name"])
+    if not meta_path.exists():
+        return False
+    try:
+        meta = json.loads(meta_path.read_text())
+    except Exception:
+        return False
+    return (
+        meta.get("config_digest") == config_digest(materialize_exp_config(exp))
+        and meta.get("code_digest") == PIPELINE_CODE_DIGEST
+        and int(meta.get("pipeline_code_version", -1)) == PIPELINE_CODE_VERSION
+    )
 
 
 def result_state(exp: dict[str, Any]) -> str:
@@ -207,7 +270,9 @@ def result_state(exp: dict[str, Any]) -> str:
         return "missing_results"
     if not resolved_config_path(exp["name"]).exists():
         return "stale_missing_resolved_config"
-    return "current" if config_is_current(exp) else "stale_config_changed"
+    if not run_meta_path(exp["name"]).exists():
+        return "stale_missing_run_meta"
+    return "current" if config_is_current(exp) else "stale_config_or_code_changed"
 
 
 def load_run(name: str):
@@ -1266,20 +1331,35 @@ def fallback_example_fingerprint(ex) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:20]
 
 
-def collect_split_keys(ds, cap: int) -> tuple[set[str], bool]:
+def collect_split_records(ds, cap: int, *, dataset: str, split: str) -> tuple[list[dict[str, Any]], set[str], bool]:
+    records: list[dict[str, Any]] = []
     keys: set[str] = set()
     has_native_id = True
     for i in range(min(cap, len(ds))):
         ex = ds[i]
-        key = stable_example_id(ex)
-        if key is None:
+        native_key = stable_example_id(ex)
+        key = native_key
+        if native_key is None:
             has_native_id = False
             key = f"fingerprint:{fallback_example_fingerprint(ex)}"
         keys.add(key)
-    return keys, has_native_id
+        records.append(
+            {
+                "dataset": dataset,
+                "split": split,
+                "selected_index": i,
+                "example_key": key,
+                "native_id_available": native_key is not None,
+                "question_hash": hashlib.sha256(str(ex.question).encode("utf-8")).hexdigest()[:16],
+                "answer_hash": hashlib.sha256(str(ex.answer).encode("utf-8")).hexdigest()[:16],
+                "image_size": getattr(ex.image, "size", None),
+            }
+        )
+    return records, keys, has_native_id
 
 
 split_audit_rows: list[dict[str, Any]] = []
+split_record_rows: list[dict[str, Any]] = []
 seen_split_sigs: set[tuple[str, str, str, int, int]] = set()
 for exp in EXPERIMENTS:
     cfg = materialize_exp_config(exp)
@@ -1296,8 +1376,20 @@ for exp in EXPERIMENTS:
     try:
         train_ds = build_dataset(cfg.data, split=cfg.data.split_train)
         eval_ds = build_dataset(cfg.data, split=cfg.data.split_eval)
-        train_keys, train_native = collect_split_keys(train_ds, cfg.data.max_train)
-        eval_keys, eval_native = collect_split_keys(eval_ds, cfg.data.max_eval)
+        train_records, train_keys, train_native = collect_split_records(
+            train_ds,
+            cfg.data.max_train,
+            dataset=cfg.data.name,
+            split=cfg.data.split_train,
+        )
+        eval_records, eval_keys, eval_native = collect_split_records(
+            eval_ds,
+            cfg.data.max_eval,
+            dataset=cfg.data.name,
+            split=cfg.data.split_eval,
+        )
+        split_record_rows.extend(train_records)
+        split_record_rows.extend(eval_records)
         overlap = sorted(train_keys & eval_keys)
         split_audit_rows.append(
             {
@@ -1327,8 +1419,11 @@ for exp in EXPERIMENTS:
         )
 
 split_audit = pd.DataFrame(split_audit_rows)
+split_records = pd.DataFrame(split_record_rows)
 save_csv(split_audit, "split_leakage_audit")
 save_json(split_audit_rows, "split_leakage_audit")
+save_csv(split_records, "selected_split_records")
+save_json(split_record_rows, "selected_split_records")
 save_table(
     split_audit.reindex(
         columns=[
@@ -1644,7 +1739,14 @@ for exp in EXPERIMENTS:
         continue
     state = result_state(exp)
     if state == "current":
-        run_status[name] = {"status": "done", "path": str(result_path(name))}
+        cfg = materialize_exp_config(exp)
+        run_status[name] = {
+            "status": "done",
+            "path": str(result_path(name)),
+            "config_digest": config_digest(cfg),
+            "code_digest": PIPELINE_CODE_DIGEST,
+            "pipeline_code_version": PIPELINE_CODE_VERSION,
+        }
         save_json(run_status, "run_status", LOG_DIR)
         print(f"skip {name} (current results.json exists)")
         continue
@@ -1655,11 +1757,22 @@ for exp in EXPERIMENTS:
         cfg = materialize_exp_config(exp)
         print(f"\n===== RUN {name} | metrics={cfg.eval.metrics} =====")
         results = ExperimentRunner(cfg).run()
+        run_meta = {
+            "run": name,
+            "path": str(result_path(name)),
+            "config_digest": config_digest(cfg),
+            "code_digest": PIPELINE_CODE_DIGEST,
+            "pipeline_code_version": PIPELINE_CODE_VERSION,
+            "code_digest_files": CODE_DIGEST_FILES,
+        }
+        atomic_write_text(run_meta_path(name), json.dumps(run_meta, indent=2, default=str))
         run_status[name] = {
             "status": "done",
             "path": str(result_path(name)),
             "headline": headline_from_metrics(results.get("final", {})),
             "config_digest": config_digest(cfg),
+            "code_digest": PIPELINE_CODE_DIGEST,
+            "pipeline_code_version": PIPELINE_CODE_VERSION,
         }
     except Exception as exc:  # noqa: BLE001
         run_status[name] = {
@@ -2977,6 +3090,55 @@ save_table(
     "tab:claim_evidence",
 )
 
+visual_qa_rows = [
+    {
+        "artifact": "controlled_strategy_comparison.pdf",
+        "check": "All bars and labels readable; answer-only, rationale-generative, explanation-aware, BLIP-2 controls visible.",
+        "status": "requires_manual_review_after_colab_run",
+    },
+    {
+        "artifact": "rq2_retrieval_comparison.pdf",
+        "check": "Frozen/generative/contrastive/random methods present; axis and legend readable.",
+        "status": "requires_manual_review_after_colab_run",
+    },
+    {
+        "artifact": "rq3_alpha_sweep.pdf",
+        "check": "Alpha axis, all metric series, legend, and random baseline are readable.",
+        "status": "requires_manual_review_after_colab_run",
+    },
+    {
+        "artifact": "rq4_cross_domain.pdf",
+        "check": "Caption and labels make clear these are in-domain adaptation/fallback rows, not transfer.",
+        "status": "requires_manual_review_after_colab_run",
+    },
+    {
+        "artifact": "rq5_faithfulness.pdf",
+        "check": "Drift values and confidence intervals are readable; figure is not used as rationale-faithfulness proof.",
+        "status": "requires_manual_review_after_colab_run",
+    },
+    {
+        "artifact": "masking_example_*.pdf",
+        "check": "Original, top-mask, random-mask, and blank-control panels are readable and not pixelated.",
+        "status": "requires_manual_review_after_colab_run",
+    },
+    {
+        "artifact": "rq7_transfer.pdf",
+        "check": "Heatmap labels fit; rows are source adapters and columns are target domains.",
+        "status": "requires_manual_review_after_colab_run",
+    },
+]
+visual_qa = pd.DataFrame(visual_qa_rows)
+save_csv(visual_qa, "visual_qa_checklist")
+save_json(visual_qa_rows, "visual_qa_checklist")
+save_markdown(
+    "# Visual QA checklist\n\n"
+    + "\n".join(
+        f"- `{row['artifact']}`: {row['check']} **Status:** {row['status']}."
+        for row in visual_qa_rows
+    ),
+    "visual_qa_checklist",
+)
+
 
 # %% [markdown]
 # ## Final manifest and strict validation
@@ -3054,7 +3216,13 @@ required_files = [
     ART_DIR / "prompt_template_preview.json",
     ART_DIR / "experiment_ledger.csv",
     ART_DIR / "split_leakage_audit.csv",
+    ART_DIR / "selected_split_records.csv",
+    ART_DIR / "selected_split_records.json",
     ART_DIR / "uncertainty_estimates.csv",
+    ART_DIR / "visual_qa_checklist.csv",
+    ART_DIR / "visual_qa_checklist.json",
+    ART_DIR / "visual_qa_checklist.md",
+    ART_DIR / "paper_pipeline_code_digest.json",
     ART_DIR / "rq2_contrastive_retrieval.json",
     ART_DIR / "rq2_retrieval_comparison.json",
     ART_DIR / "faithfulness_scores.json",
@@ -3105,6 +3273,8 @@ final_report = {
     "stale_expected_runs": stale_expected,
     "failed_runs": failed_runs,
     "missing_required_artifacts": missing_artifacts,
+    "pipeline_code_version": PIPELINE_CODE_VERSION,
+    "code_digest": PIPELINE_CODE_DIGEST,
 }
 save_json(final_report, "final_validation", LOG_DIR)
 

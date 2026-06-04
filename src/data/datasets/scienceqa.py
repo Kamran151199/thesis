@@ -51,5 +51,9 @@ class ScienceQADataset(BaseVLMDataset):
             answer_index=answer_idx,
             answer=choices[answer_idx],
             explanation=row.get("solution"),
-            metadata={"subject": row.get("subject"), "topic": row.get("topic")},
+            metadata={
+                "id": row.get("pid") or row.get("id") or row.get("question_id"),
+                "subject": row.get("subject"),
+                "topic": row.get("topic"),
+            },
         )

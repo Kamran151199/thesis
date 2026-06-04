@@ -13,6 +13,8 @@ Run::
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import torch
 from PIL import Image
 
@@ -111,6 +113,48 @@ def test_rationale_template_includes_rationale_then_answer():
     _, target = t(_fake_example())
     assert target.index("Reasoning:") < target.index("Answer:")
     assert "photosynthesis" in target
+
+
+def test_paper_pipeline_transfer_prompt_modes_are_explicit():
+    text = Path("notebooks/00_paper_pipeline.py").read_text()
+    transfer_section = text.split("TRANSFER_SOURCES = {", 1)[1].split("TRANSFER_TARGETS = {", 1)[0]
+    answer_only_sources = [
+        "science_answer_only",
+        "aokvqa_answer_only",
+        "charts_answer_only",
+        "documents_answer_only",
+        "vqav2_answer_only",
+    ]
+    rationale_sources = [
+        "science_rationale_ce",
+        "science_expl_aware",
+        "aokvqa_rationale_ce",
+        "aokvqa_expl_aware",
+    ]
+    for source in answer_only_sources:
+        block = transfer_section.split(f'"{source}"', 1)[1].split("},", 1)[0]
+        assert '"prompt_variant": "answer_only"' in block
+        assert '"cot": False' in block
+    for source in rationale_sources:
+        block = transfer_section.split(f'"{source}"', 1)[1].split("},", 1)[0]
+        assert '"prompt_variant": "explanation_then_answer"' in block
+        assert '"cot": True' in block
+
+
+def test_paper_pipeline_final_manifest_requires_audit_artifacts():
+    text = Path("notebooks/00_paper_pipeline.py").read_text()
+    for name in [
+        "experiment_ledger.csv",
+        "split_leakage_audit.csv",
+        "selected_split_records.csv",
+        "uncertainty_estimates.csv",
+        "claim_to_evidence_map.csv",
+        "visual_qa_checklist.csv",
+        "paper_pipeline_code_digest.json",
+        "masking_examples.json",
+        "rq2_retrieval_comparison.json",
+    ]:
+        assert name in text
 
 
 def test_masked_token_ce_selects_subset():

@@ -49,5 +49,9 @@ class AOKVQADataset(BaseVLMDataset):
             answer_index=answer_idx,
             answer=choices[answer_idx],
             explanation=explanation,
-            metadata={"domain": "natural_image"},
+            metadata={
+                "domain": "natural_image",
+                "id": row.get("question_id") or row.get("questionId") or row.get("id"),
+                "image_id": row.get("image_id"),
+            },
         )

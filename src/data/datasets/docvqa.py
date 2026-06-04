@@ -43,5 +43,12 @@ class DocVQADataset(BaseVLMDataset):
             image=row["image"],
             question=row["question"],
             answer=answer,
-            metadata={"domain": "document", "answers": list(answers)},
+            metadata={
+                "domain": "document",
+                "id": row.get("questionId")
+                or row.get("question_id")
+                or row.get("id")
+                or row.get("image_id"),
+                "answers": list(answers),
+            },
         )

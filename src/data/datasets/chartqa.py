@@ -46,6 +46,7 @@ class ChartQADataset(BaseVLMDataset):
             answer=answer,
             metadata={
                 "domain": "chart",
+                "id": row.get("id") or row.get("question_id") or row.get("image_id"),
                 # keep all gold variants for relaxed-accuracy scoring
                 "answers": list(label) if isinstance(label, (list, tuple)) else [answer],
             },

@@ -43,5 +43,10 @@ class VQAv2Dataset(BaseVLMDataset):
             image=row["image"],
             question=row["question"],
             answer=answer,
-            metadata={"domain": "natural_image", "answers": variants},
+            metadata={
+                "domain": "natural_image",
+                "id": row.get("question_id") or row.get("questionId") or row.get("id"),
+                "image_id": row.get("image_id"),
+                "answers": variants,
+            },
         )
