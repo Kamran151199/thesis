@@ -192,16 +192,24 @@ PIPELINE_CODE_VERSION = 2
 CODE_DIGEST_FILES = [
     "notebooks/00_paper_pipeline.py",
     "src/config/schema.py",
+    "src/data/base.py",
     "src/data/prompts.py",
     "src/data/collator.py",
+    "src/data/datasets/aokvqa.py",
+    "src/data/datasets/chartqa.py",
+    "src/data/datasets/docvqa.py",
+    "src/data/datasets/scienceqa.py",
+    "src/data/datasets/vqav2.py",
     "src/objectives/base.py",
     "src/objectives/explanation_aware.py",
     "src/objectives/contrastive.py",
+    "src/experiment/runner.py",
     "src/evaluation/evaluator.py",
     "src/evaluation/scoring.py",
     "src/evaluation/faithfulness/masking_consistency.py",
     "src/models/backbones/blip2.py",
     "src/models/backbones/qwen2_vl.py",
+    "src/training/checkpoint.py",
     "src/training/trainer.py",
 ]
 
@@ -231,6 +239,15 @@ save_json(
     },
     "paper_pipeline_code_digest",
     LOG_DIR,
+)
+save_json(
+    {
+        "pipeline_code_version": PIPELINE_CODE_VERSION,
+        "code_digest": PIPELINE_CODE_DIGEST,
+        "files": CODE_DIGEST_FILES,
+    },
+    "paper_pipeline_code_digest",
+    ART_DIR,
 )
 
 
@@ -1313,7 +1330,7 @@ explain_dataset_and_prompt(EXPLAIN_RUNS)
 
 def stable_example_id(ex) -> str | None:
     meta = getattr(ex, "metadata", None) or {}
-    for key in ("id", "question_id", "qid", "image_id", "questionId", "question_id_str"):
+    for key in ("id", "question_id", "qid", "questionId", "question_id_str"):
         value = meta.get(key)
         if value is not None:
             return f"{key}:{value}"
@@ -1325,6 +1342,7 @@ def fallback_example_fingerprint(ex) -> str:
         "question": ex.question,
         "answer": ex.answer,
         "choices": ex.choices,
+        "explanation": ex.explanation,
         "image_size": getattr(ex.image, "size", None),
     }
     raw = json.dumps(payload, sort_keys=True, default=str)
@@ -1725,6 +1743,10 @@ print("All pre-flight checks completed.")
 # If a run fails, the loop records the stack trace and keeps moving so already
 # completed outputs are not lost. The final manifest cell fails loudly if any
 # required run is still missing or failed.
+#
+# Stale completed runs default to evaluation-only refresh: the existing
+# checkpoint is loaded and metrics are recomputed without repeating training.
+# Set `PAPER_FORCE_RETRAIN_STALE=1` only when the training logic itself changed.
 
 # %% Cell 6 - run every experiment, resumably
 RUN_STATUS_PATH = LOG_DIR / "run_status.json"
@@ -1732,6 +1754,9 @@ run_status = json.loads(RUN_STATUS_PATH.read_text()) if RUN_STATUS_PATH.exists()
 
 selected = os.environ.get("PAPER_RUNS")
 selected_runs = {x.strip() for x in selected.split(",")} if selected else None
+eval_refresh_stale = os.environ.get("PAPER_EVAL_REFRESH_STALE", "1") != "0"
+force_retrain_stale = os.environ.get("PAPER_FORCE_RETRAIN_STALE", "0") == "1"
+recover_missing_from_checkpoint = os.environ.get("PAPER_RECOVER_FROM_CHECKPOINT", "0") == "1"
 
 for exp in EXPERIMENTS:
     name = exp["name"]
@@ -1755,8 +1780,26 @@ for exp in EXPERIMENTS:
 
     try:
         cfg = materialize_exp_config(exp)
-        print(f"\n===== RUN {name} | metrics={cfg.eval.metrics} =====")
-        results = ExperimentRunner(cfg).run()
+        runner = ExperimentRunner(cfg)
+        can_refresh = (
+            eval_refresh_stale
+            and not force_retrain_stale
+            and runner.has_checkpoint()
+            and (
+                state.startswith("stale")
+                or (recover_missing_from_checkpoint and state == "missing_results")
+            )
+        )
+        if can_refresh:
+            mode = "eval_refresh"
+            print(f"\n===== REFRESH EVAL {name} | state={state} | metrics={cfg.eval.metrics} =====")
+            results = runner.refresh_evaluation(reason=state)
+        else:
+            mode = "train"
+            if state.startswith("stale") and eval_refresh_stale and not force_retrain_stale:
+                print(f"checkpoint refresh unavailable for {name}; falling back to training")
+            print(f"\n===== RUN {name} | metrics={cfg.eval.metrics} =====")
+            results = runner.run()
         run_meta = {
             "run": name,
             "path": str(result_path(name)),
@@ -1764,6 +1807,7 @@ for exp in EXPERIMENTS:
             "code_digest": PIPELINE_CODE_DIGEST,
             "pipeline_code_version": PIPELINE_CODE_VERSION,
             "code_digest_files": CODE_DIGEST_FILES,
+            "mode": mode,
         }
         atomic_write_text(run_meta_path(name), json.dumps(run_meta, indent=2, default=str))
         run_status[name] = {
@@ -1773,6 +1817,7 @@ for exp in EXPERIMENTS:
             "config_digest": config_digest(cfg),
             "code_digest": PIPELINE_CODE_DIGEST,
             "pipeline_code_version": PIPELINE_CODE_VERSION,
+            "mode": mode,
         }
     except Exception as exc:  # noqa: BLE001
         run_status[name] = {
@@ -2259,7 +2304,9 @@ if len(scale) == 2:
 #
 # The answer metric tests whether contrastive-enhanced BLIP-2 answers better.
 # This stage additionally tests whether the learned image-answer representation
-# is better aligned using image-to-answer retrieval R@K/MRR.
+# is better aligned using image-to-answer retrieval R@K/MRR. Frozen and
+# generative controls use the same deterministic diagnostic text projection;
+# only the contrastive checkpoint has a projection trained by InfoNCE.
 
 # %% Cell 10 - BLIP-2 retrieval R@K/MRR with controls
 def blip_retrieval_eval(
@@ -2269,10 +2316,19 @@ def blip_retrieval_eval(
     n_eval: int = 200,
     batch_size: int = 16,
 ) -> dict[str, float]:
+    cfg = materialize_exp_config(RUN_BY_NAME[run_name])
+    cfg.model.contrastive_projection = True
+    sync_eval_length(cfg)
+    set_seed(cfg.seed)
     if checkpoint:
-        cfg, wrapper, _, eval_ds = load_run(run_name)
+        out = experiment_dir(run_name)
+        if not (out / "config.resolved.yaml").exists():
+            raise FileNotFoundError(f"missing resolved config for {run_name}: {out}")
+        wrapper = build_model(cfg.model)
+        load_checkpoint(wrapper, out)
+        eval_ds = build_dataset(cfg.data, split=cfg.data.split_eval)
+        wrapper.eval()
     else:
-        cfg = materialize_exp_config(RUN_BY_NAME[run_name])
         wrapper = build_model(cfg.model)
         eval_ds = build_dataset(cfg.data, split=cfg.data.split_eval)
         wrapper.eval()
@@ -2335,7 +2391,9 @@ for key, spec_row in retrieval_specs.items():
         save_json(retrieval_scores, "rq2_retrieval_comparison")
         continue
     digest_payload = {
+        "diagnostic_version": 2,
         "run_digest": config_digest(materialize_exp_config(RUN_BY_NAME[run_name])),
+        "contrastive_projection_for_eval": True,
         "checkpoint": spec_row["checkpoint"],
         "n_eval": retrieval_n,
     }
@@ -2398,14 +2456,14 @@ if ret_rows:
     save_table(
         ret.pivot(index="method", columns="metric", values="score").reset_index().round(4),
         "rq2_retrieval_comparison",
-        "BLIP-2 image-to-answer retrieval diagnostic with frozen, generative, contrastive, and random controls.",
+        "BLIP-2 image-to-answer retrieval diagnostic. Frozen/generative controls use a deterministic diagnostic projection; the contrastive row uses the trained projection.",
         "tab:rq2_retrieval",
     )
     # Backward-compatible artifact names used by earlier paper drafts.
     save_table(
         ret.pivot(index="method", columns="metric", values="score").reset_index().round(4),
         "rq2_contrastive_retrieval",
-        "BLIP-2 image-to-answer retrieval diagnostic with frozen, generative, contrastive, and random controls.",
+        "BLIP-2 image-to-answer retrieval diagnostic. Frozen/generative controls use a deterministic diagnostic projection; the contrastive row uses the trained projection.",
         "tab:rq2_retrieval_old",
     )
     metrics = ["R@1", "R@5", "R@10", "MRR"]
@@ -3249,6 +3307,41 @@ if os.environ.get("PAPER_SKIP_MODEL_TRACE", "0") != "1":
     )
 
 missing_artifacts = [str(p) for p in required_files if not p.exists()]
+required_retrieval_methods = {
+    "Frozen BLIP-2",
+    "BLIP-2 generative",
+    "BLIP-2 contrastive-enhanced",
+    "Random rank",
+}
+missing_retrieval_methods: list[str] = []
+retrieval_path = ART_DIR / "rq2_retrieval_comparison.json"
+if retrieval_path.exists():
+    try:
+        retrieval_payload = json.loads(retrieval_path.read_text())
+        seen_retrieval_methods = {
+            value.get("display", key)
+            for key, value in retrieval_payload.items()
+            if isinstance(value, dict) and "n_eval" in value
+        }
+        missing_retrieval_methods = sorted(required_retrieval_methods - seen_retrieval_methods)
+    except Exception as exc:  # noqa: BLE001
+        missing_retrieval_methods = [f"could not read retrieval diagnostic: {type(exc).__name__}: {exc}"]
+else:
+    missing_retrieval_methods = sorted(required_retrieval_methods)
+
+split_overlap_issues: list[dict[str, Any]] = []
+split_audit_path = ART_DIR / "split_leakage_audit.csv"
+if split_audit_path.exists():
+    try:
+        split_audit_check = pd.read_csv(split_audit_path)
+        if "overlap_count" in split_audit_check:
+            bad = split_audit_check[split_audit_check["overlap_count"].fillna(0).astype(int) > 0]
+            split_overlap_issues = bad.to_dict(orient="records")
+    except Exception as exc:  # noqa: BLE001
+        split_overlap_issues = [{"error": f"{type(exc).__name__}: {exc}"}]
+else:
+    split_overlap_issues = [{"error": f"missing {split_audit_path}"}]
+
 if "run_status" not in globals():
     RUN_STATUS_PATH = LOG_DIR / "run_status.json"
     run_status = json.loads(RUN_STATUS_PATH.read_text()) if RUN_STATUS_PATH.exists() else {}
@@ -3273,6 +3366,8 @@ final_report = {
     "stale_expected_runs": stale_expected,
     "failed_runs": failed_runs,
     "missing_required_artifacts": missing_artifacts,
+    "missing_retrieval_methods": missing_retrieval_methods,
+    "split_overlap_issues": split_overlap_issues,
     "pipeline_code_version": PIPELINE_CODE_VERSION,
     "code_digest": PIPELINE_CODE_DIGEST,
 }
@@ -3285,12 +3380,21 @@ print("Repo figure mirror:", REPO_FIG_DIR)
 print("Repo table mirror:", REPO_TAB_DIR)
 
 strict_final = os.environ.get("PAPER_STRICT_FINAL", "1") != "0"
-if strict_final and (missing_expected or stale_expected or failed_runs or missing_artifacts):
+if strict_final and (
+    missing_expected
+    or stale_expected
+    or failed_runs
+    or missing_artifacts
+    or missing_retrieval_methods
+    or split_overlap_issues
+):
     raise RuntimeError(
         "Paper pipeline incomplete. See logs/final_validation.json. "
         f"missing_runs={missing_expected}, stale_runs={list(stale_expected)}, "
         f"failed_runs={list(failed_runs)}, "
-        f"missing_artifacts={missing_artifacts}"
+        f"missing_artifacts={missing_artifacts}, "
+        f"missing_retrieval_methods={missing_retrieval_methods}, "
+        f"split_overlap_issues={split_overlap_issues}"
     )
 
 print("Paper pipeline complete.")

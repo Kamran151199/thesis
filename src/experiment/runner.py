@@ -39,6 +39,7 @@ from src.evaluation import Evaluator, build_metrics
 from src.models import build_model
 from src.objectives import build_objective
 from src.training import CheckpointCallback, ConsoleCallback, Trainer, WandbCallback
+from src.training.checkpoint import checkpoint_exists, load_checkpoint
 from src.utils import describe_device, experiment_dir, get_logger, set_seed
 
 log = get_logger(__name__)
@@ -103,6 +104,83 @@ class ExperimentRunner:
         log.info("artifacts → %s", self.out_dir)
         return results
 
+    def has_checkpoint(self) -> bool:
+        """Whether this run folder contains a trained delta that can be loaded."""
+        return checkpoint_exists(self.out_dir)
+
+    def refresh_evaluation(self, reason: str = "eval_refresh") -> dict[str, Any]:
+        """Recompute baseline/final metrics from an existing checkpoint.
+
+        Use this when the evaluation protocol or artifact pipeline changed but
+        the training run itself should not be repeated. The checkpoint weights
+        are left untouched; only config/results sidecars are refreshed.
+        """
+        if not self.has_checkpoint():
+            raise FileNotFoundError(f"missing checkpoint for {self.cfg.name}: {self.out_dir}")
+
+        cfg = self.cfg
+        set_seed(cfg.seed)
+        log.info(
+            "=== %s (%s) refresh evaluation on %s ===",
+            cfg.name,
+            cfg.rq,
+            describe_device(),
+        )
+
+        template = build_template(cfg.data.prompt_variant)
+        eval_ds = build_dataset(cfg.data, split=cfg.data.split_eval)
+        self._sync_eval_length()
+        wrapper = build_model(cfg.model)
+        metrics = build_metrics(cfg.eval.metrics)
+        evaluator = Evaluator(wrapper, eval_ds, template, cfg.eval, metrics)
+
+        baseline = self._load_or_measure_baseline(evaluator)
+        log.info("refreshed baseline: %s", baseline)
+
+        load_checkpoint(wrapper, self.out_dir)
+        final = evaluator.evaluate()
+        log.info("refreshed final: %s", final)
+
+        previous: dict[str, Any] = {}
+        results_path = self.out_dir / "results.json"
+        if results_path.exists():
+            try:
+                previous = json.loads(results_path.read_text())
+            except Exception as exc:  # noqa: BLE001
+                log.warning("could not read previous results %s: %s", results_path, exc)
+
+        summary = dict(previous.get("summary") or {})
+        summary["final_metrics"] = final
+        summary["evaluation_refreshed"] = True
+        summary["evaluation_refresh_reason"] = reason
+        results = {"baseline": baseline, "final": final, "summary": summary}
+
+        dump_config(cfg, self.out_dir / "config.resolved.yaml")
+        results_path.write_text(json.dumps(results, indent=2, default=str))
+        self._refresh_checkpoint_meta(baseline, final, reason)
+        self._log_lift(baseline, final)
+        log.info("refreshed evaluation artifacts → %s", self.out_dir)
+        return results
+
+    def _refresh_checkpoint_meta(
+        self,
+        baseline: dict[str, float],
+        final: dict[str, float],
+        reason: str,
+    ) -> None:
+        meta_path = self.out_dir / "meta.json"
+        meta: dict[str, Any] = {}
+        if meta_path.exists():
+            try:
+                meta = json.loads(meta_path.read_text())
+            except Exception as exc:  # noqa: BLE001
+                log.warning("could not read checkpoint meta %s: %s", meta_path, exc)
+        meta["final_metrics"] = final
+        meta["evaluation_refreshed"] = True
+        meta["evaluation_refresh_reason"] = reason
+        meta["refreshed_baseline"] = baseline
+        meta_path.write_text(json.dumps(meta, indent=2, default=str))
+
     @staticmethod
     def _log_lift(baseline: dict, final: dict) -> None:
         for k in sorted(set(baseline) & set(final)):
@@ -164,7 +242,8 @@ class ExperimentRunner:
         # cache between generative and contrastive RQ2 runs.
         model["contrastive_projection"] = False
         payload = {
-            "version": 1,
+            "version": 2,
+            "dataset_selection_version": 2,
             "seed": cfg["seed"],
             "model": model,
             "data": cfg["data"],

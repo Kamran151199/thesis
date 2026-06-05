@@ -29,6 +29,8 @@ VISUAL
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+import hashlib
+import json
 from typing import Any
 
 from src.config.schema import DataConfig
@@ -66,10 +68,17 @@ class BaseVLMDataset(ABC):
 
         max_n = cfg.max_train if split == cfg.split_train else cfg.max_eval
         if max_n is not None and max_n < len(raw):
-            # Seed offset by split keeps train/eval subsets disjoint-ish and
-            # reproducible (the proven prototype used seed and seed+1).
+            # Seed offset by split keeps train/eval subset choice reproducible.
             offset = 0 if split == cfg.split_train else 1
-            raw = raw.shuffle(seed=42 + offset).select(range(max_n))
+            raw = raw.shuffle(seed=42 + offset)
+            if (
+                split != cfg.split_train
+                and cfg.avoid_train_eval_overlap
+                and cfg.split_train
+            ):
+                raw = self._select_eval_without_train_overlap(raw, max_n)
+            else:
+                raw = raw.select(range(max_n))
 
         self._rows = raw
         log.info(
@@ -90,6 +99,65 @@ class BaseVLMDataset(ABC):
         """Filter predicate. Default: must have a non-null image. Override to
         also require a rationale (ScienceQA does)."""
         return row.get(self.cfg.image_field) is not None
+
+    def _select_eval_without_train_overlap(self, eval_raw, max_n: int):
+        """Select eval rows while skipping examples duplicated in capped train.
+
+        Some public mirrors contain duplicate-looking VQA rows across official
+        splits. With small capped subsets, even a few duplicated questions can
+        noticeably bias a 200-example evaluation. We therefore compare the eval
+        candidates against the exact shuffled/capped train subset used by the
+        run and skip matching rows before taking ``max_eval`` examples.
+        """
+        train_raw = self._load_raw(self.cfg.split_train)
+        train_raw = train_raw.filter(self._keep, num_proc=self.cfg.num_proc)
+        if self.cfg.max_train is not None and self.cfg.max_train < len(train_raw):
+            train_raw = train_raw.shuffle(seed=42).select(range(self.cfg.max_train))
+
+        train_keys = {self._example_key(self.to_example(row)) for row in train_raw}
+        selected: list[int] = []
+        skipped = 0
+        for idx, row in enumerate(eval_raw):
+            if self._example_key(self.to_example(row)) in train_keys:
+                skipped += 1
+                continue
+            selected.append(idx)
+            if len(selected) >= max_n:
+                break
+
+        if len(selected) < max_n:
+            log.warning(
+                "%s[%s]: only %d non-overlapping eval rows available for cap %d",
+                type(self).__name__,
+                self.split,
+                len(selected),
+                max_n,
+            )
+        if skipped:
+            log.info(
+                "%s[%s]: skipped %d eval rows duplicated in capped train subset",
+                type(self).__name__,
+                self.split,
+                skipped,
+            )
+        return eval_raw.select(selected)
+
+    @staticmethod
+    def _example_key(ex: VLMExample) -> str:
+        meta = getattr(ex, "metadata", None) or {}
+        for field in ("id", "question_id", "qid", "questionId", "question_id_str"):
+            value = meta.get(field)
+            if value is not None:
+                return f"{field}:{value}"
+        payload = {
+            "question": ex.question,
+            "answer": ex.answer,
+            "choices": ex.choices,
+            "explanation": ex.explanation,
+            "image_size": getattr(ex.image, "size", None),
+        }
+        raw = json.dumps(payload, sort_keys=True, default=str)
+        return "fingerprint:" + hashlib.sha256(raw.encode("utf-8")).hexdigest()[:20]
 
     # ── sequence protocol → list[VLMExample] ───────────────────────────────────
     def __len__(self) -> int:

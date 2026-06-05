@@ -42,6 +42,91 @@ def _fake_example(with_expl: bool = True) -> VLMExample:
     )
 
 
+class _FakeRaw:
+    def __init__(self, rows):
+        self.rows = list(rows)
+
+    def __len__(self):
+        return len(self.rows)
+
+    def __iter__(self):
+        return iter(self.rows)
+
+    def __getitem__(self, idx):
+        return self.rows[idx]
+
+    def filter(self, predicate, num_proc=None):
+        return _FakeRaw([row for row in self.rows if predicate(row)])
+
+    def shuffle(self, seed):
+        return _FakeRaw(self.rows)
+
+    def select(self, indices):
+        return _FakeRaw([self.rows[i] for i in indices])
+
+
+def test_eval_subset_skips_capped_train_duplicates():
+    from src.config.schema import DataConfig
+    from src.data.base import BaseVLMDataset
+
+    img = Image.new("RGB", (4, 4), (255, 255, 255))
+    rows = {
+        "train": [
+            {"image": img, "question": "duplicate?", "answer": "yes"},
+        ],
+        "validation": [
+            {"image": img, "question": "duplicate?", "answer": "yes"},
+            {"image": img, "question": "fresh one?", "answer": "one"},
+            {"image": img, "question": "fresh two?", "answer": "two"},
+        ],
+    }
+
+    class FakeDataset(BaseVLMDataset):
+        def _load_raw(self, split: str):
+            return _FakeRaw(rows[split])
+
+        def to_example(self, row):
+            return VLMExample(
+                image=row["image"],
+                question=row["question"],
+                answer=row["answer"],
+            )
+
+    cfg = DataConfig(
+        name="fake",
+        max_train=None,
+        max_eval=2,
+        num_proc=1,
+        avoid_train_eval_overlap=True,
+    )
+    ds = FakeDataset(cfg, split="validation")
+    assert len(ds) == 2
+    assert [ds[i].question for i in range(len(ds))] == ["fresh one?", "fresh two?"]
+
+
+def test_checkpoint_exists_detects_peft_and_trainable_state(tmp_path="/tmp"):
+    from pathlib import Path
+
+    from src.training.checkpoint import checkpoint_exists
+
+    root = Path(tmp_path) / "_checkpoint_exists_test"
+    if root.exists():
+        for p in sorted(root.glob("*"), reverse=True):
+            p.unlink()
+    root.mkdir(parents=True, exist_ok=True)
+    assert not checkpoint_exists(root)
+
+    (root / "adapter_config.json").write_text("{}")
+    assert not checkpoint_exists(root)
+    (root / "adapter_model.safetensors").write_bytes(b"stub")
+    assert checkpoint_exists(root)
+
+    for p in root.glob("*"):
+        p.unlink()
+    (root / "trainable_state.pt").write_bytes(b"stub")
+    assert checkpoint_exists(root)
+
+
 def test_registry_uniqueness():
     from src.registry import Registry
 
@@ -155,6 +240,19 @@ def test_paper_pipeline_final_manifest_requires_audit_artifacts():
         "rq2_retrieval_comparison.json",
     ]:
         assert name in text
+    assert "split_overlap_issues" in text
+
+
+def test_blip_retrieval_diagnostic_forces_projection_controls():
+    text = Path("notebooks/00_paper_pipeline.py").read_text()
+    retrieval_section = text.split("def blip_retrieval_eval(", 1)[1].split("def random_retrieval_reference", 1)[0]
+    assert "cfg.model.contrastive_projection = True" in retrieval_section
+    assert "load_checkpoint(wrapper, out)" in retrieval_section
+    assert '"diagnostic_version": 2' in text
+    assert "deterministic diagnostic projection" in text
+    assert "missing_retrieval_methods" in text
+    assert "Frozen BLIP-2" in text
+    assert "BLIP-2 generative" in text
 
 
 def test_masked_token_ce_selects_subset():

@@ -59,6 +59,17 @@ def save_checkpoint(
     return out_dir
 
 
+def checkpoint_exists(ckpt_dir: str | Path) -> bool:
+    """Return whether ``ckpt_dir`` contains a loadable trained delta."""
+    ckpt_dir = Path(ckpt_dir)
+    has_peft = (ckpt_dir / "adapter_config.json").exists() and (
+        (ckpt_dir / "adapter_model.safetensors").exists()
+        or (ckpt_dir / "adapter_model.bin").exists()
+    )
+    has_trainable_state = (ckpt_dir / "trainable_state.pt").exists()
+    return has_peft or has_trainable_state
+
+
 def load_checkpoint(wrapper, ckpt_dir: str | Path) -> None:
     """Load a saved delta back into an already-built ``wrapper`` (in place).
 
@@ -66,6 +77,8 @@ def load_checkpoint(wrapper, ckpt_dir: str | Path) -> None:
     restores the trained part on top.
     """
     ckpt_dir = Path(ckpt_dir)
+    if not checkpoint_exists(ckpt_dir):
+        raise FileNotFoundError(f"no loadable checkpoint delta found in {ckpt_dir}")
     if isinstance(wrapper.model, PeftModel):
         # The wrapper is already constructed with a freshly initialized PEFT
         # adapter named "default". Loading the trained adapter with the same

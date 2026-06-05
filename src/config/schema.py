@@ -116,6 +116,7 @@ class DataConfig:
     max_length: int = 512  # truncate (image tokens + text) to this many tokens
     image_field: str = "image"
     num_proc: int = 4  # parallelism for the datasets .filter/.map
+    avoid_train_eval_overlap: bool = True  # skip eval rows that duplicate capped train rows
 
 
 # ════════════════════════════════════════════════════════════════════════════

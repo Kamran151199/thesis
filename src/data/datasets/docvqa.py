@@ -47,8 +47,8 @@ class DocVQADataset(BaseVLMDataset):
                 "domain": "document",
                 "id": row.get("questionId")
                 or row.get("question_id")
-                or row.get("id")
-                or row.get("image_id"),
+                or row.get("id"),
+                "image_id": row.get("image_id"),
                 "answers": list(answers),
             },
         )
