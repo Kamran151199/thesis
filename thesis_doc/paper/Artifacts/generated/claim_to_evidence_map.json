@@ -1,0 +1,50 @@
+[
+  {
+    "paper_location": "Abstract / Highlights",
+    "claim": "The study compares BLIP-2 generative and BLIP-2 contrastive-enhanced alignment under the same ScienceQA setting.",
+    "evidence": "tab:rq2_blip2; tab:rq2_retrieval; Figures/generated/rq2_blip2_objective.pdf; Figures/generated/rq2_retrieval_comparison.pdf",
+    "claim_strength": "direct controlled comparison"
+  },
+  {
+    "paper_location": "Abstract / Results",
+    "claim": "Qwen2-VL answer-only, rationale-generative, and explanation-aware controls are separated on ScienceQA and A-OKVQA.",
+    "evidence": "tab:controlled_strategy; tab:rq3_objective; Figures/generated/controlled_strategy_comparison.pdf",
+    "claim_strength": "direct controlled comparison when all expected runs are current"
+  },
+  {
+    "paper_location": "Methodology",
+    "claim": "Answer-only adapters do not receive gold rationale targets, while rationale adapters train on reasoning plus answer.",
+    "evidence": "data/prompt_template_preview.csv; data/sample_trace_walkthrough.md; tab:experiment_ledger",
+    "claim_strength": "pipeline audit artifact"
+  },
+  {
+    "paper_location": "Methodology / Results",
+    "claim": "Length-aware alpha is audited as token-weighted rationale CE, while the fixed-alpha sweep remains an ablation.",
+    "evidence": "data/experiment_ledger.csv; data/all_results.csv; tab:rq3_alpha; tab:controlled_strategy",
+    "claim_strength": "implementation and result artifact"
+  },
+  {
+    "paper_location": "Results",
+    "claim": "ChartQA, DocVQA, and VQAv2 rows are answer-only fallback/domain rows, not rationale-supervised explanation-aware rows.",
+    "evidence": "tab:experiment_ledger; tab:comparison_design; tab:rq4_domain",
+    "claim_strength": "scope boundary"
+  },
+  {
+    "paper_location": "Results / Discussion",
+    "claim": "Masking drift measures evidence sensitivity and should not be described as proof that rationales are faithful.",
+    "evidence": "tab:rq5_faithfulness; tab:masking_examples; data/masking_examples.json; Figures/generated/masking_example_*.pdf",
+    "claim_strength": "diagnostic, not causal proof of rationale text"
+  },
+  {
+    "paper_location": "Results",
+    "claim": "The scale comparison is Qwen2-VL-2B vs Qwen2-VL-7B under the selected explanation-aware QLoRA setup.",
+    "evidence": "tab:rq6_scale; Figures/generated/rq6_scale.pdf",
+    "claim_strength": "narrow scale comparison"
+  },
+  {
+    "paper_location": "Results",
+    "claim": "Transfer is evaluated by applying each source-domain adapter to target domains while preserving the adapter prompt family.",
+    "evidence": "tab:rq7_transfer; tab:rq7_transfer_long; data/transfer_matrix.json",
+    "claim_strength": "cross-domain transfer artifact"
+  }
+]

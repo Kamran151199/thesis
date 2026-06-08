@@ -1,0 +1,375 @@
+[
+  {
+    "run": "rq3_qwen2vl_answer_only_scienceqa",
+    "stage": "collator_cpu",
+    "tensor": "input_ids",
+    "shape": [
+      1,
+      348
+    ],
+    "dtype": "torch.int64",
+    "device": "cpu",
+    "min": 8,
+    "max": 151655
+  },
+  {
+    "run": "rq3_qwen2vl_answer_only_scienceqa",
+    "stage": "collator_cpu",
+    "tensor": "attention_mask",
+    "shape": [
+      1,
+      348
+    ],
+    "dtype": "torch.int64",
+    "device": "cpu",
+    "min": 1,
+    "max": 1
+  },
+  {
+    "run": "rq3_qwen2vl_answer_only_scienceqa",
+    "stage": "collator_cpu",
+    "tensor": "mm_token_type_ids",
+    "shape": [
+      1,
+      348
+    ],
+    "dtype": "torch.int64",
+    "device": "cpu",
+    "min": 0,
+    "max": 1
+  },
+  {
+    "run": "rq3_qwen2vl_answer_only_scienceqa",
+    "stage": "collator_cpu",
+    "tensor": "pixel_values",
+    "shape": [
+      1064,
+      1176
+    ],
+    "dtype": "torch.float32",
+    "device": "cpu",
+    "min": -1.3835066556930542,
+    "max": 2.145897150039673
+  },
+  {
+    "run": "rq3_qwen2vl_answer_only_scienceqa",
+    "stage": "collator_cpu",
+    "tensor": "image_grid_thw",
+    "shape": [
+      1,
+      3
+    ],
+    "dtype": "torch.int64",
+    "device": "cpu",
+    "min": 1,
+    "max": 38
+  },
+  {
+    "run": "rq3_qwen2vl_answer_only_scienceqa",
+    "stage": "collator_cpu",
+    "tensor": "labels",
+    "shape": [
+      1,
+      348
+    ],
+    "dtype": "torch.int64",
+    "device": "cpu",
+    "min": -100,
+    "max": 59950
+  },
+  {
+    "run": "rq3_qwen2vl_answer_only_scienceqa",
+    "stage": "model_forward",
+    "tensor": "logits",
+    "shape": [
+      1,
+      348,
+      151936
+    ],
+    "dtype": "torch.float32",
+    "device": "cuda:0"
+  },
+  {
+    "run": "rq2_qwen2vl_generative_scienceqa",
+    "stage": "collator_cpu",
+    "tensor": "input_ids",
+    "shape": [
+      1,
+      533
+    ],
+    "dtype": "torch.int64",
+    "device": "cpu",
+    "min": 1,
+    "max": 151655
+  },
+  {
+    "run": "rq2_qwen2vl_generative_scienceqa",
+    "stage": "collator_cpu",
+    "tensor": "attention_mask",
+    "shape": [
+      1,
+      533
+    ],
+    "dtype": "torch.int64",
+    "device": "cpu",
+    "min": 1,
+    "max": 1
+  },
+  {
+    "run": "rq2_qwen2vl_generative_scienceqa",
+    "stage": "collator_cpu",
+    "tensor": "mm_token_type_ids",
+    "shape": [
+      1,
+      533
+    ],
+    "dtype": "torch.int64",
+    "device": "cpu",
+    "min": 0,
+    "max": 1
+  },
+  {
+    "run": "rq2_qwen2vl_generative_scienceqa",
+    "stage": "collator_cpu",
+    "tensor": "pixel_values",
+    "shape": [
+      1064,
+      1176
+    ],
+    "dtype": "torch.float32",
+    "device": "cpu",
+    "min": -1.3835066556930542,
+    "max": 2.145897150039673
+  },
+  {
+    "run": "rq2_qwen2vl_generative_scienceqa",
+    "stage": "collator_cpu",
+    "tensor": "image_grid_thw",
+    "shape": [
+      1,
+      3
+    ],
+    "dtype": "torch.int64",
+    "device": "cpu",
+    "min": 1,
+    "max": 38
+  },
+  {
+    "run": "rq2_qwen2vl_generative_scienceqa",
+    "stage": "collator_cpu",
+    "tensor": "labels",
+    "shape": [
+      1,
+      533
+    ],
+    "dtype": "torch.int64",
+    "device": "cpu",
+    "min": -100,
+    "max": 68833
+  },
+  {
+    "run": "rq2_qwen2vl_generative_scienceqa",
+    "stage": "model_forward",
+    "tensor": "logits",
+    "shape": [
+      1,
+      533,
+      151936
+    ],
+    "dtype": "torch.float32",
+    "device": "cuda:0"
+  },
+  {
+    "run": "rq3_alpha_050",
+    "stage": "collator_cpu",
+    "tensor": "input_ids",
+    "shape": [
+      1,
+      533
+    ],
+    "dtype": "torch.int64",
+    "device": "cpu",
+    "min": 1,
+    "max": 151655
+  },
+  {
+    "run": "rq3_alpha_050",
+    "stage": "collator_cpu",
+    "tensor": "attention_mask",
+    "shape": [
+      1,
+      533
+    ],
+    "dtype": "torch.int64",
+    "device": "cpu",
+    "min": 1,
+    "max": 1
+  },
+  {
+    "run": "rq3_alpha_050",
+    "stage": "collator_cpu",
+    "tensor": "mm_token_type_ids",
+    "shape": [
+      1,
+      533
+    ],
+    "dtype": "torch.int64",
+    "device": "cpu",
+    "min": 0,
+    "max": 1
+  },
+  {
+    "run": "rq3_alpha_050",
+    "stage": "collator_cpu",
+    "tensor": "pixel_values",
+    "shape": [
+      1064,
+      1176
+    ],
+    "dtype": "torch.float32",
+    "device": "cpu",
+    "min": -1.3835066556930542,
+    "max": 2.145897150039673
+  },
+  {
+    "run": "rq3_alpha_050",
+    "stage": "collator_cpu",
+    "tensor": "image_grid_thw",
+    "shape": [
+      1,
+      3
+    ],
+    "dtype": "torch.int64",
+    "device": "cpu",
+    "min": 1,
+    "max": 38
+  },
+  {
+    "run": "rq3_alpha_050",
+    "stage": "collator_cpu",
+    "tensor": "labels",
+    "shape": [
+      1,
+      533
+    ],
+    "dtype": "torch.int64",
+    "device": "cpu",
+    "min": -100,
+    "max": 68833
+  },
+  {
+    "run": "rq3_alpha_050",
+    "stage": "collator_cpu",
+    "tensor": "span_ids",
+    "shape": [
+      1,
+      533
+    ],
+    "dtype": "torch.int64",
+    "device": "cpu",
+    "min": 0,
+    "max": 2
+  },
+  {
+    "run": "rq3_alpha_050",
+    "stage": "model_forward",
+    "tensor": "logits",
+    "shape": [
+      1,
+      533,
+      151936
+    ],
+    "dtype": "torch.float32",
+    "device": "cuda:0"
+  },
+  {
+    "run": "rq4_qwen2vl_explanation_aware_chartqa",
+    "stage": "collator_cpu",
+    "tensor": "input_ids",
+    "shape": [
+      1,
+      602
+    ],
+    "dtype": "torch.int64",
+    "device": "cpu",
+    "min": 13,
+    "max": 151655
+  },
+  {
+    "run": "rq4_qwen2vl_explanation_aware_chartqa",
+    "stage": "collator_cpu",
+    "tensor": "attention_mask",
+    "shape": [
+      1,
+      602
+    ],
+    "dtype": "torch.int64",
+    "device": "cpu",
+    "min": 1,
+    "max": 1
+  },
+  {
+    "run": "rq4_qwen2vl_explanation_aware_chartqa",
+    "stage": "collator_cpu",
+    "tensor": "mm_token_type_ids",
+    "shape": [
+      1,
+      602
+    ],
+    "dtype": "torch.int64",
+    "device": "cpu",
+    "min": 0,
+    "max": 1
+  },
+  {
+    "run": "rq4_qwen2vl_explanation_aware_chartqa",
+    "stage": "collator_cpu",
+    "tensor": "pixel_values",
+    "shape": [
+      2320,
+      1176
+    ],
+    "dtype": "torch.float32",
+    "device": "cpu",
+    "min": -1.7922625541687012,
+    "max": 2.145897150039673
+  },
+  {
+    "run": "rq4_qwen2vl_explanation_aware_chartqa",
+    "stage": "collator_cpu",
+    "tensor": "image_grid_thw",
+    "shape": [
+      1,
+      3
+    ],
+    "dtype": "torch.int64",
+    "device": "cpu",
+    "min": 1,
+    "max": 58
+  },
+  {
+    "run": "rq4_qwen2vl_explanation_aware_chartqa",
+    "stage": "collator_cpu",
+    "tensor": "labels",
+    "shape": [
+      1,
+      602
+    ],
+    "dtype": "torch.int64",
+    "device": "cpu",
+    "min": -100,
+    "max": 21806
+  },
+  {
+    "run": "rq4_qwen2vl_explanation_aware_chartqa",
+    "stage": "model_forward",
+    "tensor": "logits",
+    "shape": [
+      1,
+      602,
+      151936
+    ],
+    "dtype": "torch.float32",
+    "device": "cuda:0"
+  }
+]

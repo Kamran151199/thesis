@@ -39,9 +39,9 @@
 
 % Title
 \node[title] (title) at (8.2,7.35)
-  {Cross-modal generative alignment for trustworthy visual reasoning};
+  {Controlled explanation-aware VLM alignment study};
 \node[subtitle] at (8.2,6.95)
-  {fixed-budget comparison of answer-only and explanation-aware supervision};
+  {fixed-budget comparison of generative, contrastive, and explanation-aware supervision};
 
 % Left column: inputs
 \node[card,text width=3.35cm,minimum height=1.62cm] (visual) at (2.25,5.35) {};
@@ -60,10 +60,11 @@
 
 % Middle column: method
 \node[main,text width=4.45cm,minimum height=2.0cm] (model) at (7.55,4.55)
-  {\textbf{VLM + QLoRA}\\[-1pt]
-   \scriptsize frozen visual backbone\\
-   \scriptsize trainable low-rank adapters\\[4pt]
-   \scriptsize generative and explanation-aware signals};
+  {\textbf{Efficient VLM adaptation}\\[-1pt]
+   \scriptsize Qwen2-VL + QLoRA\\
+   \scriptsize BLIP-2 Q-Former\\[4pt]
+   \scriptsize generative, contrastive,\\[-1pt]
+   \scriptsize and explanation-aware signals};
 \node[chip,anchor=south west] at ($(model.north west)+(0,2pt)$) {alignment signal};
 
 % Right column: output
@@ -75,12 +76,12 @@
 
 % Evaluation row
 \node[chip] (measure) at (8.2,2.92) {evaluation axes};
-\node[metric,text width=3.2cm,minimum height=1.05cm] (m1) at (4.0,2.05)
+\node[metric,text width=3.2cm,minimum height=1.05cm] (m1) at (4.0,1.85)
   {\textbf{Correctness}\\[-1pt]\scriptsize accuracy, ANLS,\\[-1pt]\scriptsize relaxed accuracy};
-\node[metric,text width=3.2cm,minimum height=1.05cm] (m2) at (8.2,2.05)
-  {\textbf{Rationale quality}\\[-1pt]\scriptsize ROUGE-L, BLEU,\\[-1pt]\scriptsize BERTScore};
-\node[metric,text width=3.2cm,minimum height=1.05cm] (m3) at (12.4,2.05)
-  {\textbf{Grounding}\\[-1pt]\scriptsize attention maps,\\[-1pt]\scriptsize masking drift};
+\node[metric,text width=3.2cm,minimum height=1.05cm] (m2) at (8.2,1.85)
+  {\textbf{Rationale quality}\\[-1pt]\scriptsize ROUGE-L, BLEU\\[-1pt]\scriptsize for rationale runs};
+\node[metric,text width=3.2cm,minimum height=1.05cm] (m3) at (12.4,1.85)
+  {\textbf{Grounding}\\[-1pt]\scriptsize image masking,\\[-1pt]\scriptsize masking drift};
 
 \node[note,text width=11.7cm,minimum height=0.68cm] (study) at (8.2,0.78)
   {\textbf{Controlled study:} same budget, same protocol, only the training signal changes.};
@@ -90,10 +91,13 @@
 \draw[arrow] (question.east) -- ++(0.65,0) |- ($(model.west)+(0,-0.35)$);
 \draw[arrow] (model.east) -- (answer.west);
 \draw[arrow] (model.south) -- (measure.north);
-\draw[guide,->] (measure.south) -- (m2.north);
-\draw[guide,->] (m1.south) -- ++(0,-0.18) -| (study.north);
-\draw[guide,->] (m2.south) -- (study.north);
-\draw[guide,->] (m3.south) -- ++(0,-0.18) -| (study.north);
+% Evaluation axes branch to all three metric boxes. The controlled-study banner
+% below is experimental framing (a takeaway), not a data sink, so no arrows enter it.
+\coordinate (evalhub) at ($(measure.south)+(0,-0.13)$);
+\draw[guide] (measure.south) -- (evalhub);
+\draw[guide,->] (evalhub) -| (m1.north);
+\draw[guide,->] (evalhub) -- (m2.north);
+\draw[guide,->] (evalhub) -| (m3.north);
 
 \begin{scope}[on background layer]
   \node[draw=line,fill=white,rounded corners=6pt,line width=1.0pt,

@@ -1,0 +1,6 @@
+dataset,train_split,eval_split,train_cap,eval_cap,train_rows_loaded,eval_rows_loaded,native_ids_available,overlap_count,overlap_keys_preview,audit_method
+scienceqa,train,validation,2000,200,2000,200,False,0,[],question/answer/image fingerprint fallback
+aokvqa,train,validation,2000,200,2000,200,True,0,[],native ids
+chartqa,train,val,2000,200,2000,200,False,0,[],question/answer/image fingerprint fallback
+docvqa,validation[:80%],validation[80%:],2000,200,2000,200,True,0,[],native ids
+vqav2,train,test,900,100,900,100,False,0,[],question/answer/image fingerprint fallback

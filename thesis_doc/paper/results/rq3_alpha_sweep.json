@@ -11,31 +11,31 @@
   "random_baseline": 0.354,
   "frozen_baseline": {
     "note": "Qwen2-VL-2B before fine-tuning; α-independent (same frozen model).",
-    "mc_accuracy": 0.46,
-    "rouge_l": 0.144,
-    "bleu": 0.014
+    "mc_accuracy": 0.4,
+    "rouge_l": null,
+    "bleu": null
   },
   "generative_control": {
-    "note": "uniform next-token CE (rq2_qwen2vl_generative_scienceqa); equivalent to explanation_aware at alpha_eff = N_ans/(N_ans+N_exp) approximately 0.1 on ScienceQA.",
-    "mc_accuracy": 0.765,
-    "rouge_l": 0.703,
-    "bleu": 0.570
+    "note": "uniform next-token CE (rq2_qwen2vl_generative_scienceqa); a natural token-weighted rationale-plus-answer control.",
+    "mc_accuracy": 0.78,
+    "rouge_l": 0.6934,
+    "bleu": 0.5588
   },
   "sweep": [
-    {"alpha": 0.0,  "mc_accuracy": 0.675, "rouge_l": 0.449, "bleu": 0.334},
-    {"alpha": 0.1,  "mc_accuracy": 0.775, "rouge_l": 0.706, "bleu": 0.579},
-    {"alpha": 0.25, "mc_accuracy": 0.770, "rouge_l": 0.685, "bleu": 0.545},
-    {"alpha": 0.5,  "mc_accuracy": 0.740, "rouge_l": 0.653, "bleu": 0.505},
-    {"alpha": 0.75, "mc_accuracy": 0.720, "rouge_l": 0.616, "bleu": 0.455},
-    {"alpha": 1.0,  "mc_accuracy": 0.680, "rouge_l": 0.000, "bleu": 0.000}
+    {"alpha": 0.0,  "mc_accuracy": 0.725, "rouge_l": 0.4170, "bleu": 0.2990},
+    {"alpha": 0.1,  "mc_accuracy": 0.780, "rouge_l": 0.6945, "bleu": 0.5663},
+    {"alpha": 0.25, "mc_accuracy": 0.775, "rouge_l": 0.6863, "bleu": 0.5479},
+    {"alpha": 0.5,  "mc_accuracy": 0.765, "rouge_l": 0.6430, "bleu": 0.4926},
+    {"alpha": 0.75, "mc_accuracy": 0.690, "rouge_l": 0.6043, "bleu": 0.4429},
+    {"alpha": 1.0,  "mc_accuracy": 0.695, "rouge_l": null, "bleu": null}
   ],
   "best_alpha": 0.1,
   "notes": {
-    "shape": "mc_accuracy is an inverted-U peaking at alpha=0.1 (0.775) and dropping ~10 pp at both extremes (0.675 at 0.0, 0.680 at 1.0). ROUGE-L/BLEU peak at alpha=0.1 (0.706/0.579) and fall monotonically as alpha rises, reaching 0.000 at alpha=1.0.",
-    "generative_coincidence": "The best point (alpha=0.1) is within seed noise of the generative control (0.765/0.703/0.570), confirming alpha_eff approximately 0.1: explicit answer-weighting cannot beat the weighting uniform CE already applies.",
-    "explanation_supervision_helps_accuracy": "alpha=1.0 (answer-only) scores 0.680 vs 0.775 at alpha=0.1 -- a ~9.5 pp accuracy loss when the rationale span is unsupervised, evidence the generated rationale functions as a usable chain-of-thought at inference.",
-    "alpha_100": "answer-only: explanation span unsupervised, so the model emits no rationale -> ROUGE-L/BLEU vs gold ~ 0.",
-    "alpha_000": "explanation-only: answer span unsupervised; both accuracy (0.675) and rationale quality (0.449) are low -- with no answer anchor the rationale drifts off the concise gold.",
-    "alpha_050_reconciliation": "An earlier standalone run (rq3_qwen2vl_explanation_aware_scienceqa.json) scored alpha=0.5 at mc_accuracy 0.755, with rouge_l/bleu identical to the sweep (0.6526/0.5049). The sweep's 0.740 is treated as canonical (one consistent six-point run); the 1.5 pp mc gap (3/200 examples) is run-to-run/scoring noise."
+    "shape": "mc_accuracy peaks at alpha=0.1 (0.780) and drops toward the high-answer-weight end (0.690 at 0.75 and 0.695 at 1.0). ROUGE-L/BLEU peak at alpha=0.1 (0.6945/0.5663) and fall as alpha rises.",
+    "generative_coincidence": "The best fixed point (alpha=0.1) matches the rationale-generative control in accuracy (0.780). The length-aware explanation control also reaches 0.780.",
+    "explanation_supervision_helps_accuracy": "The alpha=1.0 row scores 0.695 vs 0.780 at alpha=0.1 inside the rationale-shaped target. This shows that starving the rationale span hurts this prompt family, but the true answer-only control is a separate answer-only prompt and reaches 0.800.",
+    "alpha_100": "answer-span-only inside the rationale-shaped target: explanation span is unsupervised, so ROUGE-L/BLEU are not reported.",
+    "alpha_000": "explanation-only: answer span unsupervised; accuracy and rationale quality are lower than the best fixed alpha.",
+    "canonical_source": "Values match Tables/generated/all_results.csv and the manuscript tables generated from the final paper pipeline artifact set."
   }
 }

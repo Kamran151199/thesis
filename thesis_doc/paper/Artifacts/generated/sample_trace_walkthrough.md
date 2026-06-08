@@ -502,7 +502,7 @@ not drier than October. Answer: About the same amount of precipitation falls eac
 and October..
 ```
 ### 7. Objective and forward pass
-- loss components: `{'loss': 0.8513621091842651, 'l_answer': 0.4416717290878296, 'l_explanation': 1.2610524892807007, 'alpha': 0.5}`
+- loss components: `{'loss': 0.8513621091842651, 'l_answer': 0.4416717290878296, 'l_explanation': 1.2610524892807007, 'alpha': 0.5, 'configured_alpha': 0.5, 'alpha_mode': 'fixed', 'answer_weight_multiplier': 1.0, 'n_answer_tokens': 16.0, 'n_explanation_tokens': 185.0}`
 
 ### 8. Generation and decoding
 ```text

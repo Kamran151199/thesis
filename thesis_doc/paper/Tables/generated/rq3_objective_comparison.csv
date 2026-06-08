@@ -1,7 +1,9 @@
 dataset,objective,mc_acc,rouge_l,bleu
-aokvqa,explanation_aware_alpha_0.5,0.795,0.3375,0.0872
-aokvqa,answer_only,0.82,,
-scienceqa,answer_only,0.785,,
-aokvqa,rationale_generative,0.79,0.3302,0.0828
-scienceqa,rationale_generative,0.775,0.7002,0.5689
-scienceqa,explanation_aware_alpha_0.5,0.74,0.6534,0.5046
+aokvqa,explanation_aware_alpha_0.5,0.795,0.337,0.0873
+aokvqa,explanation_aware_length_aware,0.79,0.3299,0.0829
+scienceqa,explanation_aware_length_aware,0.78,0.6961,0.5633
+aokvqa,answer_only,0.83,,
+scienceqa,answer_only,0.8,,
+aokvqa,rationale_generative,0.79,0.329,0.0828
+scienceqa,rationale_generative,0.78,0.6934,0.5588
+scienceqa,explanation_aware_alpha_0.5,0.765,0.643,0.4926

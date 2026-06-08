@@ -255,6 +255,18 @@ def test_blip_retrieval_diagnostic_forces_projection_controls():
     assert "BLIP-2 generative" in text
 
 
+def test_paper_pipeline_uses_paper_labels_for_sample_figures():
+    text = Path("notebooks/00_paper_pipeline.py").read_text()
+    assert "def paper_run_label(" in text
+    assert "def paper_run_slug(" in text
+    assert 'fig.suptitle(f"Masking example - {run_label}' in text
+    assert 'fig.suptitle(f"Qualitative samples - {run_label}' in text
+    assert 'fig.suptitle(f"Evidence-masking heatmaps - {run_label}' in text
+    assert 'ax.barh(fs["method"]' in text
+    assert "MASKING_EXAMPLE_VERSION = 2" in text
+    assert "QUALITATIVE_FIGURE_VERSION = 2" in text
+
+
 def test_masked_token_ce_selects_subset():
     torch.manual_seed(0)
     B, T, V = 2, 5, 7

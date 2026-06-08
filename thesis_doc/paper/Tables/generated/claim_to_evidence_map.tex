@@ -1,0 +1,18 @@
+\begin{table}
+\caption{Claim-to-evidence map used to keep paper claims within the completed artifacts.}
+\label{tab:claim_evidence}
+\begin{tabular}{lrrr}
+\toprule
+paper_location & claim & evidence & claim_strength \\
+\midrule
+Abstract / Highlights & The study compares BLIP-2 generative and BLIP-2 contrastive-enhanced alignment under the same ScienceQA setting. & tab:rq2_blip2; tab:rq2_retrieval; Figures/generated/rq2_blip2_objective.pdf; Figures/generated/rq2_retrieval_comparison.pdf & direct controlled comparison \\
+Abstract / Results & Qwen2-VL answer-only, rationale-generative, and explanation-aware controls are separated on ScienceQA and A-OKVQA. & tab:controlled_strategy; tab:rq3_objective; Figures/generated/controlled_strategy_comparison.pdf & direct controlled comparison when all expected runs are current \\
+Methodology & Answer-only adapters do not receive gold rationale targets, while rationale adapters train on reasoning plus answer. & data/prompt_template_preview.csv; data/sample_trace_walkthrough.md; tab:experiment_ledger & pipeline audit artifact \\
+Methodology / Results & Length-aware alpha is audited as token-weighted rationale CE, while the fixed-alpha sweep remains an ablation. & data/experiment_ledger.csv; data/all_results.csv; tab:rq3_alpha; tab:controlled_strategy & implementation and result artifact \\
+Results & ChartQA, DocVQA, and VQAv2 rows are answer-only fallback/domain rows, not rationale-supervised explanation-aware rows. & tab:experiment_ledger; tab:comparison_design; tab:rq4_domain & scope boundary \\
+Results / Discussion & Masking drift measures evidence sensitivity and should not be described as proof that rationales are faithful. & tab:rq5_faithfulness; tab:masking_examples; data/masking_examples.json; Figures/generated/masking_example_*.pdf & diagnostic, not causal proof of rationale text \\
+Results & The scale comparison is Qwen2-VL-2B vs Qwen2-VL-7B under the selected explanation-aware QLoRA setup. & tab:rq6_scale; Figures/generated/rq6_scale.pdf & narrow scale comparison \\
+Results & Transfer is evaluated by applying each source-domain adapter to target domains while preserving the adapter prompt family. & tab:rq7_transfer; tab:rq7_transfer_long; data/transfer_matrix.json & cross-domain transfer artifact \\
+\bottomrule
+\end{tabular}
+\end{table}

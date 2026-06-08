@@ -1,603 +1,480 @@
-**Cross-Modal Generative Alignment for Document, Chart, and Image Reasoning with Explanation-Aware Vision–Language Models**
+**Cross-Modal Generative Alignment for Document, Chart, and Image Reasoning with Explanation-Aware Vision-Language Models**
 
 **Bachelor's Thesis Proposal**
 
-*Submitted by:*
-*Kamran Valijonov*
-*BSc Program — [Program Name]*
+*Submitted by:*  
+*Kamran Valijonov*  
+*BSc Program - [Program Name]*  
 *[University Name]*
 
-Supervisor: [Prof. Name]
-Second Supervisor: [TBD]
-Date: 2026-04-23
+Supervisor: [Prof. Name]  
+Second Supervisor: [TBD]  
+Date: 2026-06-06 (revised)
 
 ---
 
 # Table of Contents
 
-1. Abstract
-2. Introduction and Background
-3. Problem Statement
-4. Research Objectives
-5. Research Questions
-6. Theoretical Framework
-7. Methodology
-   - 7.1 Data Sources
-   - 7.2 Preprocessing Pipeline
-   - 7.3 Model Design
-   - 7.4 Training Pipeline
-   - 7.5 Evaluation Metrics
-   - 7.6 Tools & Infrastructure
-   - 7.7 Stepwise Methodology per Research Question
-8. Research Timeline
-9. Expected Contributions
-10. Expected Results
-11. References
-12. Appendix
+1. Target Publication Venue
+2. Abstract
+3. Introduction and Background
+4. Problem Statement
+5. Research Objectives
+6. Research Questions
+7. Theoretical Framework
+8. Methodology
+   - 8.1 Data Sources
+   - 8.2 Preprocessing and Prompt Construction
+   - 8.3 Model Design
+   - 8.4 Training Objectives
+   - 8.5 Evaluation Metrics
+   - 8.6 Tools and Infrastructure
+   - 8.7 Stepwise Methodology per Research Question
+9. Research Timeline
+10. Expected Contributions
+11. Expected Results and Figure Placeholders
+12. References
+13. Appendix
 
 ---
 
 # Target Publication Venue
 
-The primary target venue for the publishable output of this thesis is **Information Fusion** (Elsevier, Impact Factor ≈ 18.6), whose scope explicitly covers the fusion of multi-source information — including multimodal (visual–textual) representation fusion, decision-level fusion, and fusion of complementary learning signals. Alternative candidate venues include **Expert Systems with Applications** (IF ≈ 8.5) and **Pattern Recognition** (IF ≈ 8.0).
+The intended publishable output is a journal-style paper for **Information Fusion** or a closely related venue in multimodal learning and applied machine intelligence. The work fits that direction because it studies how visual evidence, language generation, rationale supervision, and parameter-efficient adaptation interact inside vision-language models.
 
-The thesis aligns with *Information Fusion* along three axes:
+The proposal does not aim to promise a leaderboard-scale system. The intended contribution is a controlled, resource-constrained study: the same pipeline is used wherever possible, the training objective is changed deliberately, and the resulting claims are tied to answer accuracy, rationale quality, evidence sensitivity, model scale, and transfer.
 
-- **Representation fusion:** the projection of vision encoder outputs into the language-model embedding space.
-- **Objective fusion:** combining contrastive alignment, generative alignment, and explanation-aware objectives.
-- **Evidence fusion:** fusing visual evidence with natural-language rationales to improve reasoning faithfulness.
+The planned paper therefore fits the venue along four axes:
+
+- **Cross-modal fusion:** images, documents, charts, and questions are converted into a shared multimodal input format.
+- **Objective comparison:** answer-only, rationale-generative, explanation-aware, and BLIP-2 contrastive-enhanced variants are compared under a fixed-budget protocol.
+- **Evidence sensitivity:** masking diagnostics test whether answer likelihood changes when visual evidence is removed.
+- **Practical adaptation:** QLoRA keeps the experiments realistic for a single-GPU bachelor-level research setting.
 
 ---
 
 # Abstract
 
-Vision–Language Models (VLMs) such as LLaVA, BLIP-2, InternVL, and Qwen2-VL have demonstrated strong cross-modal reasoning by aligning visual features with pretrained language models. However, the choice of alignment strategy — contrastive (CLIP-style) versus generative (BLIP-2/CoCa-style) — and the impact of explanation-aware training on reasoning quality remain underexplored, particularly for structured visual content such as documents and charts. This thesis proposes a systematic investigation of cross-modal generative alignment for document, chart, and natural image reasoning, centered on explanation-aware fine-tuning. A 2B-parameter open-source VLM (Qwen2-VL-2B-Instruct) will be fine-tuned with QLoRA under four training variants: a baseline instruction-tuned variant, a contrastive-enhanced variant, a generative-alignment variant, and an explanation-aware generative-alignment variant. Evaluation will span DocVQA, ChartQA, ScienceQA, A-OKVQA, and a held-out natural image benchmark, measuring both answer accuracy (Exact Match, ANLS, F1) and explanation quality (BLEU, ROUGE, BERTScore, human-rated faithfulness). Controlled ablations will further dissect cross-domain transfer, hallucination behavior, the trade-off between parameter-efficient and full fine-tuning, and the architectural factors that most strongly determine reasoning performance. The expected outcomes are: (i) a technical taxonomy that connects the evolution of VLM alignment methods into a single narrative; (ii) quantitative evidence on when generative alignment outperforms contrastive alignment for structured visual reasoning; (iii) a reproducible explanation-aware fine-tuning recipe that improves both answer accuracy and rationale faithfulness; and (iv) practical guidance on deploying explanation-aware VLMs under real-world compute budgets.
+Vision-language models are now used to answer questions about documents, charts, science diagrams, and natural images. For this kind of reasoning, answer accuracy alone is not enough. If a model generates a rationale, that rationale should also be evaluated separately from the final answer, and the model should be tested for sensitivity to visual evidence. This thesis proposes a controlled study of cross-modal generative alignment for document, chart, and image reasoning with explanation-aware vision-language models.
+
+The study uses a resource-constrained pipeline rather than comparing unrelated systems. It evaluates BLIP-2 OPT-2.7B generative fine-tuning and BLIP-2 contrastive-enhanced fine-tuning on ScienceQA, and it evaluates Qwen2-VL-2B with answer-only, rationale-generative, explanation-aware, and length-aware explanation objectives. ScienceQA and A-OKVQA are used for rationale-supervised experiments because they provide gold rationales. ChartQA, DocVQA, and a VQAv2 subset are treated as answer-only fallback and transfer/domain datasets unless a future experiment adds separate rationale supervision. Qwen2-VL-7B is used only for a scale check under the selected explanation-aware QLoRA setting.
+
+The evaluation reports each dataset's native headline metric, rationale overlap metrics where gold rationales exist, BLIP-2 retrieval diagnostics for the contrastive branch, split/leakage checks, approximate uncertainty estimates, masking-based evidence sensitivity, and cross-domain transfer. The expected contribution is not the claim that explanation-aware training always wins. Instead, the thesis asks when rationale supervision helps, when answer-only training is stronger, whether contrastive BLIP-2 alignment improves beyond generative BLIP-2 fine-tuning, how visual evidence sensitivity behaves across domains, and whether a larger Qwen2-VL backbone changes the same QLoRA setup.
 
 ---
 
 # Introduction and Background
 
-Cross-modal reasoning — the ability of a single model to look at an image and produce a reasoned, natural-language answer — has become one of the most important capabilities in modern artificial intelligence. Vision–Language Models (VLMs) combine a vision encoder (typically a Vision Transformer or CLIP-derived backbone) with a large decoder-only language model, connected through an alignment module that maps visual features into the embedding space of the language model. This architecture underlies every major multimodal system released since 2023, including GPT-4V, Gemini, Claude 3, LLaVA, BLIP-2, InternVL, and Qwen2-VL.
+Cross-modal reasoning is the ability of a model to use visual information and language together. A model may need to read a document field, compare bars in a chart, reason over a science diagram, or answer a commonsense question about an image. Modern vision-language models usually solve this by connecting a vision encoder to a language model through an alignment mechanism. That mechanism can be a projection layer, a Q-Former, cross-attention, or a more model-specific visual token interface.
 
-The *alignment module* — often a simple MLP projection, a Q-Former, or a set of cross-attention layers — is the critical bridge between vision and language. Two paradigms dominate the design of this module. **Contrastive alignment** (CLIP, ALIGN) optimizes a symmetric image–text similarity loss over large image–caption corpora, producing a shared embedding space in which matching pairs are close and non-matching pairs are far apart. **Generative alignment** (BLIP-2, CoCa, LLaVA) trains the model to *generate* text from visual features, treating every generated token as a fine-grained alignment signal. A third and increasingly important direction — **explanation-aware training** — exposes the model during training not only to the final answer but also to a structured rationale that describes the reasoning steps grounded in the image.
+The important question for this thesis is not only which model is strongest. The more useful question is what the alignment and training objective are doing. A contrastive objective learns a representation where matching images and text are close. A generative objective trains the model to produce answer text. An explanation-aware objective trains the model to produce a rationale and an answer, or to weight rationale and answer spans differently during loss computation. These objectives are related, but they do not test the same behavior.
 
-Although contrastive, generative, and explanation-aware training each have clear advantages, no systematic empirical comparison has been performed across structured visual domains such as documents and charts. Documents demand OCR-like spatial awareness and long-range layout understanding. Charts require numerical and structural reasoning between legends, axes, and data points. Natural images demand scene comprehension and object-relation understanding. These domains stress the alignment module in fundamentally different ways, and prior VLM benchmarks — predominantly centered on VQAv2 and COCO-style natural image tasks — do not isolate these differences. Furthermore, while explanation generation is central to the "chain-of-thought" literature for text-only LLMs, its effect on the *visual* grounding of VLM reasoning is not settled.
+This distinction matters because a correct answer is not always a grounded answer. A model can guess from language priors, copy a common answer pattern, or write a plausible explanation after the fact. Documents and charts make this problem especially visible because the evidence often appears as text, numbers, axes, legends, or table-like structure inside the image. ScienceQA and A-OKVQA are useful because they include rationales, while DocVQA, ChartQA, and VQAv2 are useful for domain behavior and transfer even when they do not provide gold rationales for explanation-aware supervision.
 
-This thesis proposes a controlled investigation of cross-modal generative alignment that (a) maps the evolution of VLM alignment strategies, (b) compares contrastive, generative, and explanation-aware training variants on a unified set of document, chart, and natural image reasoning benchmarks, and (c) produces actionable, reproducible guidance for deploying explanation-aware VLMs under realistic compute budgets.
+The thesis therefore frames alignment as a controlled experimental problem. The same pipeline converts examples into image, question, answer, and optional rationale fields. The same evaluation code is reused wherever possible. Each result is interpreted according to the available supervision: rationale-bearing datasets can test explanation-aware training directly; no-rationale datasets are reported as answer-only fallback/domain-transfer runs.
 
 ---
 
 # Problem Statement
 
-Current Vision–Language Models achieve remarkable surface-level cross-modal reasoning performance but exhibit three persistent weaknesses when deployed on complex visual content:
+Current vision-language models can produce strong answers, but three issues remain important for controlled research:
 
-- **Alignment ambiguity.** It is unclear under which conditions contrastive alignment, generative alignment, or hybrid objectives produce the best downstream reasoning. The literature reports strong results for each paradigm in isolation, but systematic head-to-head comparisons — especially on structured visual domains — are rare.
-- **Unfaithful explanations.** When VLMs produce natural-language rationales, the rationales may not reflect the actual visual evidence used for the answer. This undermines interpretability and trust in high-stakes domains (medical reports, financial charts, scientific literature).
-- **Domain-dependent failure modes.** The same model may excel at natural image VQA but fail at document understanding or chart reasoning. The architectural and training factors that drive this heterogeneity are not well characterized.
+- **Objective ambiguity.** Many papers change the model, data, training size, and objective at the same time. When the score improves, it is hard to tell whether the objective helped or whether a larger model or different data caused the gain.
+- **Rationale uncertainty.** A generated explanation may sound good without proving that the model used the visual evidence. Rationale quality and evidence sensitivity must therefore be measured separately.
+- **Domain dependence.** A method that works on natural images may behave differently on documents, charts, science diagrams, and commonsense image questions.
 
-The central research problem is therefore:
+The central research problem is:
 
-> **How does explanation-aware generative alignment compare with contrastive and standard generative alignment strategies for document, chart, and natural image reasoning, and what architectural and training factors determine cross-modal reasoning accuracy, explanation faithfulness, and cross-domain generalization under realistic compute budgets?**
+> How should resource-constrained vision-language models be aligned when the goal is accurate and visually grounded reasoning across document, chart, science, commonsense, and natural-image tasks?
 
-Addressing this problem requires (i) a technical map of how alignment strategies evolved, (ii) a unified experimental framework that permits controlled comparison across alignment objectives and visual domains, and (iii) a rigorous evaluation of both answer correctness and explanation faithfulness.
+This problem requires a controlled comparison of objectives, careful separation of rationale-supervised and answer-only datasets, and evaluation that does not confuse answer accuracy with faithful visual grounding.
 
 ---
 
 # Research Objectives
 
-This research pursues the following specific objectives:
+This research pursues the following objectives:
 
-1. **Construct a unified technical taxonomy** of vision–language alignment methods, tracing the evolution from CLIP and ALIGN through BLIP-2, LLaVA, InternVL, and Qwen2-VL, and extracting the design principles that underlie each transition.
-2. **Implement and compare four training variants** of a common 2B-parameter VLM backbone (Qwen2-VL-2B-Instruct) using QLoRA fine-tuning: baseline instruction tuning, contrastive-enhanced alignment, generative alignment, and explanation-aware generative alignment.
-3. **Evaluate reasoning accuracy** across document (DocVQA), chart (ChartQA), scientific (ScienceQA), commonsense (A-OKVQA), and natural image (VQAv2 subset) benchmarks using Exact Match, ANLS, F1, and domain-appropriate metrics.
-4. **Evaluate explanation quality and faithfulness** via automatic metrics (BLEU, ROUGE, BERTScore), attention-grounded faithfulness scores, hallucination rates, and a human-rated sample.
-5. **Quantify cross-domain transfer** by training on one visual domain and evaluating on another, and characterize catastrophic forgetting when the model is adapted sequentially to new domains.
-6. **Characterize the efficiency–accuracy–faithfulness trade-off** across model scales (2B vs. 7B backbones) and fine-tuning strategies (full fine-tune vs. QLoRA vs. prompt tuning).
-7. **Deliver reproducible artifacts** — code, configurations, and evaluation scripts — under an open-source license to support follow-up research.
+1. Build a concise taxonomy of vision-language alignment methods, with emphasis on contrastive, generative, and explanation-aware training.
+2. Compare BLIP-2 generative fine-tuning with BLIP-2 contrastive-enhanced fine-tuning under the same ScienceQA setup.
+3. Compare Qwen2-VL answer-only, rationale-generative, explanation-aware fixed-alpha, and length-aware explanation objectives on datasets with gold rationales.
+4. Report domain-level behavior for DocVQA, ChartQA, ScienceQA, A-OKVQA, and VQAv2 while clearly marking which datasets support rationale supervision and which are answer-only fallback runs.
+5. Evaluate evidence sensitivity through image-masking drift instead of treating masking as direct proof of rationale faithfulness.
+6. Check how the selected explanation-aware QLoRA setup changes when moving from Qwen2-VL-2B to Qwen2-VL-7B.
+7. Produce reproducible artifacts: configs, logs, figures, tables, split/leakage audits, sample traces, and claim-to-evidence mapping.
 
 ---
 
 # Research Questions
 
-This thesis is guided by the following seven research questions:
+This thesis is guided by seven research questions:
 
-1. **RQ1** — How have vision–language alignment strategies evolved from CLIP-style contrastive alignment to modern generative VLMs, and what fundamental principles underpin each transition in cross-modal representation learning?
+1. **RQ1** - How have vision-language alignment methods evolved for grounded visual reasoning and explanation generation?
+2. **RQ2** - How does BLIP-2 generative fine-tuning compare with BLIP-2 contrastive-enhanced fine-tuning on visual reasoning?
+3. **RQ3** - Does explanation-aware fine-tuning improve answer accuracy and explanation quality on datasets with gold rationales?
+4. **RQ4** - How does the same fine-tuning framework perform across document, chart, science, commonsense, and natural-image domains?
+5. **RQ5** - How sensitive are the model's answers to visual evidence under image-masking perturbations?
+6. **RQ6** - How does the selected explanation-aware QLoRA setup scale from Qwen2-VL-2B to Qwen2-VL-7B?
+7. **RQ7** - How well do fine-tuned adapters transfer across visual domains and prompt formats?
 
-2. **RQ2** — How does generative alignment compare to contrastive alignment for document, chart, and natural image reasoning tasks, with respect to answer accuracy, calibration, and cross-modal retrieval quality?
-
-3. **RQ3** — To what extent does explanation-aware training improve VLM reasoning accuracy and explanation quality across document, chart, scientific, and natural image domains, relative to standard instruction tuning?
-
-4. **RQ4** — What are the key architectural and training factors (vision-encoder resolution, projection type, LLM scale, training-data mixture) that determine cross-modal reasoning performance, and how do these factors differ across visual domains?
-
-5. **RQ5** — To what extent does explanation-aware training reduce hallucinations and improve the *faithfulness* of generated rationales relative to the visual evidence, as measured by attention-alignment, consistency under evidence masking, and human ratings?
-
-6. **RQ6** — How does parameter-efficient fine-tuning (QLoRA) compare to full fine-tuning in preserving the benefits of explanation-aware generative alignment across different model scales (2B vs. 7B backbones), and what is the resulting efficiency–reliability trade-off?
-
-7. **RQ7** — How well does explanation-aware alignment learned on one visual domain (e.g., documents) transfer to unseen domains (e.g., charts or natural images), and what does the transfer profile reveal about the domain-generality of generative alignment signals?
+Outside this list, the paper will discuss these questions in normal section language rather than repeatedly labeling every paragraph with RQ numbers.
 
 ---
 
 # Theoretical Framework
 
-The theoretical foundations of this research integrate five strands of the literature:
+The theoretical foundation of the thesis combines five ideas:
 
-- **Representation Learning via Contrastive Alignment.** CLIP (Radford et al., 2021) and ALIGN (Jia et al., 2021) formalized the idea of learning a shared image–text embedding space through symmetric InfoNCE objectives over web-scale image–caption pairs.
-- **Generative Alignment through Cross-Attention.** BLIP-2 (Li et al., 2023) introduced the Q-Former, a lightweight transformer with learnable query tokens that cross-attend to frozen visual features. LLaVA (Liu et al., 2023) showed that a simple MLP projection into the language-model space is sufficient when paired with a sufficiently capable LLM.
-- **Explanation-Aware Reasoning.** Chain-of-Thought prompting (Wei et al., 2022) and rationale-augmented training (e.g., ScienceQA's multimodal explanation annotations, Lu et al., 2022) demonstrate that models benefit from intermediate reasoning steps, particularly when rationales are grounded in the input.
-- **Parameter-Efficient Fine-Tuning.** LoRA (Hu et al., 2021) and QLoRA (Dettmers et al., 2023) enable fine-tuning of billion-parameter models on commodity GPUs via low-rank adaptation over frozen quantized weights.
-- **Faithfulness and Hallucination in VLMs.** Recent work on object hallucination (Rohrbach et al., 2018; POPE, Li et al., 2023) and rationale faithfulness (Parcalabescu & Frank, 2024) provides the vocabulary and metrics for RQ5.
+- **Contrastive alignment.** CLIP-style learning creates a shared image-text space by pulling matched image-text pairs together and pushing mismatched pairs apart. In this thesis, contrastive alignment is tested only in the BLIP-2 branch because BLIP-2 has a Q-Former representation that can be adapted for image-answer contrastive diagnostics.
+- **Generative alignment.** BLIP-2 and Qwen2-VL can be fine-tuned to generate answer text from an image and question. Generative supervision directly trains the output behavior.
+- **Rationale supervision.** ScienceQA and A-OKVQA provide rationales, so they can support rationale-generative and explanation-aware objectives. This is not assumed for ChartQA, DocVQA, or VQAv2.
+- **Parameter-efficient fine-tuning.** LoRA and QLoRA make it possible to adapt billion-parameter models under a realistic single-GPU budget while keeping most model weights frozen or quantized.
+- **Evidence sensitivity.** Image masking tests whether answer likelihood changes when visual evidence is perturbed. This is treated as a diagnostic of evidence sensitivity, not as automatic proof that the generated rationale is faithful.
 
-The research builds a coherent framework that treats alignment strategies as *optimization-level* design choices, explanation-aware training as a *supervision-level* design choice, and parameter-efficient fine-tuning as a *deployment-level* design choice — and systematically varies each axis.
+The thesis treats alignment strategies as objective-level choices, rationale supervision as a supervision-level choice, and QLoRA as a compute-budget choice. The main value comes from keeping these choices explicit instead of mixing them into one broad "model improvement" claim.
 
 ---
 
 # Methodology
 
-## 7.1 Data Sources
+## 8.1 Data Sources
 
-The following publicly available datasets will be used:
+The study uses five public benchmarks:
 
-- **DocVQA** (Mathew et al., 2021) — ~50K document-image question–answer pairs.
-- **ChartQA** (Masry et al., 2022) — ~32K chart question–answer pairs (bar, line, pie).
-- **ScienceQA** (Lu et al., 2022) — ~21K multimodal questions with gold-standard natural-language explanations.
-- **A-OKVQA** (Schwenk et al., 2022) — ~25K commonsense-reasoning questions with rationales.
-- **VQAv2** (Goyal et al., 2017) — a 50K-sample subset of natural image questions for baseline reasoning evaluation.
+- **DocVQA** - document-image question answering; used as an answer-only fallback and transfer/domain dataset.
+- **ChartQA** - chart question answering with numerical and logical reasoning; used as an answer-only fallback and transfer/domain dataset.
+- **ScienceQA** - multimodal science questions with gold rationales; used for rationale-generative and explanation-aware experiments.
+- **A-OKVQA** - commonsense visual question answering with rationales; used as a second rationale-bearing domain.
+- **VQAv2 subset** - natural-image VQA subset; used as an answer-only fallback and transfer/domain dataset.
 
-All datasets are used under their respective academic licenses. No private or proprietary data is involved.
+The key methodological rule is that rationale-supervised claims are made only where gold rationale supervision exists. ChartQA, DocVQA, and VQAv2 are valuable for domain and transfer behavior, but they are not treated as gold-rationale explanation-aware datasets.
 
-## 7.2 Preprocessing Pipeline
+## 8.2 Preprocessing and Prompt Construction
 
-- Image resizing and normalization to the native resolution of the vision encoder (Qwen2-VL dynamic resolution).
-- Tokenization using the Qwen2 tokenizer with the Qwen2-VL vision token schema.
-- Explanation harvesting: ScienceQA provides gold explanations; for DocVQA, ChartQA, A-OKVQA, and VQAv2, explanations are either derived from existing rationales or synthesized via a stronger teacher model (GPT-4V) and filtered through rule-based and model-based quality checks.
-- Construction of four parallel training splits (one per training variant) to enable controlled comparison on identical underlying data.
-- Stratified sampling to ensure balanced domain coverage per training batch.
+Each dataset is converted into a shared example format:
 
-## 7.3 Model Design
+- image or visual document,
+- question,
+- answer choices when available,
+- gold answer,
+- optional gold rationale,
+- dataset and split metadata.
 
-- **Base model:** Qwen2-VL-2B-Instruct (primary) and Qwen2-VL-7B-Instruct (scale ablation).
-- **Alignment module variants:**
-  - *Baseline:* native Qwen2-VL projection (MLP).
-  - *Contrastive-enhanced:* baseline augmented with an auxiliary InfoNCE loss between projected visual features and sentence embeddings of the answer.
-  - *Generative:* standard next-token prediction on the (image, question → answer) triple.
-  - *Explanation-aware generative:* next-token prediction on (image, question → explanation → answer) sequences.
-- **Fine-tuning:** QLoRA (4-bit NF4 quantization, LoRA rank 16, alpha 32) over attention projection and MLP layers of the language model and the alignment module; vision encoder frozen.
+The pipeline builds prompt families from this shared format:
 
-## 7.4 Training Pipeline
+- **Answer-only prompt:** target contains only the answer.
+- **Rationale-generative prompt:** target contains rationale text followed by answer text under natural token-level cross-entropy.
+- **Explanation-aware prompt:** target contains rationale and answer, but the loss separates rationale and answer spans and weights them with alpha.
+- **Answer-only fallback prompt:** used when a dataset has no gold rationale.
 
-All four variants share the same hyperparameters wherever possible to isolate the effect of the training objective:
+The notebook also records sample traces showing the raw example, prompt text, target text, tokenization, supervised spans, collator output, generated text, parsed answer, and metric calculation.
 
-- Optimizer: AdamW (β1=0.9, β2=0.999, weight decay=0.01).
-- Learning rate: 2e-4 with cosine schedule and 3% warm-up.
-- Batch size: 32 effective (with gradient accumulation on A100).
-- Steps: 5,000 per domain or 2 epochs over the combined multi-domain set, whichever is fewer.
-- Mixed precision (bf16) with flash-attention enabled where supported.
-- Experiment tracking: Weights & Biases (wandb).
+## 8.3 Model Design
 
-## 7.5 Evaluation Metrics
+The study uses two backbone families:
 
-- **Answer accuracy:** Exact Match (DocVQA ANLS, ChartQA relaxed accuracy, ScienceQA accuracy, VQAv2 accuracy, A-OKVQA accuracy/rationale score).
-- **Explanation quality:** BLEU-4, ROUGE-L, BERTScore-F1.
-- **Faithfulness:** (i) attention-alignment score between attention over image patches and explanation tokens; (ii) consistency under evidence masking; (iii) sample of 150 items with human ratings on a 5-point Likert scale.
-- **Hallucination:** POPE and CHAIR-style object hallucination scores on natural images, plus domain-specific "fabricated entity" counts for documents and charts.
-- **Cross-modal retrieval (for RQ2):** R@1, R@5, R@10 on DocVQA/ChartQA/ScienceQA text–image retrieval splits.
-- **Efficiency:** wall-clock training time, peak GPU memory, trainable-parameter count, inference throughput (tokens/sec).
+- **Qwen2-VL-2B-Instruct** as the primary resource-constrained model.
+- **Qwen2-VL-7B-Instruct** for the selected scale check under the same explanation-aware QLoRA setup.
+- **BLIP-2 OPT-2.7B** for the controlled generative versus contrastive-enhanced comparison.
 
-## 7.6 Tools & Infrastructure
+The Qwen2-VL runs use QLoRA adapters. The visual encoder is frozen, and the adapter target modules are kept consistent across runs unless a run explicitly records a change. The BLIP-2 contrastive branch keeps the vision tower and OPT language model frozen and trains Q-Former-side alignment components needed for the generative and contrastive objectives.
 
-- **Languages/frameworks:** Python 3.10+, PyTorch 2.x, Hugging Face `transformers`, `peft` (LoRA/QLoRA), `accelerate`, `bitsandbytes`, `datasets`, `evaluate`, `trl`.
-- **Compute:** single NVIDIA A100-40GB (primary); Colab Pro+ as fallback; optional H100 for the 7B ablation.
-- **Visualization:** `matplotlib`, `seaborn`, `plotly` (attention heatmaps).
-- **Experiment tracking:** Weights & Biases.
-- **Licensing:** all produced code released under Apache 2.0.
+## 8.4 Training Objectives
 
-## 7.7 Stepwise Methodology per Research Question
+The planned objective families are:
 
-**RQ1 — Taxonomy of VLM alignment.** (a) Systematic literature review of ~60 key papers from 2021–2025. (b) Extract architecture, alignment mechanism, training objective, dataset scale, and benchmark performance. (c) Build a structured taxonomy and timeline figure. (d) Produce a single comparative matrix.
+- **Zero-shot reference:** evaluate the pretrained model before task fine-tuning.
+- **Answer-only fine-tuning:** train only on answer targets.
+- **Rationale-generative fine-tuning:** train on rationale-plus-answer targets using natural token-level cross-entropy.
+- **Explanation-aware fixed-alpha fine-tuning:** separate answer and rationale spans and weight them with a fixed alpha.
+- **Length-aware explanation control:** derive the effective alpha from answer and rationale token counts, with an optional answer-weight multiplier.
+- **BLIP-2 contrastive-enhanced fine-tuning:** add an image-answer InfoNCE term to the BLIP-2 generative objective.
 
-**RQ2 — Contrastive vs. generative alignment.** (a) Train two variants on an identical data mixture: contrastive-enhanced and standard generative. (b) Evaluate on all five benchmarks. (c) Compute retrieval R@K for the contrastive variant and reasoning accuracy for both. (d) Visualize learned attention maps and projected embedding spaces (t-SNE/UMAP).
+The fixed-alpha sweep is treated as an ablation. The length-aware objective is treated as an audit/control for the natural token-weighted setting, not automatically as the main explanation-aware method.
 
-**RQ3 — Explanation-aware training impact.** (a) Train the explanation-aware variant on (image, Q → explanation → A) sequences. (b) Compare against the generative baseline on accuracy and explanation metrics. (c) Run a paired human evaluation (n=150) on rationale plausibility and faithfulness.
+## 8.5 Evaluation Metrics
 
-**RQ4 — Architectural and training factors.** (a) Ablation grid over vision-encoder resolution (native vs. fixed 448×448), projection type (MLP vs. Q-Former-style), LLM scale (2B vs. 7B), and data mixture (per-domain vs. mixed). (b) Compute per-domain error breakdowns (OCR-like, numerical, object-grounding, reasoning-chain errors).
+The evaluation separates answer quality, rationale quality, retrieval behavior, evidence sensitivity, scale, and transfer:
 
-**RQ5 — Faithfulness and hallucination.** (a) Run POPE and CHAIR on generated outputs. (b) Compute attention-alignment faithfulness scores. (c) Evidence-masking consistency experiment: perturb salient image regions and measure answer/explanation drift.
+- **Headline metric:** each dataset's native primary metric.
+  - ScienceQA and A-OKVQA: multiple-choice accuracy.
+  - ChartQA: relaxed accuracy, with exact match as a secondary metric.
+  - DocVQA: ANLS, with exact match as a secondary metric.
+  - VQAv2 subset: VQA consensus accuracy where available, with exact match as a secondary metric.
+- **Rationale quality:** BLEU and ROUGE-L only where gold rationales exist.
+- **BLIP-2 retrieval diagnostic:** R@1, R@5, R@10, and MRR for frozen, generative, contrastive-enhanced, and random controls.
+- **Evidence sensitivity:** masking drift, defined as the change in gold-answer likelihood after a visual region is masked.
+- **Uncertainty:** approximate confidence intervals for capped accuracy-style evaluations.
+- **Split integrity:** selected IDs and train/evaluation overlap checks where stable IDs are available.
+- **Transfer:** train-domain versus target-domain matrix, interpreted within each target metric column.
 
-**RQ6 — Parameter-efficient vs. full fine-tuning.** (a) Train Qwen2-VL-2B under three strategies: QLoRA, LoRA (full precision), and full fine-tune. (b) Repeat the explanation-aware setting with Qwen2-VL-7B using QLoRA only. (c) Build the efficiency–accuracy Pareto front.
+The study does not claim to run full human evaluation, POPE/CHAIR hallucination benchmarks, attention-alignment faithfulness, full fine-tuning, multi-seed SOTA benchmarking, or teacher-generated rationale supervision for no-rationale datasets.
 
-**RQ7 — Cross-domain transfer.** (a) Train on each single domain in turn (documents only, charts only, images only). (b) Evaluate each model on the other two domains zero-shot. (c) Compute a 3×3 transfer matrix. (d) Sequentially adapt to a new domain and measure catastrophic forgetting on the original.
+## 8.6 Tools and Infrastructure
+
+- **Languages and frameworks:** Python, PyTorch, Hugging Face `transformers`, `datasets`, `peft`, `accelerate`, and `bitsandbytes`.
+- **Fine-tuning:** QLoRA with 4-bit quantization for Qwen2-VL runs.
+- **Evaluation and artifacts:** notebook-driven pipeline that writes tables, figures, logs, sample traces, split/leakage audits, and claim-to-evidence maps.
+- **Compute target:** one strong Colab Pro+ GPU where possible; A100 for the Qwen2-VL-7B scale run if needed.
+- **Visualization:** matplotlib/seaborn-style figures for paper-ready results and placeholder proposal figures for planning.
+
+## 8.7 Stepwise Methodology per Research Question
+
+**RQ1 - Literature and taxonomy.** Review the closest VLM alignment, document/chart reasoning, rationale, hallucination, and efficient adaptation work. Summarize the gap as controlled objective comparison under fixed compute.
+
+**RQ2 - BLIP-2 generative versus contrastive-enhanced.** Train or refresh BLIP-2 generative and BLIP-2 contrastive-enhanced ScienceQA runs under the same data cap and compare accuracy plus retrieval diagnostics against frozen and random controls.
+
+**RQ3 - Explanation-aware training.** On ScienceQA and A-OKVQA, compare answer-only, rationale-generative, fixed-alpha explanation-aware, and length-aware controls. Report answer accuracy and rationale metrics separately.
+
+**RQ4 - Domain-level behavior.** Run the same framework on ScienceQA, A-OKVQA, ChartQA, DocVQA, and VQAv2. Mark ChartQA, DocVQA, and VQAv2 as answer-only fallback domains rather than rationale-supervised datasets.
+
+**RQ5 - Evidence sensitivity.** Apply image-masking perturbations and measure masking drift. Save readable masking examples showing the original image, masked image, question, gold answer, full-image score, masked score, and drift.
+
+**RQ6 - Scale check.** Compare Qwen2-VL-2B and Qwen2-VL-7B under the same selected explanation-aware QLoRA setup. Report answer accuracy and rationale-overlap metrics, without claiming a full efficiency Pareto study.
+
+**RQ7 - Transfer.** Evaluate fine-tuned source adapters on other target domains and prompt formats. Interpret the transfer matrix by target column because each domain uses its own metric.
 
 ---
 
 # Research Timeline
 
-The research is conducted over a 50-day period, 2026-04-16 to 2026-06-05.
+The research is planned over a 50-day period, from 2026-04-16 to 2026-06-05.
 
-| Milestone                                              | Duration | Period                  |
-| ------------------------------------------------------ | -------- | ----------------------- |
-| Foundations, literature review, taxonomy (RQ1)         | 1 week   | 2026-04-16 — 2026-04-22 |
-| Transformer, ViT, CLIP, BLIP-2, LLaVA deep-dive        | 1 week   | 2026-04-23 — 2026-04-29 |
-| Data pipeline + baseline Qwen2-VL-2B + evaluation harness | 1 week | 2026-04-30 — 2026-05-06 |
-| Contrastive and generative variants (RQ2)              | 1 week   | 2026-05-07 — 2026-05-13 |
-| Explanation-aware training + faithfulness (RQ3, RQ5)   | 1 week   | 2026-05-14 — 2026-05-20 |
-| Architectural ablations + PEFT + transfer (RQ4, RQ6, RQ7) | 1 week | 2026-05-21 — 2026-05-27 |
-| Final analysis, thesis writing, defense preparation    | 9 days   | 2026-05-28 — 2026-06-05 |
+| Milestone | Duration | Period |
+| --- | --- | --- |
+| Literature review and taxonomy | 1 week | 2026-04-16 to 2026-04-22 |
+| Dataset normalization and sample-trace pipeline | 1 week | 2026-04-23 to 2026-04-29 |
+| Qwen2-VL-2B answer-only and rationale-generative controls | 1 week | 2026-04-30 to 2026-05-06 |
+| BLIP-2 generative and contrastive-enhanced runs | 1 week | 2026-05-07 to 2026-05-13 |
+| Explanation-aware alpha sweep and length-aware controls | 1 week | 2026-05-14 to 2026-05-20 |
+| Domain, masking, scale, and transfer analyses | 1 week | 2026-05-21 to 2026-05-27 |
+| Paper writing, figure cleanup, validation, and defense preparation | 9 days | 2026-05-28 to 2026-06-05 |
 
 ---
 
 # Expected Contributions
 
-- A **technical survey** (≈12 pages) that traces the evolution of vision–language alignment from CLIP to Qwen2-VL, unified under a single design-space taxonomy.
-- A **systematic empirical comparison** of contrastive, generative, and explanation-aware alignment across document, chart, and natural image reasoning tasks on a shared model backbone.
-- An **explanation-aware QLoRA fine-tuning recipe** that jointly improves answer accuracy and rationale faithfulness.
-- A **cross-domain transfer analysis** characterizing the domain-generality of generative alignment signals.
-- An **efficiency–reliability Pareto analysis** across model scales and fine-tuning strategies, yielding practical deployment guidance.
-- A **reproducible open-source artifact** (code, configs, logs) released under Apache 2.0 to support follow-up research.
-- A **publication-ready draft** targeting *Information Fusion* (or alternative Q1 journals) with the full experimental pipeline.
+The expected contributions are:
+
+- A controlled taxonomy and literature framing of contrastive, generative, and explanation-aware VLM alignment.
+- A BLIP-2 objective comparison that separates generative fine-tuning from contrastive-enhanced fine-tuning.
+- A Qwen2-VL comparison of answer-only, rationale-generative, explanation-aware fixed-alpha, and length-aware rationale training on rationale-bearing datasets.
+- A domain-level analysis that clearly distinguishes rationale-supervised domains from answer-only fallback domains.
+- A masking-based evidence-sensitivity analysis with saved visual examples.
+- A Qwen2-VL-2B versus Qwen2-VL-7B scale check under the same QLoRA objective.
+- A transfer matrix across visual domains and prompt formats.
+- A reproducible artifact set suitable for a bachelor-level research paper: code, configs, logs, generated tables, generated figures, sample traces, split audits, and claim-to-evidence mapping.
 
 ---
 
-# Expected Results
+# Expected Results and Figure Placeholders
 
-## RQ1 — Evolution and taxonomy of vision–language alignment
+The figures in this proposal are still planning/dummy figures. They are kept as visual placeholders for the proposal document and should not be treated as the final paper figures.
 
-**Expected result.** A structured taxonomy that organizes VLM alignment methods along three orthogonal axes — alignment objective (contrastive, generative, hybrid), alignment mechanism (shared projection, Q-Former, cross-attention), and training paradigm (from-scratch, two-stage, instruction-tuned) — and reveals a clear historical trajectory from coarse-grained contrastive alignment toward fine-grained generative and explanation-aware alignment.
+## RQ1 - Evolution and taxonomy of vision-language alignment
 
-### Figure 1.1 — Taxonomy of Vision–Language Alignment Methods
+**Expected result.** The literature review should show a transition from contrastive image-text representation learning toward generative and instruction-tuned VLMs, with recent work adding reasoning, critique, text-rich images, and efficient adaptation. The thesis contribution is positioned as a controlled objective comparison under limited compute.
 
-Figure 1.1 presents a hierarchical taxonomy diagram that classifies the principal VLM families (CLIP, ALIGN, BLIP, BLIP-2, Flamingo, LLaVA, InternVL, Qwen2-VL, GPT-4V) by alignment objective, alignment mechanism, and training paradigm. The diagram highlights the structural transition from dual-encoder contrastive models to decoder-only generative models with cross-attention bridges, and locates the thesis contribution (explanation-aware generative alignment) within this structure.
+### Figure 1.1 - Taxonomy of Vision-Language Alignment Methods
 
-![Figure 1.1 — Taxonomy of Vision–Language Alignment Methods](figures/fig_1_1_taxonomy.png)
+This placeholder taxonomy classifies VLM families by objective, alignment mechanism, and training style. In the final paper, the taxonomy is summarized in prose and a literature comparison table.
 
-### Table 1.1 — Comparative Matrix of Major VLMs
+![](figures/fig_1_1_taxonomy.png)
 
-Table 1.1 compares the principal VLM families across six properties: vision encoder, alignment module, language model, training-data scale, primary objective, and reported benchmark performance on VQAv2, DocVQA, and ChartQA.
+### Figure 1.2 - Timeline of Vision-Language Alignment Milestones
 
-| Model       | Vision Encoder | Alignment Module     | Language Model | Train Tokens (≈) | Objective           | VQAv2 / DocVQA / ChartQA (%) |
-| ----------- | -------------- | -------------------- | -------------- | ---------------- | ------------------- | ---------------------------- |
-| CLIP        | ViT-L/14       | Joint projection     | Text encoder   | 400M pairs       | Contrastive         | — / — / —                    |
-| BLIP-2      | ViT-G          | Q-Former (32 tokens) | OPT-6.7B       | 129M pairs       | Contrastive + LM    | 65.2 / — / —                 |
-| LLaVA-1.5   | CLIP-ViT-L/14  | 2-layer MLP          | Vicuna-7B      | 1.2M pairs       | Generative (LM)     | 80.0 / 28.1 / —              |
-| InternVL-2  | InternViT-6B   | MLP + dynamic res.   | InternLM2-7B   | 1.8B pairs       | Generative (LM)     | 84.3 / 88.4 / 80.1           |
-| Qwen2-VL-2B | Native-res ViT | MLP + cross-attn     | Qwen2-1.5B     | 1.4B pairs       | Generative (LM)     | 81.5 / 90.1 / 73.5           |
-| Qwen2-VL-7B | Native-res ViT | MLP + cross-attn     | Qwen2-7B       | 1.4B pairs       | Generative (LM)     | 83.0 / 94.5 / 83.0           |
+This placeholder timeline gives the proposal a visual overview of the field. The final paper uses this idea in the literature review rather than relying on the exact dummy numbers shown here.
 
-### Figure 1.2 — Timeline of Vision–Language Alignment Milestones
+![](figures/fig_1_2_timeline.png)
 
-Figure 1.2 is a chronological timeline (2021–2025) plotting the release of major VLMs on the x-axis and a composite benchmark score (mean over VQAv2, DocVQA, ChartQA) on the y-axis, with each point annotated by alignment strategy. The figure visualizes the sharp improvement in reasoning accuracy following the shift from contrastive to generative alignment, and identifies the gap targeted by the thesis: explanation-aware generative alignment on structured visual domains.
+## RQ2 - BLIP-2 generative versus contrastive-enhanced alignment
 
-![Figure 1.2 — Timeline of Vision–Language Alignment Milestones](figures/fig_1_2_timeline.png)
+**Expected result.** The contrastive-enhanced BLIP-2 run may improve image-answer representation learning, but the paper will only claim an improvement if the answer accuracy and retrieval diagnostics support it. The comparison is within BLIP-2 on ScienceQA, not across all datasets and not on Qwen2-VL.
 
-### Table 1.2 — Benchmark Performance Progression Across Alignment Paradigms
+### Figure 2.1 - BLIP-2 Objective Comparison Placeholder
 
-Table 1.2 aggregates reported performance per alignment paradigm (contrastive-only, generative-only, hybrid, explanation-augmented) averaged across representative VLMs per group, on VQAv2, DocVQA, and ChartQA.
+This placeholder stands for the final BLIP-2 generative versus contrastive-enhanced result figure. The final paper should compare both trained variants against the frozen BLIP-2 reference.
 
-| Alignment Paradigm          | VQAv2 (%) | DocVQA (ANLS) | ChartQA (%) | Number of Models |
-| --------------------------- | --------- | ------------- | ----------- | ---------------- |
-| Contrastive (CLIP/ALIGN)    | 41.5      | —             | —           | 2                |
-| Hybrid (BLIP-2)             | 65.2      | —             | —           | 2                |
-| Generative (LLaVA/InternVL) | 82.1      | 85.4          | 78.0        | 5                |
-| Explanation-aware (target)  | 83.5 ↑    | 87.1 ↑        | 80.0 ↑      | 1 (this thesis)  |
+![](figures/fig_2_1_acc_gap.png)
 
----
+### Figure 2.2 - BLIP-2 Retrieval Diagnostic Placeholder
 
-## RQ2 — Contrastive vs. generative alignment on structured visual domains
+This placeholder stands for the final retrieval diagnostic. The final figure should include frozen BLIP-2, BLIP-2 generative, BLIP-2 contrastive-enhanced, and a random-rank control.
 
-**Expected result.** Generative alignment will outperform contrastive alignment on structured visual reasoning (DocVQA, ChartQA) by a larger margin than on natural image VQA, because fine-grained token-level supervision is better suited to the spatial and numerical detail of documents and charts. The contrastive variant will retain an advantage on cross-modal retrieval.
+![](figures/fig_2_2_attention.png)
 
-### Figure 2.1 — Accuracy Gap Between Contrastive and Generative Alignment Across Domains
+## RQ3 - Explanation-aware training on gold-rationale datasets
 
-Figure 2.1 is a grouped bar chart showing answer accuracy for contrastive-enhanced vs. generative variants on DocVQA (ANLS), ChartQA (relaxed accuracy), ScienceQA (accuracy), A-OKVQA (direct-answer accuracy), and VQAv2. The figure highlights that the generative variant's advantage is largest on DocVQA and ChartQA, and smallest on VQAv2.
+**Expected result.** Explanation-aware training is expected to be useful but not automatically better than answer-only or rationale-generative training. The main comparison must include the true answer-only control, the rationale-generative control, the fixed-alpha explanation-aware run, and the length-aware control.
 
-![Figure 2.1 — Contrastive vs. Generative Alignment Across Domains](figures/fig_2_1_acc_gap.png)
+### Figure 3.1 - Controlled Strategy Comparison Placeholder
 
-### Table 2.1 — Benchmark Performance by Alignment Strategy
+This placeholder represents the final comparison of zero-shot, answer-only, rationale-generative, explanation-aware, and length-aware controls for ScienceQA and A-OKVQA.
 
-Table 2.1 reports Exact Match / ANLS / F1 scores for the two alignment variants on all five benchmarks, along with standard deviations over three seeds.
+![](figures/fig_3_1_expl_acc.png)
 
-| Benchmark  | Contrastive (± σ)      | Generative (± σ)       | Δ (gen. − cont.) |
-| ---------- | ---------------------- | ---------------------- | ---------------- |
-| DocVQA     | 75.4 ± 0.8 (ANLS)      | 83.1 ± 0.6 (ANLS)      | +7.7             |
-| ChartQA    | 63.2 ± 1.1             | 71.8 ± 0.7             | +8.6             |
-| ScienceQA  | 78.0 ± 0.5             | 82.7 ± 0.4             | +4.7             |
-| A-OKVQA    | 60.1 ± 0.9             | 62.5 ± 0.6             | +2.4             |
-| VQAv2      | 74.5 ± 0.4             | 75.6 ± 0.3             | +1.1             |
+### Figure 3.2 - Alpha and Rationale Quality Placeholder
 
-### Figure 2.2 — Attention-Map Comparison on a Document / Chart / Natural Image Triplet
+This placeholder represents the explanation-aware alpha sweep and rationale-quality diagnostics. It is not a human-rating figure in the final scope.
 
-Figure 2.2 shows side-by-side attention heatmaps (over the image patches) from the contrastive and generative variants on three representative inputs — a document page, a bar chart, and a natural image — for the same query. The contrastive variant tends to produce diffuse, globally averaged attention; the generative variant produces sharper, task-relevant attention aligned with the answer's evidence region.
+![](figures/fig_3_2_human_violin.png)
 
-![Figure 2.2 — Attention Maps: Contrastive vs. Generative](figures/fig_2_2_attention.png)
+## RQ4 - Domain-level behavior
 
-### Table 2.2 — Cross-Modal Retrieval Quality Comparison
+**Expected result.** The same framework should behave differently across document, chart, science, commonsense, and natural-image tasks. However, domain-level results must be interpreted carefully because ScienceQA and A-OKVQA are rationale-supervised, while ChartQA, DocVQA, and VQAv2 are answer-only fallback domains.
 
-Table 2.2 compares the two variants on cross-modal retrieval (image-to-answer and answer-to-image) on DocVQA/ChartQA/VQAv2 retrieval splits, using R@1, R@5, and R@10. Contrastive alignment retains the expected advantage on retrieval; generative alignment is competitive but trails by 2–4 points at R@1.
+### Figure 4.1 - Domain-Level Adaptation Placeholder
 
-| Task (R@1 / R@5 / R@10) | Contrastive       | Generative        |
-| ----------------------- | ----------------- | ----------------- |
-| DocVQA retrieval        | 41.2 / 72.8 / 84.1 | 37.5 / 69.0 / 82.0 |
-| ChartQA retrieval       | 38.0 / 67.2 / 80.4 | 35.1 / 64.3 / 78.8 |
-| VQAv2 retrieval         | 52.3 / 80.1 / 89.7 | 49.4 / 77.9 / 88.5 |
+This placeholder represents the final domain-level adaptation figure. It should not be interpreted as an ablation heatmap over architecture factors unless those ablations are actually run.
 
----
+![](figures/fig_4_1_ablation_heatmap.png)
 
-## RQ3 — Explanation-aware training impact
+### Figure 4.2 - Pipeline Diagnostic Placeholder
 
-**Expected result.** Training on (image, question → explanation → answer) sequences will yield a net positive effect on both answer accuracy and explanation quality, with the largest accuracy gains on ScienceQA (which already contains gold explanations) and the largest explanation-quality gains on ChartQA and DocVQA (where explanations are synthesized).
+This placeholder represents the notebook/pipeline diagnostics that show dataset samples, prompt construction, tokenization, supervised spans, generated outputs, and metric calculation.
 
-### Figure 3.1 — Accuracy With and Without Explanation-Aware Training
+![](figures/fig_4_2_attention_entropy.png)
 
-Figure 3.1 is a paired bar chart showing answer accuracy for the generative-baseline variant (blue) and the explanation-aware variant (red) across DocVQA, ChartQA, ScienceQA, A-OKVQA, and VQAv2. The expected pattern is a consistent improvement for the explanation-aware variant, with the largest gap on ScienceQA (≈ +5 points) and the smallest on VQAv2 (≈ +0.7 points).
+## RQ5 - Evidence sensitivity under masking
 
-![Figure 3.1 — Effect of Explanation-Aware Training on Accuracy](figures/fig_3_1_expl_acc.png)
+**Expected result.** Masking drift should show whether the model's answer score changes when parts of the image are removed. This is evidence sensitivity, not proof that a generated rationale is faithful. Structured domains such as documents and charts may show stronger drift because evidence is more localized.
 
-### Table 3.1 — Explanation Quality Metrics
+### Figure 5.1 - Evidence-Masking Drift Placeholder
 
-Table 3.1 reports BLEU-4, ROUGE-L, and BERTScore-F1 for the generated explanations of the explanation-aware variant on each domain, using gold explanations as reference (ScienceQA) or GPT-4V-synthesized references filtered by a quality threshold (other domains).
+This placeholder represents the final masking drift plot across completed runs.
 
-| Domain    | BLEU-4 | ROUGE-L | BERTScore-F1 |
-| --------- | ------ | ------- | ------------ |
-| DocVQA    | 0.28   | 0.52    | 0.86         |
-| ChartQA   | 0.31   | 0.55    | 0.87         |
-| ScienceQA | 0.42   | 0.63    | 0.90         |
-| A-OKVQA   | 0.25   | 0.48    | 0.84         |
-| VQAv2     | 0.22   | 0.46    | 0.83         |
+![](figures/fig_5_1_hallucination.png)
 
-### Figure 3.2 — Human-Rated Plausibility and Faithfulness
+### Figure 5.2 - Masking Example Placeholder
 
-Figure 3.2 is a two-panel violin plot showing the distribution of human-rated scores (n=150 items, three annotators) for (a) explanation *plausibility* and (b) explanation *faithfulness*, comparing baseline vs. explanation-aware models. The explanation-aware variant concentrates mass toward higher scores on both axes, with a clearer gap on faithfulness.
+This placeholder represents saved masking examples: original image, top-drift mask, random mask, blank-image control, question, answer, full-image score, masked score, and drift.
 
-![Figure 3.2 — Human-Rated Explanation Quality (n=150 per group)](figures/fig_3_2_human_violin.png)
+![](figures/fig_5_2_qualitative.png)
 
-### Table 3.2 — Accuracy With vs. Without Chain-of-Thought at Inference
+## RQ6 - QLoRA scale check
 
-Table 3.2 isolates the effect of *inference-time* chain-of-thought in addition to *training-time* explanation awareness. Four conditions are reported: (baseline-train / direct-answer infer), (baseline-train / CoT infer), (explanation-aware train / direct-answer infer), and (explanation-aware train / CoT infer). Explanation-aware training paired with CoT inference is expected to yield the largest improvement.
+**Expected result.** The Qwen2-VL-7B run is expected to improve over Qwen2-VL-2B under the same selected explanation-aware QLoRA setup. This is a scale check, not a full comparison of every objective at every scale and not a full fine-tuning versus QLoRA Pareto study.
 
-| Training ↓ / Inference →       | Direct Answer | Chain-of-Thought |
-| ------------------------------ | ------------- | ---------------- |
-| Baseline (generative)          | 72.4          | 73.1             |
-| Explanation-aware (generative) | 74.7          | 78.3             |
+### Figure 6.1 - Efficiency Context Placeholder
 
----
+This placeholder is retained only as planning context. The final paper should not claim a full efficiency Pareto front unless wall-clock, memory, and strategy-comparison data are actually collected.
 
-## RQ4 — Architectural and training factors
+![](figures/fig_6_1_pareto.png)
 
-**Expected result.** Vision-encoder input resolution is the single most impactful factor for document and chart reasoning; LLM scale is the single most impactful factor for natural image and commonsense reasoning; projection type (MLP vs. Q-Former-style) has a modest effect; and a mixed-domain training mixture consistently outperforms single-domain training.
+### Figure 6.2 - Qwen2-VL 2B versus 7B Scale Placeholder
 
-### Figure 4.1 — Ablation Heatmap of Architectural Factors Across Domains
+This placeholder represents the final 2B versus 7B comparison under the same explanation-aware QLoRA setting.
 
-Figure 4.1 is a heatmap with rows indexed by ablation condition (native-res encoder, fixed-448, MLP, Q-Former-style, 2B, 7B, single-domain, mixed-domain) and columns indexed by domain (Doc / Chart / Science / Commonsense / Natural). Cell color encodes accuracy, making the domain-specific sensitivity of each factor immediately visible.
+![](figures/fig_6_2_scaling.png)
 
-![Figure 4.1 — Per-Domain Accuracy Impact of Architectural Ablations](figures/fig_4_1_ablation_heatmap.png)
+## RQ7 - Cross-domain transfer
 
-### Table 4.1 — Single-Factor Ablation Results
+**Expected result.** Transfer is expected to be target-specific and objective-specific. The transfer table should compare answer-only, rationale-generative, and explanation-aware sources separately where those controls exist. Each target column must be interpreted using that target dataset's native metric.
 
-Table 4.1 reports the per-domain accuracy impact of each architectural ablation, measured as Δ accuracy relative to the full explanation-aware configuration.
+### Figure 7.1 - Cross-Domain Transfer Matrix Placeholder
 
-| Ablation                                    | ΔDocVQA | ΔChartQA | ΔScienceQA | ΔA-OKVQA | ΔVQAv2 |
-| ------------------------------------------- | ------- | -------- | ---------- | -------- | ------ |
-| Fixed 448×448 (vs. native resolution)       | −6.8    | −4.5     | −1.2       | −0.4     | −0.2   |
-| Q-Former-style projection (vs. MLP)         | +0.4    | +0.6     | −0.1       | +0.2     | +0.3   |
-| 2B LM (vs. 7B LM)                           | −2.2    | −3.1     | −4.0       | −3.8     | −3.5   |
-| Single-domain training (vs. mixed)          | −1.7    | −2.0     | −1.5       | −1.9     | −1.1   |
+This placeholder represents the final train-domain versus test-domain transfer heatmap.
 
-### Figure 4.2 — Per-Layer Attention Entropy by Domain
+![](figures/fig_7_1_transfer_matrix.png)
 
-Figure 4.2 plots attention-entropy curves across LLM decoder layers (x-axis = layer index, y-axis = mean entropy) separately for each domain. The expected pattern is that reasoning on documents and charts produces deeper minima at later layers (indicating sharpened, evidence-focused attention), whereas natural-image reasoning entropy remains flatter across layers.
+### Figure 7.2 - Optional Transfer Stability Placeholder
 
-![Figure 4.2 — Per-Layer Attention Entropy by Visual Domain](figures/fig_4_2_attention_entropy.png)
+This placeholder is retained for proposal completeness, but sequential catastrophic forgetting is not part of the final main-scope claim unless a separate experiment is run.
 
-### Table 4.2 — Error-Type Breakdown by Domain
-
-Table 4.2 decomposes model errors into five categories (OCR-like / Numerical / Object-grounding / Reasoning-chain / Hallucination) and reports their per-domain prevalence. Documents are dominated by OCR-like errors; charts by numerical and reasoning-chain errors; natural images by object-grounding errors.
-
-| Domain    | OCR-like | Numerical | Obj-ground | Reasoning | Hallucin. |
-| --------- | -------- | --------- | ---------- | --------- | --------- |
-| DocVQA    | 46%      | 9%        | 13%        | 22%       | 10%       |
-| ChartQA   | 11%      | 33%       | 16%        | 30%       | 10%       |
-| ScienceQA | 6%       | 14%       | 22%        | 48%       | 10%       |
-| A-OKVQA   | 3%       | 5%        | 30%        | 53%       | 9%        |
-| VQAv2     | 4%       | 7%        | 56%        | 23%       | 10%       |
-
----
-
-## RQ5 — Hallucination and explanation faithfulness
-
-**Expected result.** Explanation-aware training will reduce hallucination rates across all five benchmarks and increase a composite faithfulness score, with the strongest reductions on domains with structured visual evidence (documents, charts).
-
-### Figure 5.1 — Hallucination Rates: Baseline vs. Explanation-Aware
-
-Figure 5.1 is a grouped bar chart showing hallucination rates (POPE for natural images, CHAIR for natural images, and domain-specific "fabricated entity" counts for DocVQA and ChartQA) for the baseline and explanation-aware variants. The expected pattern is a consistent reduction of 4–10 percentage points, largest on documents and charts.
-
-![Figure 5.1 — Hallucination Rates: Baseline vs. Explanation-Aware](figures/fig_5_1_hallucination.png)
-
-### Table 5.1 — Faithfulness Metrics
-
-Table 5.1 reports a composite faithfulness score combining attention-alignment (AA), masking-consistency (MC), and human-rated faithfulness (HF, on a 0–1 scale) for both variants, per domain.
-
-| Domain    | AA (base / expl) | MC (base / expl) | HF (base / expl) |
-| --------- | ---------------- | ---------------- | ---------------- |
-| DocVQA    | 0.42 / 0.58      | 0.64 / 0.78      | 0.55 / 0.72      |
-| ChartQA   | 0.39 / 0.56      | 0.61 / 0.75      | 0.52 / 0.70      |
-| ScienceQA | 0.48 / 0.64      | 0.70 / 0.82      | 0.60 / 0.76      |
-| A-OKVQA   | 0.41 / 0.50      | 0.63 / 0.72      | 0.54 / 0.66      |
-| VQAv2     | 0.37 / 0.46      | 0.60 / 0.68      | 0.50 / 0.60      |
-
-### Figure 5.2 — Qualitative Examples of Faithful vs. Confabulated Explanations
-
-Figure 5.2 shows six side-by-side qualitative examples (two documents, two charts, two natural images) with the input image, question, the baseline's answer + explanation, and the explanation-aware model's answer + explanation. Salient evidence regions are highlighted. The figure demonstrates that the explanation-aware model grounds its rationale in visible evidence, whereas the baseline occasionally fabricates evidence that is not present.
-
-![Figure 5.2 — Qualitative Examples: Confabulated vs. Grounded Rationales](figures/fig_5_2_qualitative.png)
-
-### Table 5.2 — Correlation Between Faithfulness and Answer Correctness
-
-Table 5.2 reports Pearson and Spearman correlation between the composite faithfulness score and answer correctness (1 if correct, 0 otherwise) for both variants, on 500 sampled items per domain. Higher correlation under the explanation-aware variant indicates that its internal reasoning is more diagnostic of its answers.
-
-| Variant            | Pearson r | Spearman ρ |
-| ------------------ | --------- | ---------- |
-| Baseline generative | 0.18      | 0.21       |
-| Explanation-aware   | 0.41      | 0.44       |
-
----
-
-## RQ6 — Parameter-efficient vs. full fine-tuning
-
-**Expected result.** QLoRA will recover 90–95% of the accuracy and faithfulness gains of full fine-tuning at a fraction of the compute cost, and the remaining gap closes further at the 7B scale. The efficiency–reliability Pareto front will favor QLoRA-7B over full-FT-2B for every metric except raw latency.
-
-### Figure 6.1 — Efficiency–Accuracy Pareto Front
-
-Figure 6.1 is a scatter plot with GPU-hours (x-axis, log scale) and mean multi-domain accuracy (y-axis), with one point per (method × scale) combination. Pareto-optimal points are highlighted. QLoRA-2B, QLoRA-7B, LoRA-2B, Full-FT-2B, and (optionally) Full-FT-7B are plotted with different markers.
-
-![Figure 6.1 — Efficiency–Accuracy Pareto Front](figures/fig_6_1_pareto.png)
-
-### Table 6.1 — Training Cost and Accuracy per Strategy (Qwen2-VL-2B)
-
-Table 6.1 reports trainable-parameter count, peak GPU memory, wall-clock training time, and multi-domain mean accuracy for each fine-tuning strategy.
-
-| Strategy   | Trainable Params | Peak Mem (GB) | Train Time (h) | Mean Acc (%) |
-| ---------- | ---------------- | ------------- | -------------- | ------------ |
-| Full FT    | 2.1 B            | 38            | 18.4           | 78.9         |
-| LoRA (fp16)| 28 M             | 22            | 7.6            | 77.6         |
-| QLoRA      | 28 M             | 12            | 6.9            | 77.1         |
-
-### Figure 6.2 — Scaling: 2B vs. 7B Backbone Under QLoRA
-
-Figure 6.2 plots mean multi-domain accuracy and mean faithfulness score for Qwen2-VL-2B and Qwen2-VL-7B, both trained with QLoRA under identical data and hyperparameters. The figure demonstrates that QLoRA-7B closes the remaining gap to full-fine-tune-2B and surpasses it on faithfulness, while remaining deployable on a single A100.
-
-![Figure 6.2 — QLoRA: 2B vs. 7B Backbone Under Identical Training](figures/fig_6_2_scaling.png)
-
-### Table 6.2 — Efficiency–Reliability Summary
-
-Table 6.2 summarizes mean accuracy, mean faithfulness, inference tokens/sec, and GPU-hours required for each (strategy × scale) combination.
-
-| Strategy × Scale | Mean Acc | Faithful. | Inf. tok/s | Train GPU-h |
-| ---------------- | -------- | --------- | ---------- | ----------- |
-| Full-FT × 2B     | 78.9     | 0.66      | 48         | 18.4        |
-| LoRA × 2B        | 77.6     | 0.65      | 48         | 7.6         |
-| QLoRA × 2B       | 77.1     | 0.64      | 46         | 6.9         |
-| QLoRA × 7B       | 82.4     | 0.72      | 22         | 14.2        |
-
----
-
-## RQ7 — Cross-domain transfer
-
-**Expected result.** Explanation-aware training will exhibit stronger cross-domain transfer than generative or contrastive training, but substantial domain-specific specialization remains: a model trained only on documents will transfer reasonably to charts (shared structure) and poorly to natural images (different evidence profile). Mixed-domain training dominates every single-domain training setting.
-
-### Figure 7.1 — Cross-Domain Transfer Matrix
-
-Figure 7.1 is a 3×3 heatmap with training domain on the rows (Documents / Charts / Natural images) and evaluation domain on the columns. Cell color encodes accuracy; the diagonal is strongest, with document→chart and chart→document transfer second-strongest, and natural-image→document the weakest transfer direction.
-
-![Figure 7.1 — Cross-Domain Transfer Matrix (Accuracy %)](figures/fig_7_1_transfer_matrix.png)
-
-### Table 7.1 — Zero-Shot Cross-Domain Accuracy
-
-Table 7.1 reports the numerical values behind Figure 7.1 under the explanation-aware training variant.
-
-| Train \ Eval | Documents | Charts | Natural Images |
-| ------------ | --------- | ------ | -------------- |
-| Documents    | 83.1      | 54.8   | 61.2           |
-| Charts       | 56.3      | 71.8   | 60.0           |
-| Natural Img. | 43.5      | 45.2   | 75.6           |
-
-### Figure 7.2 — Catastrophic Forgetting Curve
-
-Figure 7.2 plots accuracy on the original domain (y-axis) as the model is sequentially fine-tuned on a new domain over training steps (x-axis). Three curves show baseline-generative, contrastive-enhanced, and explanation-aware variants. The explanation-aware variant exhibits the slowest forgetting, suggesting that rationale-grounded training stabilizes cross-domain representations.
-
-![Figure 7.2 — Catastrophic Forgetting Curve After Adapting to a New Domain](figures/fig_7_2_forgetting.png)
-
-### Table 7.2 — Domain-Gap vs. Transfer Accuracy Correlation
-
-Table 7.2 reports the correlation between an embedding-space domain-gap metric (mean pairwise Fréchet distance between CLS tokens of source and target domains) and zero-shot transfer accuracy, per training variant. A stronger negative correlation indicates that transfer is better predicted by representation similarity under that variant.
-
-| Variant            | Pearson r (gap vs. acc) |
-| ------------------ | ----------------------- |
-| Baseline generative | −0.52                   |
-| Contrastive-enhanced | −0.61                   |
-| Explanation-aware   | −0.73                   |
+![](figures/fig_7_2_forgetting.png)
 
 ---
 
 # References
 
-Dettmers, T., Pagnoni, A., Holtzman, A., & Zettlemoyer, L. (2023). *QLoRA: Efficient Finetuning of Quantized LLMs.* NeurIPS.
+Antol, S. et al. (2015). *VQA: Visual Question Answering.* ICCV.
 
-Dosovitskiy, A. et al. (2021). *An Image is Worth 16×16 Words: Transformers for Image Recognition at Scale.* ICLR.
+Dettmers, T., Pagnoni, A., Holtzman, A., & Zettlemoyer, L. (2023). *QLoRA: Efficient Finetuning of Quantized LLMs.* NeurIPS.
 
 Goyal, Y. et al. (2017). *Making the V in VQA Matter: Elevating the Role of Image Understanding in Visual Question Answering.* CVPR.
 
-Hu, E. J. et al. (2021). *LoRA: Low-Rank Adaptation of Large Language Models.* arXiv:2106.09685.
+Guan, T. et al. (2024). *HallusionBench: An Advanced Diagnostic Suite for Entangled Language Hallucination and Visual Illusion in Large Vision-Language Models.* CVPR.
 
-Jia, C. et al. (2021). *Scaling Up Visual and Vision–Language Representation Learning with Noisy Text Supervision (ALIGN).* ICML.
+Hu, E. J. et al. (2022). *LoRA: Low-Rank Adaptation of Large Language Models.* ICLR.
 
-Li, J. et al. (2023). *BLIP-2: Bootstrapping Language–Image Pre-training with Frozen Image Encoders and Large Language Models.* ICML.
+Jiang, C. et al. (2024). *Hallucination Augmented Contrastive Learning for Multimodal Large Language Model.* CVPR.
 
-Li, Y. et al. (2023). *Evaluating Object Hallucination in Large Vision–Language Models (POPE).* EMNLP.
+Li, J. et al. (2023). *BLIP-2: Bootstrapping Language-Image Pre-training with Frozen Image Encoders and Large Language Models.* ICML.
 
-Liu, H. et al. (2023). *Visual Instruction Tuning (LLaVA).* NeurIPS.
+Liu, S.-Y. et al. (2024). *DoRA: Weight-Decomposed Low-Rank Adaptation.* ICML.
 
-Lu, P. et al. (2022). *Learn to Explain: Multimodal Reasoning via Thought Chains for Science Question Answering (ScienceQA).* NeurIPS.
+Lu, P. et al. (2022). *Learn to Explain: Multimodal Reasoning via Thought Chains for Science Question Answering.* NeurIPS.
 
 Masry, A. et al. (2022). *ChartQA: A Benchmark for Question Answering about Charts with Visual and Logical Reasoning.* ACL Findings.
 
 Mathew, M. et al. (2021). *DocVQA: A Dataset for VQA on Document Images.* WACV.
 
-Parcalabescu, L., & Frank, A. (2024). *On Measuring Faithfulness of Vision–Language Model Explanations.* ACL.
+Papineni, K. et al. (2002). *BLEU: A Method for Automatic Evaluation of Machine Translation.* ACL.
 
-Radford, A. et al. (2021). *Learning Transferable Visual Models from Natural Language Supervision (CLIP).* ICML.
-
-Rohrbach, A. et al. (2018). *Object Hallucination in Image Captioning.* EMNLP.
+Radford, A. et al. (2021). *Learning Transferable Visual Models from Natural Language Supervision.* ICML.
 
 Schwenk, D. et al. (2022). *A-OKVQA: A Benchmark for Visual Question Answering using World Knowledge.* ECCV.
 
-Vaswani, A. et al. (2017). *Attention Is All You Need.* NeurIPS.
+Wang, P. et al. (2024). *Qwen2-VL: Enhancing Vision-Language Model's Perception of the World at Any Resolution.* arXiv preprint.
 
-Wang, P. et al. (2024). *Qwen2-VL: Enhancing Vision–Language Model's Perception of the World at Any Resolution.* arXiv:2409.12191.
+Wu, X. et al. (2025). *VISCO: Benchmarking Fine-Grained Critique and Correction Towards Self-Improvement in Visual Reasoning.* CVPR.
 
-Wei, J. et al. (2022). *Chain-of-Thought Prompting Elicits Reasoning in Large Language Models.* NeurIPS.
-
-Yu, J. et al. (2022). *CoCa: Contrastive Captioners are Image–Text Foundation Models.* TMLR.
+Zhang, D. et al. (2025). *Critic-V: VLM Critics Help Catch VLM Errors in Multimodal Reasoning.* CVPR.
 
 ---
 
 # Appendix
 
-## A. Dataset Statistics
+## A. Dataset Roles
 
-| Dataset    | Images / Docs | Q–A Pairs | Has Gold Rationales | License          |
-| ---------- | ------------- | --------- | ------------------- | ---------------- |
-| DocVQA     | ≈12K          | ≈50K      | No                  | Academic         |
-| ChartQA    | ≈20K          | ≈32K      | No                  | Academic         |
-| ScienceQA  | ≈11K          | ≈21K      | **Yes**             | CC BY-NC-SA      |
-| A-OKVQA    | ≈25K          | ≈25K      | Partial             | CC BY 4.0        |
-| VQAv2      | ≈80K          | ≈50K sub. | No                  | CC BY 4.0        |
+| Dataset | Domain | Gold rationale availability | Role in this thesis | Headline metric |
+| --- | --- | --- | --- | --- |
+| DocVQA | Documents | No | Answer-only fallback; transfer | ANLS |
+| ChartQA | Charts | No | Answer-only fallback; masking example | Relaxed accuracy |
+| ScienceQA | Science images | Yes | Main rationale-supervised dataset | Multiple-choice accuracy |
+| A-OKVQA | Commonsense images | Yes/usable rationales | Second rationale-bearing domain | Multiple-choice accuracy |
+| VQAv2 subset | Natural images | No | Answer-only fallback; transfer | VQA accuracy |
 
-## B. Hyperparameter Grid
+## B. Default Qwen2-VL QLoRA Configuration
 
-| Hyperparameter    | Grid Values                            |
-| ----------------- | -------------------------------------- |
-| Learning rate     | {5e-5, 1e-4, 2e-4, 5e-4}               |
-| LoRA rank (r)     | {8, 16, 32}                            |
-| LoRA alpha        | {16, 32, 64}                           |
-| Warm-up ratio     | {1%, 3%, 5%}                           |
-| Batch size (eff.) | {16, 32, 64}                           |
-| Epochs            | {1, 2, 3}                              |
+| Setting | Default |
+| --- | --- |
+| Quantization | 4-bit NF4 |
+| LoRA rank | 16 |
+| LoRA alpha | 32 |
+| Optimizer | AdamW |
+| Learning rate | 2e-4 |
+| Schedule | Cosine with 3 percent warm-up |
+| Weight decay | 0.01 |
+| Precision | bf16 compute |
+| Effective batch size | 32 with gradient accumulation |
+| Seed policy | One seed per complete configuration |
 
-## C. Ethical Considerations
+## C. Out-of-Scope Items
 
-- **Data.** All datasets are used under academic / permissive licenses. No personal or identifiable information is introduced beyond what is already present in public research corpora.
-- **Explanation-synthesis via teacher models.** GPT-4V-synthesized rationales (used for DocVQA, ChartQA, A-OKVQA, VQAv2) are filtered through automated quality checks and spot-audited by the author; the thesis reports filter thresholds and rejection rates.
-- **Transparency.** All training configurations, prompts, filter thresholds, and human-rating rubrics are released with the code.
-- **Intended use.** The released model variants are research artifacts. Downstream deployment in high-stakes domains (medical, legal, financial) would require additional domain-specific validation and is out of scope.
-- **Compute and environmental cost.** Total reported GPU-hours are tracked and disclosed; all experiments are constrained to a single-A100 budget where possible.
+The following items are not part of the final main-scope paper unless added as separate future work:
 
-## D. Model Evaluation Tables
+- teacher-generated rationales for ChartQA, DocVQA, or VQAv2,
+- human-rated explanation faithfulness,
+- attention-alignment faithfulness scores,
+- POPE/CHAIR hallucination benchmarking,
+- full fine-tuning versus QLoRA Pareto analysis,
+- every objective repeated at 7B scale,
+- multi-seed or full-dataset leaderboard-scale claims,
+- sequential catastrophic forgetting experiments.
 
-Extended per-seed, per-domain, per-metric tables (Exact Match, ANLS, F1, BLEU-4, ROUGE-L, BERTScore-F1, POPE, CHAIR, attention-alignment, masking-consistency, human-rated faithfulness) will be provided in the final thesis appendix.
+## D. Ethical and Reproducibility Considerations
+
+- All datasets are public research benchmarks.
+- No private data is introduced.
+- The study reports the limits of rationale supervision and does not present evidence-masking drift as proof of faithful explanations.
+- The code, configuration files, generated figures, tables, logs, sample traces, split audits, and claim-to-evidence artifacts should be maintained with the project repository.
+- Generative AI tools may be used for language and code assistance, but scientific decisions, experiment interpretation, and final manuscript responsibility remain with the author.
 
 ## E. Technical Environment
 
-- **Hardware.** 1× NVIDIA A100 40GB (primary); Google Colab Pro+ (fallback).
-- **OS.** Linux (Ubuntu 22.04) or macOS 14 with CPU-only fallback.
-- **Python.** 3.10+, `uv` for package management.
-- **Libraries.** `torch 2.x`, `transformers`, `peft`, `bitsandbytes`, `accelerate`, `datasets`, `evaluate`, `trl`, `einops`, `wandb`, `matplotlib`, `seaborn`.
-- **Licensing.** Released code under Apache 2.0.
+- **Hardware:** Colab Pro+ GPU where possible; A100 preferred for Qwen2-VL-7B.
+- **Operating system:** Linux runtime for GPU experiments; macOS or Linux for local writing/building.
+- **Python:** Python 3.10+ or the runtime version supported by Colab.
+- **Libraries:** PyTorch, Hugging Face `transformers`, `datasets`, `peft`, `accelerate`, `bitsandbytes`, `evaluate`, `matplotlib`, and `seaborn`.
+- **Output artifacts:** generated tables, generated figures, final validation logs, split/leakage audit, sample trace summary, and paper-ready PDF.

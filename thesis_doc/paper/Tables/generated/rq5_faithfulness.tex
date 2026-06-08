@@ -1,25 +1,27 @@
 \begin{table}
 \caption{RQ5 evidence-masking drift by model.}
 \label{tab:rq5_faithfulness}
-\begin{tabular}{lrr}
+\begin{tabular}{lrrrr}
 \toprule
-run & mean_drift & n_eval \\
+run & mean_drift & ci95_low & ci95_high & n_eval \\
 \midrule
-rq2_qwen2vl_generative_aokvqa & 0.028300 & 30 \\
-rq2_qwen2vl_generative_scienceqa & 0.022400 & 30 \\
-rq3_alpha_000 & 0.016000 & 30 \\
-rq3_alpha_010 & 0.016700 & 30 \\
-rq3_alpha_025 & 0.024200 & 30 \\
-rq3_alpha_050 & 0.020800 & 30 \\
-rq3_alpha_075 & 0.018800 & 30 \\
-rq3_alpha_100 & 0.029600 & 30 \\
-rq3_qwen2vl_answer_only_aokvqa & 0.023100 & 30 \\
-rq3_qwen2vl_answer_only_scienceqa & 0.079600 & 30 \\
-rq3_qwen2vl_explanation_aware_aokvqa & 0.022700 & 30 \\
-rq4_qwen2vl_explanation_aware_chartqa & 0.220300 & 30 \\
-rq4_qwen2vl_explanation_aware_docvqa & 0.375600 & 30 \\
-rq4_qwen2vl_explanation_aware_vqav2 & 0.115700 & 30 \\
-rq6_qwen2vl_7b_explanation_aware_scienceqa & 0.014100 & 30 \\
+rq2_qwen2vl_generative_aokvqa & 0.024500 & -0.023600 & 0.072600 & 30 \\
+rq2_qwen2vl_generative_scienceqa & 0.021700 & -0.010000 & 0.058200 & 30 \\
+rq3_alpha_000 & -0.030300 & -0.204500 & 0.131600 & 30 \\
+rq3_alpha_010 & 0.022300 & -0.008000 & 0.056800 & 30 \\
+rq3_alpha_025 & 0.025300 & -0.005700 & 0.060200 & 30 \\
+rq3_alpha_050 & 0.019700 & -0.011900 & 0.055200 & 30 \\
+rq3_alpha_075 & 0.007400 & -0.037200 & 0.053200 & 30 \\
+rq3_alpha_100 & 0.014900 & -0.027400 & 0.063800 & 30 \\
+rq3_qwen2vl_answer_only_aokvqa & 0.023100 & -0.012200 & 0.060200 & 30 \\
+rq3_qwen2vl_answer_only_scienceqa & 0.089800 & 0.019700 & 0.183000 & 30 \\
+rq3_qwen2vl_explanation_aware_aokvqa & 0.027100 & -0.007500 & 0.062700 & 30 \\
+rq3_qwen2vl_length_aware_aokvqa & 0.026700 & -0.022000 & 0.076000 & 30 \\
+rq3_qwen2vl_length_aware_scienceqa & 0.020700 & -0.010800 & 0.058600 & 30 \\
+rq4_qwen2vl_explanation_aware_chartqa & 0.223700 & 0.141900 & 0.314000 & 30 \\
+rq4_qwen2vl_explanation_aware_docvqa & 0.374900 & 0.277000 & 0.496000 & 30 \\
+rq4_qwen2vl_explanation_aware_vqav2 & 0.110900 & 0.027400 & 0.240800 & 30 \\
+rq6_qwen2vl_7b_explanation_aware_scienceqa & 0.011400 & -0.005900 & 0.026000 & 30 \\
 \bottomrule
 \end{tabular}
 \end{table}

@@ -5,17 +5,19 @@
 \toprule
 comparison_group & method & score & metric & run \\
 \midrule
-BLIP-2 / ScienceQA & Zero-shot & 0.465000 & MC accuracy & baseline \\
-BLIP-2 / ScienceQA & Generative & 0.495000 & MC accuracy & rq2_blip2_generative_scienceqa \\
+BLIP-2 / ScienceQA & Zero-shot & 0.445000 & MC accuracy & baseline \\
+BLIP-2 / ScienceQA & Generative & 0.475000 & MC accuracy & rq2_blip2_generative_scienceqa \\
 BLIP-2 / ScienceQA & Generative + contrastive & 0.480000 & MC accuracy & rq2_blip2_contrastive_scienceqa \\
-Qwen2-VL / ScienceQA & Zero-shot & 0.385000 & MC accuracy & baseline \\
-Qwen2-VL / ScienceQA & Answer-only & 0.785000 & MC accuracy & rq3_qwen2vl_answer_only_scienceqa \\
-Qwen2-VL / ScienceQA & Rationale+answer CE & 0.775000 & MC accuracy & rq2_qwen2vl_generative_scienceqa \\
-Qwen2-VL / ScienceQA & Expl.-aware alpha=0.50 & 0.740000 & MC accuracy & rq3_alpha_050 \\
+Qwen2-VL / ScienceQA & Zero-shot & 0.400000 & MC accuracy & baseline \\
+Qwen2-VL / ScienceQA & Answer-only & 0.800000 & MC accuracy & rq3_qwen2vl_answer_only_scienceqa \\
+Qwen2-VL / ScienceQA & Rationale+answer CE & 0.780000 & MC accuracy & rq2_qwen2vl_generative_scienceqa \\
+Qwen2-VL / ScienceQA & Expl.-aware alpha=0.50 & 0.765000 & MC accuracy & rq3_alpha_050 \\
+Qwen2-VL / ScienceQA & Expl.-aware length-aware & 0.780000 & MC accuracy & rq3_qwen2vl_length_aware_scienceqa \\
 Qwen2-VL / A-OKVQA & Zero-shot & 0.355000 & MC accuracy & baseline \\
-Qwen2-VL / A-OKVQA & Answer-only & 0.820000 & MC accuracy & rq3_qwen2vl_answer_only_aokvqa \\
+Qwen2-VL / A-OKVQA & Answer-only & 0.830000 & MC accuracy & rq3_qwen2vl_answer_only_aokvqa \\
 Qwen2-VL / A-OKVQA & Rationale+answer CE & 0.790000 & MC accuracy & rq2_qwen2vl_generative_aokvqa \\
 Qwen2-VL / A-OKVQA & Expl.-aware alpha=0.50 & 0.795000 & MC accuracy & rq3_qwen2vl_explanation_aware_aokvqa \\
+Qwen2-VL / A-OKVQA & Expl.-aware length-aware & 0.790000 & MC accuracy & rq3_qwen2vl_length_aware_aokvqa \\
 \bottomrule
 \end{tabular}
 \end{table}

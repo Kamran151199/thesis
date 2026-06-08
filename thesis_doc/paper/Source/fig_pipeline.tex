@@ -45,11 +45,11 @@
 % Config row
 \node[chip] (cfglabel) at (8.5,8.08) {one experiment = one YAML config};
 \node[card,text width=3.55cm,minimum height=0.95cm] (c1) at (2.55,7.25)
-  {\textbf{Backbone}\\[-1pt]\scriptsize Qwen2--VL, BLIP-2, PaliGemma};
+  {\textbf{Backbone}\\[-1pt]\scriptsize Qwen2--VL 2B/7B, BLIP-2};
 \node[card,text width=3.55cm,minimum height=0.95cm] (c2) at (6.50,7.25)
   {\textbf{Dataset}\\[-1pt]\scriptsize DocVQA, ChartQA, ScienceQA, A-OKVQA, VQAv2};
 \node[card,text width=3.55cm,minimum height=0.95cm] (c3) at (10.45,7.25)
-  {\textbf{Objective}\\[-1pt]\scriptsize baseline, contrastive, generative, expl.-aware};
+  {\textbf{Objective}\\[-1pt]\scriptsize zero-shot, answer-only, rationale CE, expl.-aware, contrastive};
 \node[card,text width=3.55cm,minimum height=0.95cm] (c4) at (14.40,7.25)
   {\textbf{Metrics}\\[-1pt]\scriptsize accuracy, ANLS, ROUGE/BLEU, drift};
 
@@ -63,7 +63,7 @@
 \node[card,text width=3.2cm,minimum height=0.88cm] (s1) at (4.0,3.70)
   {\textbf{Baseline eval}\\[-1pt]\scriptsize score the frozen model};
 \node[card,text width=3.2cm,minimum height=0.88cm] (s2) at (8.5,3.70)
-  {\textbf{QLoRA fine-tune}\\[-1pt]\scriptsize train adapter weights};
+  {\textbf{Task fine-tune}\\[-1pt]\scriptsize Qwen2--VL QLoRA or\\ BLIP-2 Q-Former path};
 \node[card,text width=3.2cm,minimum height=0.88cm] (s3) at (13.0,3.70)
   {\textbf{Final eval}\\[-1pt]\scriptsize re-score the adapter};
 
@@ -71,9 +71,9 @@
 \node[metric,text width=3.3cm,minimum height=1.0cm] (m1) at (4.0,2.08)
   {\textbf{Answer}\\[-1pt]\scriptsize exact / multiple-choice\\[-1pt]\scriptsize ANLS / relaxed accuracy};
 \node[metric,text width=3.3cm,minimum height=1.0cm] (m2) at (8.5,2.08)
-  {\textbf{Explanation}\\[-1pt]\scriptsize ROUGE-L, BLEU,\\[-1pt]\scriptsize BERTScore};
+  {\textbf{Explanation}\\[-1pt]\scriptsize ROUGE-L, BLEU\\[-1pt]\scriptsize only for rationale runs};
 \node[metric,text width=3.3cm,minimum height=1.0cm] (m3) at (13.0,2.08)
-  {\textbf{Faithfulness}\\[-1pt]\scriptsize attention alignment\\[-1pt]\scriptsize mask $\rightarrow$ answer drift};
+  {\textbf{Evidence sensitivity}\\[-1pt]\scriptsize top / random / blank masks\\[-1pt]\scriptsize mask $\rightarrow$ answer drift};
 
 % Artifacts
 \node[artifact,text width=5.9cm,minimum height=0.8cm] (a1) at (5.35,0.22)

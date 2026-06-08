@@ -36,6 +36,7 @@ train:
 eval:
   metrics: [mc_accuracy, rouge_l, bleu]
   cot: true
+  batch_size: 1                # L4/22GB-safe eval; avoids MC scoring OOM
 
 wandb:
   tags: [rq6, qwen2_vl, 7b, scale-ablation, scienceqa]

@@ -188,58 +188,50 @@ def fig_1_2_timeline() -> None:
 
 
 def fig_2_1_acc_gap() -> None:
-    domains = ["DocVQA\n(ANLS)", "ChartQA", "ScienceQA", "A-OKVQA", "VQAv2"]
-    contr = [75.4, 63.2, 78.0, 60.1, 74.5]
-    gener = [83.1, 71.8, 82.7, 62.5, 75.6]
+    variants = ["Generative", "Generative +\ncontrastive"]
+    frozen = [0.445, 0.445]
+    tuned = [0.475, 0.480]
 
-    x = np.arange(len(domains))
+    x = np.arange(len(variants))
     width = 0.38
-    fig, ax = plt.subplots(figsize=(10, 5))
-    b1 = ax.bar(x - width / 2, contr, width, color=PALETTE["contrastive"], edgecolor="black", linewidth=0.6, label="Contrastive-enhanced")
-    b2 = ax.bar(x + width / 2, gener, width, color=PALETTE["generative"], edgecolor="black", linewidth=0.6, label="Generative")
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.bar(x - width / 2, frozen, width, color=PALETTE["baseline"], edgecolor="black", linewidth=0.6, label="Frozen reference")
+    ax.bar(x + width / 2, tuned, width, color=PALETTE["contrastive"], edgecolor="black", linewidth=0.6, label="Fine-tuned")
 
-    for bar, c, g in zip(x, contr, gener):
-        ax.text(bar + width / 2, g + 0.6, f"+{g - c:.1f}", ha="center", fontsize=9, color=PALETTE["accent"], fontweight="bold")
+    for i, score in enumerate(tuned):
+        ax.text(i + width / 2, score + 0.015, f"{score:.3f}", ha="center", fontsize=9, fontweight="bold")
 
     ax.set_xticks(x)
-    ax.set_xticklabels(domains)
-    ax.set_ylabel("Accuracy (%)")
-    ax.set_ylim(0, 95)
-    ax.set_title("Figure 2.1 — Contrastive vs. Generative Alignment Across Domains")
+    ax.set_xticklabels(variants)
+    ax.set_ylabel("ScienceQA MC accuracy")
+    ax.set_ylim(0, 0.60)
+    ax.set_title("Figure 2.1 — BLIP-2 Objective Comparison Placeholder")
     ax.legend(loc="upper right")
     ax.grid(axis="y", alpha=0.25)
     save(fig, "fig_2_1_acc_gap.png")
 
 
 def fig_2_2_attention() -> None:
-    rng = np.random.default_rng(2)
-    fig, axes = plt.subplots(2, 3, figsize=(11, 6))
-    domains = ["Document", "Chart", "Natural Image"]
-
-    def make_attn(sharp: bool, cx: float, cy: float, size: int = 28) -> np.ndarray:
-        y, x = np.mgrid[0:size, 0:size]
-        sigma = 2.5 if sharp else 8.0
-        attn = np.exp(-((x - cx) ** 2 + (y - cy) ** 2) / (2 * sigma**2))
-        attn += rng.normal(0, 0.02, size=attn.shape)
-        return np.clip(attn, 0, None)
-
-    centers = [(8, 7), (21, 12), (14, 16)]
-
-    for col, (domain, (cx, cy)) in enumerate(zip(domains, centers)):
-        ax = axes[0, col]
-        ax.imshow(make_attn(False, cx, cy), cmap="viridis")
-        ax.set_title(f"Contrastive — {domain}", fontsize=10)
-        ax.set_xticks([])
-        ax.set_yticks([])
-
-        ax = axes[1, col]
-        ax.imshow(make_attn(True, cx, cy), cmap="viridis")
-        ax.set_title(f"Generative — {domain}", fontsize=10)
-        ax.set_xticks([])
-        ax.set_yticks([])
-
-    fig.suptitle("Figure 2.2 — Attention Maps: Contrastive vs. Generative", fontsize=12, y=1.02)
-    fig.tight_layout()
+    metrics = ["R@1", "R@5", "R@10", "MRR"]
+    rows = {
+        "Frozen BLIP-2": [0.010, 0.020, 0.035, 0.028],
+        "BLIP-2 generative": [0.010, 0.020, 0.025, 0.030],
+        "BLIP-2 contrastive": [0.010, 0.020, 0.030, 0.031],
+        "Random rank": [0.005, 0.025, 0.050, 0.029],
+    }
+    colors = [PALETTE["baseline"], PALETTE["generative"], PALETTE["contrastive"], PALETTE["purple"]]
+    x = np.arange(len(metrics))
+    width = 0.18
+    fig, ax = plt.subplots(figsize=(9, 5))
+    for idx, ((name, values), color) in enumerate(zip(rows.items(), colors)):
+        ax.bar(x + (idx - 1.5) * width, values, width, label=name, color=color, edgecolor="black", linewidth=0.5)
+    ax.set_xticks(x)
+    ax.set_xticklabels(metrics)
+    ax.set_ylabel("Retrieval score")
+    ax.set_ylim(0, 0.08)
+    ax.set_title("Figure 2.2 — BLIP-2 Retrieval Diagnostic Placeholder")
+    ax.legend(fontsize=8)
+    ax.grid(axis="y", alpha=0.25)
     save(fig, "fig_2_2_attention.png")
 
 
@@ -249,52 +241,46 @@ def fig_2_2_attention() -> None:
 
 
 def fig_3_1_expl_acc() -> None:
-    domains = ["DocVQA", "ChartQA", "ScienceQA", "A-OKVQA", "VQAv2"]
-    base = [83.1, 71.8, 82.7, 62.5, 75.6]
-    expl = [84.9, 74.2, 87.8, 65.1, 76.3]
-
-    x = np.arange(len(domains))
-    width = 0.38
-    fig, ax = plt.subplots(figsize=(10, 5))
-    ax.bar(x - width / 2, base, width, color=PALETTE["generative"], edgecolor="black", linewidth=0.6, label="Generative (baseline)")
-    ax.bar(x + width / 2, expl, width, color=PALETTE["explanation"], edgecolor="black", linewidth=0.6, label="Explanation-aware")
-
-    for i, (b, e) in enumerate(zip(base, expl)):
-        ax.text(i + width / 2, e + 0.6, f"+{e - b:.1f}", ha="center", fontsize=9, color=PALETTE["accent"], fontweight="bold")
-
+    groups = ["ScienceQA", "A-OKVQA"]
+    series = {
+        "Zero-shot": [0.400, 0.355],
+        "Answer-only": [0.800, 0.830],
+        "Rationale+answer CE": [0.780, 0.790],
+        "Explanation-aware": [0.765, 0.795],
+        "Length-aware": [0.780, 0.790],
+    }
+    colors = [PALETTE["baseline"], PALETTE["contrastive"], PALETTE["generative"], PALETTE["explanation"], PALETTE["accent"]]
+    x = np.arange(len(groups))
+    width = 0.15
+    fig, ax = plt.subplots(figsize=(9, 5))
+    for idx, ((name, values), color) in enumerate(zip(series.items(), colors)):
+        ax.bar(x + (idx - 2) * width, values, width, color=color, edgecolor="black", linewidth=0.5, label=name)
     ax.set_xticks(x)
-    ax.set_xticklabels(domains)
-    ax.set_ylabel("Accuracy (%)")
-    ax.set_ylim(0, 100)
-    ax.set_title("Figure 3.1 — Effect of Explanation-Aware Training on Accuracy")
-    ax.legend(loc="upper right")
+    ax.set_xticklabels(groups)
+    ax.set_ylabel("MC accuracy")
+    ax.set_ylim(0, 0.95)
+    ax.set_title("Figure 3.1 — Controlled Strategy Comparison Placeholder")
+    ax.legend(fontsize=8, ncol=2)
     ax.grid(axis="y", alpha=0.25)
     save(fig, "fig_3_1_expl_acc.png")
 
 
 def fig_3_2_human_violin() -> None:
-    rng = np.random.default_rng(3)
-    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
-
-    def draw(ax, title, baseline_mean, expl_mean):
-        base = np.clip(rng.normal(baseline_mean, 0.8, 150), 1, 5)
-        expl = np.clip(rng.normal(expl_mean, 0.7, 150), 1, 5)
-        parts = ax.violinplot([base, expl], showmeans=True, showextrema=False, widths=0.85)
-        for pc, color in zip(parts["bodies"], [PALETTE["generative"], PALETTE["explanation"]]):
-            pc.set_facecolor(color)
-            pc.set_edgecolor("black")
-            pc.set_alpha(0.75)
-        ax.set_xticks([1, 2])
-        ax.set_xticklabels(["Generative\n(baseline)", "Explanation-\naware"])
-        ax.set_ylabel("Rating (1–5 Likert)")
-        ax.set_ylim(0.8, 5.2)
-        ax.set_title(title)
-        ax.grid(axis="y", alpha=0.25)
-
-    draw(axes[0], "(a) Plausibility", 3.2, 4.1)
-    draw(axes[1], "(b) Faithfulness", 2.7, 4.0)
-    fig.suptitle("Figure 3.2 — Human-Rated Explanation Quality (n=150 per group)", fontsize=12, y=1.02)
-    fig.tight_layout()
+    alphas = [0.00, 0.10, 0.25, 0.50, 0.75, 1.00]
+    acc = [0.725, 0.780, 0.775, 0.765, 0.690, 0.695]
+    rouge = [0.417, 0.695, 0.686, 0.643, 0.604, np.nan]
+    bleu = [0.299, 0.566, 0.548, 0.493, 0.443, np.nan]
+    fig, ax = plt.subplots(figsize=(9, 5))
+    ax.plot(alphas, acc, marker="o", lw=2.3, color=PALETTE["contrastive"], label="MC accuracy")
+    ax.plot(alphas, rouge, marker="s", lw=2.3, color=PALETTE["accent"], label="ROUGE-L")
+    ax.plot(alphas, bleu, marker="^", lw=2.3, color=PALETTE["generative"], label="BLEU")
+    ax.axhline(0.354, color="#999", linestyle="--", lw=1.2, label="Random-choice accuracy")
+    ax.set_xlabel("alpha (answer-span weight)")
+    ax.set_ylabel("Score")
+    ax.set_ylim(0, 0.85)
+    ax.set_title("Figure 3.2 — Alpha and Rationale Quality Placeholder")
+    ax.legend(fontsize=8)
+    ax.grid(alpha=0.25)
     save(fig, "fig_3_2_human_violin.png")
 
 
@@ -304,56 +290,45 @@ def fig_3_2_human_violin() -> None:
 
 
 def fig_4_1_ablation_heatmap() -> None:
-    ablations = [
-        "Fixed 448×448 (vs. native res.)",
-        "Q-Former-style proj. (vs. MLP)",
-        "2B LM (vs. 7B LM)",
-        "Single-domain train (vs. mixed)",
-    ]
-    domains = ["DocVQA", "ChartQA", "ScienceQA", "A-OKVQA", "VQAv2"]
-    data = np.array(
-        [
-            [-6.8, -4.5, -1.2, -0.4, -0.2],
-            [+0.4, +0.6, -0.1, +0.2, +0.3],
-            [-2.2, -3.1, -4.0, -3.8, -3.5],
-            [-1.7, -2.0, -1.5, -1.9, -1.1],
-        ]
-    )
-    fig, ax = plt.subplots(figsize=(10, 4.5))
-    cmap = LinearSegmentedColormap.from_list("rdwhgn", ["#B2182B", "#F7F7F7", "#1A9850"])
-    im = ax.imshow(data, cmap=cmap, vmin=-8, vmax=8, aspect="auto")
-    ax.set_xticks(range(len(domains)))
+    domains = ["ScienceQA\nalpha=0.50", "A-OKVQA\nalpha=0.50", "ChartQA\nfallback", "DocVQA\nfallback", "VQAv2\nfallback"]
+    zero = [0.400, 0.355, 0.335, 0.349, 0.350]
+    tuned = [0.765, 0.795, 0.655, 0.905, 0.730]
+    x = np.arange(len(domains))
+    width = 0.38
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.bar(x - width / 2, zero, width, color=PALETTE["baseline"], edgecolor="black", linewidth=0.5, label="Zero-shot reference")
+    ax.bar(x + width / 2, tuned, width, color=PALETTE["contrastive"], edgecolor="black", linewidth=0.5, label="Fine-tuned")
+    ax.set_xticks(x)
     ax.set_xticklabels(domains)
-    ax.set_yticks(range(len(ablations)))
-    ax.set_yticklabels(ablations)
-    for i in range(data.shape[0]):
-        for j in range(data.shape[1]):
-            ax.text(j, i, f"{data[i, j]:+.1f}", ha="center", va="center", fontsize=10, color="black")
-    ax.set_title("Figure 4.1 — Per-Domain Accuracy Impact of Architectural Ablations (Δ acc.)")
-    fig.colorbar(im, ax=ax, label="Δ accuracy (%)", shrink=0.85)
+    ax.set_ylabel("Native headline metric")
+    ax.set_ylim(0, 1.0)
+    ax.set_title("Figure 4.1 — Domain-Level Adaptation Placeholder")
+    ax.legend(fontsize=8)
+    ax.grid(axis="y", alpha=0.25)
     save(fig, "fig_4_1_ablation_heatmap.png")
 
 
 def fig_4_2_attention_entropy() -> None:
-    layers = np.arange(1, 29)
-    rng = np.random.default_rng(4)
-
-    def curve(final_min: float, sharpness: float) -> np.ndarray:
-        y = 5.0 - (5.0 - final_min) * 1 / (1 + np.exp(-(layers - 22) / sharpness))
-        return y + rng.normal(0, 0.05, len(layers))
-
     fig, ax = plt.subplots(figsize=(10, 5))
-    ax.plot(layers, curve(2.1, 1.2), color=PALETTE["contrastive"], lw=2.2, marker="o", markersize=4, label="DocVQA")
-    ax.plot(layers, curve(2.3, 1.6), color=PALETTE["generative"], lw=2.2, marker="s", markersize=4, label="ChartQA")
-    ax.plot(layers, curve(2.9, 2.5), color=PALETTE["accent"], lw=2.2, marker="^", markersize=4, label="ScienceQA")
-    ax.plot(layers, curve(3.4, 3.0), color=PALETTE["purple"], lw=2.2, marker="d", markersize=4, label="A-OKVQA")
-    ax.plot(layers, curve(3.7, 3.5), color=PALETTE["gold"], lw=2.2, marker="v", markersize=4, label="VQAv2")
-
-    ax.set_xlabel("Decoder layer index")
-    ax.set_ylabel("Mean attention entropy (nats)")
-    ax.set_title("Figure 4.2 — Per-Layer Attention Entropy by Visual Domain")
-    ax.grid(alpha=0.25, linestyle="--")
-    ax.legend(loc="lower left")
+    ax.axis("off")
+    boxes = [
+        ("Raw example", 0.04, 0.62, PALETTE["teal"]),
+        ("Prompt template", 0.28, 0.62, PALETTE["contrastive"]),
+        ("Collator", 0.52, 0.62, PALETTE["purple"]),
+        ("Model input tokens", 0.76, 0.62, PALETTE["gold"]),
+        ("Generated output", 0.28, 0.22, PALETTE["generative"]),
+        ("Parsed answer", 0.52, 0.22, PALETTE["accent"]),
+        ("Metric / loss", 0.76, 0.22, PALETTE["explanation"]),
+    ]
+    for text, x, y, color in boxes:
+        rect = FancyBboxPatch((x, y), 0.18, 0.16, boxstyle="round,pad=0.02", facecolor=color, edgecolor="#333")
+        ax.add_patch(rect)
+        ax.text(x + 0.09, y + 0.08, text, ha="center", va="center", fontsize=10, color="white", fontweight="bold")
+    for start, end in [(0, 1), (1, 2), (2, 3), (1, 4), (4, 5), (5, 6)]:
+        sx, sy = boxes[start][1] + 0.18, boxes[start][2] + 0.08
+        ex, ey = boxes[end][1], boxes[end][2] + 0.08
+        ax.add_patch(FancyArrowPatch((sx, sy), (ex, ey), arrowstyle="->", mutation_scale=14, linewidth=1.4, color="#555"))
+    ax.set_title("Figure 4.2 — Pipeline Diagnostic Placeholder")
     save(fig, "fig_4_2_attention_entropy.png")
 
 
@@ -363,77 +338,55 @@ def fig_4_2_attention_entropy() -> None:
 
 
 def fig_5_1_hallucination() -> None:
-    domains = ["DocVQA\n(fabr. ent.)", "ChartQA\n(fabr. ent.)", "ScienceQA\n(POPE)", "A-OKVQA\n(POPE)", "VQAv2\n(CHAIR)"]
-    base = [18.4, 21.2, 14.5, 16.0, 12.8]
-    expl = [9.6, 11.5, 9.8, 12.0, 8.9]
-
-    x = np.arange(len(domains))
-    width = 0.38
-    fig, ax = plt.subplots(figsize=(10, 5))
-    ax.bar(x - width / 2, base, width, color=PALETTE["baseline"], edgecolor="black", linewidth=0.6, label="Baseline generative")
-    ax.bar(x + width / 2, expl, width, color=PALETTE["explanation"], edgecolor="black", linewidth=0.6, label="Explanation-aware")
-
-    for i, (b, e) in enumerate(zip(base, expl)):
-        ax.text(i + width / 2, e + 0.3, f"-{b - e:.1f}", ha="center", fontsize=9, color=PALETTE["accent"], fontweight="bold")
-
-    ax.set_xticks(x)
-    ax.set_xticklabels(domains)
-    ax.set_ylabel("Hallucination rate (% — lower is better)")
-    ax.set_ylim(0, 26)
-    ax.set_title("Figure 5.1 — Hallucination Rates: Baseline vs. Explanation-Aware")
-    ax.legend(loc="upper right")
-    ax.grid(axis="y", alpha=0.25)
+    runs = ["DocVQA fallback", "ChartQA fallback", "VQAv2 fallback", "ScienceQA answer-only", "A-OKVQA expl-aware", "ScienceQA alpha=0.50"]
+    drift = [0.375, 0.224, 0.111, 0.090, 0.027, 0.020]
+    fig, ax = plt.subplots(figsize=(9, 5))
+    y = np.arange(len(runs))
+    ax.barh(y, drift, color=PALETTE["contrastive"], edgecolor="black", linewidth=0.5)
+    ax.set_yticks(y)
+    ax.set_yticklabels(runs)
+    ax.invert_yaxis()
+    ax.set_xlabel("Mean masking drift")
+    ax.set_title("Figure 5.1 — Evidence-Masking Drift Placeholder")
+    ax.grid(axis="x", alpha=0.25)
     save(fig, "fig_5_1_hallucination.png")
 
 
 def fig_5_2_qualitative() -> None:
-    fig, axes = plt.subplots(3, 2, figsize=(11, 8))
+    fig, axes = plt.subplots(1, 4, figsize=(12, 4))
+    base = np.ones((80, 80, 3)) * 0.96
+    base[10:70, 12:68, :] = [0.98, 0.88, 0.78]
+    for idx, h in enumerate([50, 38, 62, 44]):
+        x0 = 18 + idx * 12
+        base[70 - h : 70, x0 : x0 + 7, :] = [0.47, 0.25, 0.12]
+    base[68:70, 12:68, :] = 0.25
 
-    rng = np.random.default_rng(5)
-
-    def draw_mock_image(ax, kind):
-        size = 64
-        if kind == "doc":
-            img = np.ones((size, size)) * 0.95
-            for row in [8, 16, 24, 32, 40, 48]:
-                img[row : row + 2, 6 : 58] = 0.2 + rng.random() * 0.3
-            img[20:28, 34:58] = 0.1
-        elif kind == "chart":
-            img = np.ones((size, size)) * 0.97
-            bars = [38, 22, 48, 15, 30]
-            for i, h in enumerate(bars):
-                img[64 - h : 60, 8 + i * 10 : 14 + i * 10] = [0.25, 0.45, 0.35, 0.55, 0.40][i]
-            img[58:60, 6:58] = 0
-        else:
-            img = rng.random((size, size)) * 0.4 + 0.3
-            img[20:44, 20:44] = 0.75
-        return ax.imshow(img, cmap="gray", vmin=0, vmax=1)
-
-    rows = [
-        ("doc", "baseline", "The total is $1,240, according to the summary field."),
-        ("doc", "explain", "Line 4 shows 'Total: $1,240'. Therefore the answer is $1,240."),
-        ("chart", "baseline", "The bar is about 45%, which is the largest."),
-        ("chart", "explain", "Bar 'C' measures 48 against the y-axis scale (0–60). Answer: 48."),
-        ("img", "baseline", "A dog is running in a park."),
-        ("img", "explain", "Center region shows a brown quadruped with leash; scene is grass. Answer: dog."),
+    variants = []
+    labels = [
+        "Original\nscore: -2.04",
+        "Top-drift mask\nscore: -2.88",
+        "Random mask\nscore: -2.15",
+        "Blank image\nscore: -3.31",
     ]
+    variants.append(base.copy())
+    top = base.copy()
+    top[16:46, 41:62, :] = 0.55
+    variants.append(top)
+    random = base.copy()
+    random[20:42, 16:34, :] = 0.55
+    variants.append(random)
+    blank = np.ones_like(base) * 0.55
+    variants.append(blank)
 
-    for idx, (kind, mode, text) in enumerate(rows):
-        row, col = divmod(idx, 2)
-        ax = axes[row, col]
-        draw_mock_image(ax, kind)
-        title = ("Baseline: " if mode == "baseline" else "Explanation-aware: ") + {
-            "doc": "Document",
-            "chart": "Chart",
-            "img": "Image",
-        }[kind]
-        ax.set_title(title, fontsize=10, color=(PALETTE["baseline"] if mode == "baseline" else PALETTE["explanation"]))
+    for ax, img, label in zip(axes, variants, labels):
+        ax.imshow(img)
+        ax.set_title(label, fontsize=10)
         ax.set_xticks([])
         ax.set_yticks([])
-        ax.set_xlabel(text, fontsize=8, wrap=True)
 
-    fig.suptitle("Figure 5.2 — Qualitative Examples: Confabulated vs. Grounded Rationales", fontsize=12, y=1.00)
-    fig.tight_layout()
+    fig.suptitle("Figure 5.2 — Masking Example Placeholder", fontsize=12, y=1.02)
+    fig.text(0.5, 0.02, "Question: Which bar is highest? Gold answer: C. Drift is computed from full-image score minus masked score.", ha="center", fontsize=9)
+    fig.tight_layout(rect=(0, 0.08, 1, 0.95))
     save(fig, "fig_5_2_qualitative.png")
 
 
@@ -443,33 +396,32 @@ def fig_5_2_qualitative() -> None:
 
 
 def fig_6_1_pareto() -> None:
-    points = [
-        ("Full FT × 2B", 18.4, 78.9, PALETTE["baseline"], "o"),
-        ("LoRA × 2B", 7.6, 77.6, PALETTE["generative"], "s"),
-        ("QLoRA × 2B", 6.9, 77.1, PALETTE["explanation"], "^"),
-        ("QLoRA × 7B", 14.2, 82.4, PALETTE["accent"], "D"),
-    ]
-    fig, ax = plt.subplots(figsize=(9, 5.5))
-    for name, gpuh, acc, color, marker in points:
-        ax.scatter(gpuh, acc, s=260, color=color, marker=marker, edgecolor="black", linewidth=0.9, zorder=3, label=name)
-        ax.annotate(name, (gpuh, acc), xytext=(8, 4), textcoords="offset points", fontsize=9)
-
-    pareto_x = [6.9, 7.6, 14.2]
-    pareto_y = [77.1, 77.6, 82.4]
-    ax.plot(pareto_x, pareto_y, "--", color=PALETTE["accent"], lw=1.8, label="Pareto frontier")
-
-    ax.set_xlabel("Training GPU-hours (A100)")
-    ax.set_ylabel("Mean multi-domain accuracy (%)")
-    ax.set_title("Figure 6.1 — Efficiency–Accuracy Pareto Front")
-    ax.grid(alpha=0.25, linestyle="--")
-    ax.legend(loc="lower right", fontsize=8)
+    models = ["Qwen2-VL-2B\nQLoRA", "Qwen2-VL-7B\nQLoRA"]
+    memory = [22, 40]
+    trainable = [18.5, 43.0]
+    x = np.arange(len(models))
+    width = 0.36
+    fig, ax1 = plt.subplots(figsize=(8, 5))
+    ax1.bar(x - width / 2, memory, width, color=PALETTE["contrastive"], edgecolor="black", label="Approx. GPU memory target")
+    ax1.set_ylabel("GPU memory target (GB)")
+    ax1.set_ylim(0, 48)
+    ax2 = ax1.twinx()
+    ax2.bar(x + width / 2, trainable, width, color=PALETTE["accent"], edgecolor="black", label="Trainable params")
+    ax2.set_ylabel("Trainable parameters (M)")
+    ax2.set_ylim(0, 50)
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(models)
+    ax1.set_title("Figure 6.1 — Single-GPU Scale Context Placeholder")
+    handles1, labels1 = ax1.get_legend_handles_labels()
+    handles2, labels2 = ax2.get_legend_handles_labels()
+    ax1.legend(handles1 + handles2, labels1 + labels2, loc="upper left", fontsize=8)
     save(fig, "fig_6_1_pareto.png")
 
 
 def fig_6_2_scaling() -> None:
-    categories = ["Mean Accuracy", "Mean Faithfulness", "Inf. tokens/sec (/10)"]
-    qlora_2b = [77.1, 64.0, 4.6]
-    qlora_7b = [82.4, 72.0, 2.2]
+    categories = ["MC accuracy", "ROUGE-L", "BLEU"]
+    qlora_2b = [0.765, 0.643, 0.493]
+    qlora_7b = [0.885, 0.738, 0.637]
 
     x = np.arange(len(categories))
     width = 0.38
@@ -478,14 +430,14 @@ def fig_6_2_scaling() -> None:
     ax.bar(x + width / 2, qlora_7b, width, color=PALETTE["explanation"], edgecolor="black", linewidth=0.6, label="Qwen2-VL-7B (QLoRA)")
 
     for i, (a, b) in enumerate(zip(qlora_2b, qlora_7b)):
-        ax.text(i - width / 2, a + 1.0, f"{a:.1f}", ha="center", fontsize=9)
-        ax.text(i + width / 2, b + 1.0, f"{b:.1f}", ha="center", fontsize=9)
+        ax.text(i - width / 2, a + 0.03, f"{a:.3f}", ha="center", fontsize=9)
+        ax.text(i + width / 2, b + 0.03, f"{b:.3f}", ha="center", fontsize=9)
 
     ax.set_xticks(x)
     ax.set_xticklabels(categories)
     ax.set_ylabel("Score")
-    ax.set_ylim(0, 100)
-    ax.set_title("Figure 6.2 — QLoRA: 2B vs. 7B Backbone Under Identical Training")
+    ax.set_ylim(0, 1.0)
+    ax.set_title("Figure 6.2 — Qwen2-VL 2B versus 7B Scale Placeholder")
     ax.legend()
     ax.grid(axis="y", alpha=0.25)
     save(fig, "fig_6_2_scaling.png")
@@ -497,19 +449,21 @@ def fig_6_2_scaling() -> None:
 
 
 def fig_7_1_transfer_matrix() -> None:
-    train_domains = ["Documents", "Charts", "Natural Images"]
-    eval_domains = ["Documents", "Charts", "Natural Images"]
+    train_domains = ["ScienceQA\nanswer-only", "ScienceQA\nexpl-aware", "A-OKVQA\nanswer-only", "DocVQA\nfallback", "VQAv2\nfallback"]
+    eval_domains = ["ScienceQA", "A-OKVQA", "ChartQA", "DocVQA", "VQAv2"]
     data = np.array(
         [
-            [83.1, 54.8, 61.2],
-            [56.3, 71.8, 60.0],
-            [43.5, 45.2, 75.6],
+            [0.800, 0.805, 0.645, 0.703, 0.630],
+            [0.740, 0.765, 0.460, 0.491, 0.410],
+            [0.690, 0.825, 0.635, 0.677, 0.700],
+            [0.450, 0.435, 0.685, 0.910, 0.660],
+            [0.440, 0.575, 0.660, 0.716, 0.730],
         ]
     )
 
-    fig, ax = plt.subplots(figsize=(7.5, 5.5))
+    fig, ax = plt.subplots(figsize=(8, 6))
     cmap = LinearSegmentedColormap.from_list("whblgn", ["#F7F7F7", "#A6CEE3", "#1F78B4"])
-    im = ax.imshow(data, cmap=cmap, vmin=40, vmax=90)
+    im = ax.imshow(data, cmap=cmap, vmin=0.35, vmax=0.95)
     ax.set_xticks(range(len(eval_domains)))
     ax.set_xticklabels(eval_domains)
     ax.set_yticks(range(len(train_domains)))
@@ -518,31 +472,28 @@ def fig_7_1_transfer_matrix() -> None:
     ax.set_ylabel("Training domain")
     for i in range(data.shape[0]):
         for j in range(data.shape[1]):
-            color = "white" if data[i, j] > 70 else "black"
-            ax.text(j, i, f"{data[i, j]:.1f}", ha="center", va="center", fontsize=11, color=color, fontweight="bold" if i == j else "normal")
-    ax.set_title("Figure 7.1 — Cross-Domain Transfer Matrix (Accuracy %)")
-    fig.colorbar(im, ax=ax, label="Accuracy (%)", shrink=0.8)
+            color = "white" if data[i, j] > 0.75 else "black"
+            ax.text(j, i, f"{data[i, j]:.2f}", ha="center", va="center", fontsize=9, color=color)
+    ax.set_title("Figure 7.1 — Cross-Domain Transfer Matrix Placeholder")
+    fig.colorbar(im, ax=ax, label="Target-domain headline metric", shrink=0.8)
     save(fig, "fig_7_1_transfer_matrix.png")
 
 
 def fig_7_2_forgetting() -> None:
-    steps = np.linspace(0, 3000, 31)
-    rng = np.random.default_rng(7)
-
-    def decay(start: float, floor: float, rate: float) -> np.ndarray:
-        y = floor + (start - floor) * np.exp(-steps / rate)
-        return y + rng.normal(0, 0.25, len(steps))
-
+    targets = ["Answer-only\nprompt", "Rationale\nprompt", "Fallback\nprompt"]
+    direct = [0.80, 0.78, 0.65]
+    shifted = [0.74, 0.70, 0.61]
+    x = np.arange(len(targets))
+    width = 0.38
     fig, ax = plt.subplots(figsize=(10, 5))
-    ax.plot(steps, decay(83.1, 58.0, 900), color=PALETTE["baseline"], lw=2.2, label="Baseline generative")
-    ax.plot(steps, decay(83.1, 65.0, 1200), color=PALETTE["contrastive"], lw=2.2, label="Contrastive-enhanced")
-    ax.plot(steps, decay(83.1, 73.5, 1800), color=PALETTE["explanation"], lw=2.5, label="Explanation-aware")
-
-    ax.set_xlabel("Fine-tuning steps on new domain")
-    ax.set_ylabel("Accuracy on ORIGINAL domain (DocVQA, %)")
-    ax.set_title("Figure 7.2 — Catastrophic Forgetting Curve After Adapting to a New Domain")
-    ax.set_ylim(50, 90)
-    ax.grid(alpha=0.25, linestyle="--")
+    ax.bar(x - width / 2, direct, width, color=PALETTE["contrastive"], edgecolor="black", label="Matched prompt")
+    ax.bar(x + width / 2, shifted, width, color=PALETTE["baseline"], edgecolor="black", label="Shifted prompt")
+    ax.set_xticks(x)
+    ax.set_xticklabels(targets)
+    ax.set_ylabel("Target-domain score")
+    ax.set_ylim(0, 0.9)
+    ax.set_title("Figure 7.2 — Optional Transfer Stability Placeholder")
+    ax.grid(axis="y", alpha=0.25)
     ax.legend(loc="upper right")
     save(fig, "fig_7_2_forgetting.png")
 

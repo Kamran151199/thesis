@@ -18,19 +18,17 @@ from version-controlled numbers, not scattered notebook cells.
 
 | config | RQ | backbone | objective | α | data | train/eval | mc_acc (base → post) | rouge_l (base → post) | bleu (base → post) |
 |--------|----|----------|-----------|---|------|-----------|----------------------|-----------------------|--------------------|
-| `rq2_qwen2vl_generative_scienceqa` | RQ2 / RQ3-base | Qwen2-VL-2B | generative | — | ScienceQA | 2000/200 | 0.450 → **0.765** (+0.315) | post **0.703** | post **0.570** |
-| `rq3_qwen2vl_explanation_aware_scienceqa` | RQ3 | Qwen2-VL-2B | explanation_aware | 0.5 | ScienceQA | 2000/200 | 0.460 → **0.755** (+0.295) | 0.144 → 0.653 (+0.509) | 0.014 → 0.505 (+0.490) |
+| `rq2_qwen2vl_generative_scienceqa` | RQ2 / RQ3-base | Qwen2-VL-2B | rationale+answer CE | — | ScienceQA | 2000/200 | 0.400 → **0.780** (+0.380) | post **0.693** | post **0.559** |
+| `rq3_alpha_050` | RQ3 | Qwen2-VL-2B | explanation_aware | 0.5 | ScienceQA | 2000/200 | 0.400 → **0.765** (+0.365) | post 0.643 | post 0.493 |
 
 Notes on this run:
-- `random_baseline = 0.354` (≈2.8 choices); baseline 0.46 is **above chance** ✓,
-  and post 0.755 is not near 1.0 → the likelihood-scoring eval is not gamed (no
-  repeat of the old string-match "100% baseline" bug).
-- The **+0.295** is *fine-tuning lift* (trained vs untrained), **NOT** yet
-  "explanation-aware vs generative" — see pending below.
-- Qwen is a **real generator**: BLEU/ROUGE jump from ≈0 to 0.50/0.65 (BLIP-2 gave
-  near-zero here). This is the explanation-quality signal the thesis leads with.
-- Tension worth a sentence in §4/§5: it writes gold-like rationales (ROUGE 0.65)
-  yet still misses **24.5%** of answers → explanation surface-match ≠ correct answer.
+- `random_baseline = 0.354` (≈2.8 choices); the zero-shot reference is above chance,
+  and none of the trained scores are near 1.0, so the likelihood-scoring evaluation
+  is not showing the old string-match "100% baseline" bug.
+- The fine-tuning lift is trained vs untrained. It is not by itself evidence that
+  explanation-aware training beats the rationale+answer CE control.
+- Qwen2-VL generates usable rationale text, but explanation surface overlap and
+  answer correctness still have to be read separately.
 
 ---
 
@@ -42,15 +40,14 @@ answer/explanation split (explanation-aware). Post-training:
 
 | metric | generative (rq2) | explanation-aware α=0.5 (rq3) | Δ (rq3 − rq2) |
 |--------|------------------|-------------------------------|---------------|
-| mc_accuracy | **0.765** | 0.755 | −0.010 |
-| rouge_l     | **0.703** | 0.653 | −0.050 |
-| bleu        | **0.570** | 0.505 | −0.065 |
+| mc_accuracy | **0.780** | 0.765 | −0.015 |
+| rouge_l     | **0.693** | 0.643 | −0.050 |
+| bleu        | **0.559** | 0.493 | −0.066 |
 
-**Finding: at α=0.5 the explanation-aware objective is tied on accuracy and WORSE
-on explanation quality — the opposite of the hypothesis.** Accuracy is a tie (1 pp,
-inside the ±1 pp noise the two baselines exposed: 0.450 vs 0.460 for the same
-untrained model; SE ≈ 3 pp at n=200). But ROUGE-L (−5 pp) and BLEU (−6.5 pp) fall,
-and those gaps point the wrong way for an *explanation-aware* method.
+**Finding: at α=0.5 the explanation-aware objective is close on accuracy and lower
+on explanation-overlap metrics than the rationale+answer CE control.** With n=200,
+this should be read as a capped single-run observation, not a final statistical
+claim. Still, the direction is not the simple "balanced α is better" story.
 
 **Mechanism (verified against the code, not hand-waved):** `masked_token_ce`
 returns the **mean** CE over a span, and the generative objective is the mean over
@@ -86,46 +83,50 @@ changes. Canonical record: `rq3_alpha_sweep.json`.
 
 | α | mc_acc | rouge_l | bleu | note |
 |------|--------|---------|------|------|
-| — *(frozen)* | 0.460 | 0.144 | 0.014 | zero-shot, pre-FT |
-| — *(generative)* | 0.765 | 0.703 | 0.570 | uniform CE, α_eff ≈ 0.1 |
-| 0.00 | 0.675 | 0.449 | 0.334 | explanation-only (answer span unsupervised) |
-| **0.10** | **0.775** | **0.706** | **0.579** | best on all three; ≈ generative |
-| 0.25 | 0.770 | 0.685 | 0.545 | |
-| 0.50 | 0.740 | 0.653 | 0.505 | standalone run gave mc 0.755 → noise |
-| 0.75 | 0.720 | 0.616 | 0.455 | |
-| 1.00 | 0.680 | 0.000 | 0.000 | answer-only → no rationale emitted |
+| — *(frozen)* | 0.400 | — | — | zero-shot, pre-FT |
+| — *(rationale+answer CE)* | 0.780 | 0.693 | 0.559 | uniform CE control |
+| 0.00 | 0.725 | 0.417 | 0.299 | explanation-only (answer span unsupervised) |
+| **0.10** | **0.780** | **0.695** | **0.566** | best fixed α; tied with rationale+answer CE on accuracy |
+| 0.25 | 0.775 | 0.686 | 0.548 | |
+| 0.50 | 0.765 | 0.643 | 0.493 | fixed balanced setting used in scale comparison |
+| 0.75 | 0.690 | 0.604 | 0.443 | |
+| 1.00 | 0.695 | — | — | answer-span-only inside rationale-shaped target |
 
 **Prediction check (against lines 72–78):**
-- ✓ **ROUGE/BLEU fall monotonically as α rises** (α≥0.1: 0.706→0.685→0.653→0.616→0.000). Confirmed.
-- ✓ **Generative ≈ α ≈ 0.1.** Best point (0.775/0.706/0.579) is within seed noise of the generative control (0.765/0.703/0.570) → α_eff ≈ 0.1 confirmed empirically; explicit answer-weighting can't beat what uniform CE already does.
-- ✗ **Accuracy is NOT flat** (the one part of the pre-reg guess that was wrong). It is an inverted-U peaking at α=0.1 (0.775), dropping ~10 pp at both extremes (0.675 @ 0.0, 0.680 @ 1.0). Corrected framing: accuracy is maximised at the natural weight and degrades as α moves away in either direction.
-- ⚠ **NEW — explanation supervision itself helps accuracy.** Answer-only (α=1) loses ~9.5 pp vs α=0.1 (0.680 vs 0.775) with rationale quality collapsing to 0 → the generated rationale behaves like a usable chain-of-thought at inference; starving it costs accuracy. The mirror case (explanation-only, α=0) is also weak on both axes (no answer anchor → rationale drifts off the concise gold, ROUGE 0.449).
+- ✓ **ROUGE/BLEU fall as α rises** (α≥0.1: 0.695→0.686→0.643→0.604). Confirmed.
+- ✓ **Rationale+answer CE ≈ α = 0.1.** The best fixed point (0.780/0.695/0.566) matches the rationale+answer CE control in accuracy (0.780/0.693/0.559).
+- ✗ **Accuracy is not flat.** It peaks at α=0.1 (0.780), then drops toward the high-answer-weight end (0.690 @ 0.75, 0.695 @ 1.0).
+- ⚠ **Important distinction.** The α=1 row is not the true answer-only control. It is answer-span-only inside a rationale-shaped target. The true answer-only ScienceQA control uses an answer-only prompt family and reaches 0.800.
 
-**RQ3 headline for §4/§5:** *explicit answer-weighting cannot beat the weighting
-uniform generative CE already applies (optimum = generative, α ≈ 0.1); but
-supervising the explanation at all is worth ~10 pp of accuracy.* That is stronger
-than the one-point "α=0.5 ties" null — a mechanistic curve with an interior optimum.
+**RQ3 headline for §4/§5:** *fixed α=0.1 is the best fixed explanation-aware point
+in the sweep and matches rationale+answer CE in accuracy, but the true answer-only
+prompt family remains the strongest ScienceQA control.*
 
 ---
 
-## Pending to complete each RQ
+## Completed coverage and remaining caveats
 
 - **RQ3 α-sweep: DONE** — full six-point curve logged (`rq3_alpha_sweep.json`,
-  RESULT table above). Optimum at α=0.1 ≈ generative; accuracy is an inverted-U;
-  explanation supervision worth ~10 pp accuracy; token-count mechanism confirmed.
+  RESULT table above). Optimum at α=0.1 ≈ rationale+answer CE; the true answer-only
+  prompt family is reported separately and should not be confused with α=1.
   Single seed → ideally ≥2–3 seeds at α ∈ {0.1, 0.5, 1.0} to put error bars on the
   ~10 pp gaps before the final claim is hardened.
-- **RQ2** (alignment objective): generative arm logged (post 0.765); contrastive
-  arm is scaffolded (`objective.contrastive`, needs `contrastive_features` per
-  backbone) — in-scope cut unless time allows.
-- **RQ1** (alignment evolution): survey/§2 + checkpoint-trajectory analysis — no
-  run yet.
-- **RQ4** (cross-domain, ChartQA): `rq4_qwen2vl_explanation_aware_chartqa` — note
-  the image-token ceiling caveat (raise `max_length`/lower `max_pixels` for charts).
-- **RQ5** (faithfulness): masking-drift probe runs model-agnostically today;
-  needs a batched sweep over the eval set, not just one example.
-- **RQ6** (scale, 2B vs 7B): `rq6_qwen2vl_7b_explanation_aware_scienceqa`.
-- **RQ7** (transfer): train-on-A, eval-on-B — no run yet.
+- **RQ2 objective comparison: DONE** — BLIP-2 generative and BLIP-2
+  contrastive-enhanced ScienceQA runs are logged in `Tables/generated/all_results.csv`.
+  The observed gain is small (0.480 vs 0.475) and the retrieval diagnostic remains
+  close to frozen/random controls.
+- **RQ1 alignment evolution: DONE in the literature review** — the paper answers
+  this through the related-work synthesis rather than a new experiment.
+- **RQ4 domain behaviour: DONE with scope boundary** — ScienceQA/A-OKVQA use
+  rationale-bearing supervision where available; ChartQA, DocVQA, and VQAv2 are
+  answer-only fallback/domain rows, not explanation-aware evidence.
+- **RQ5 evidence sensitivity: DONE** — masking drift is logged for completed runs
+  with 30 examples per run and approximate intervals in the manuscript table.
+  It is reported as evidence sensitivity, not proof of faithful rationales.
+- **RQ6 scale: DONE** — Qwen2-VL-2B and Qwen2-VL-7B are compared under the same
+  fixed ScienceQA explanation-aware setting.
+- **RQ7 transfer: DONE** — cross-domain transfer matrix is generated and reported.
 
-When a pair/sweep lands, I (the paper) turn it into the §4 table + prose and tick
-it off here.
+Remaining caveats are the same ones used in the manuscript: one seed, capped
+evaluation, DocVQA internal split, VQAv2 subset, and no gold rationales for
+ChartQA/DocVQA/VQAv2.

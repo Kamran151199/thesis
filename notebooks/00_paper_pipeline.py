@@ -27,6 +27,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import shutil
 import textwrap
 import traceback
@@ -652,6 +653,19 @@ def pretty_objective(name: str) -> str:
 
 def pretty_run_label(row: pd.Series | dict[str, Any]) -> str:
     return f"{pretty_dataset(row['dataset'])} · {pretty_objective(row['objective'])}"
+
+
+def paper_run_label(run_name: str, sep: str = " · ") -> str:
+    exp = RUN_BY_NAME.get(run_name)
+    if exp is None:
+        return run_name.replace("_", " ")
+    return f"{pretty_dataset(exp['dataset'])}{sep}{pretty_objective(exp['objective'])}"
+
+
+def paper_run_slug(run_name: str) -> str:
+    label = paper_run_label(run_name, sep=" ")
+    slug = re.sub(r"[^A-Za-z0-9]+", "_", label).strip("_").lower()
+    return slug or run_name
 
 
 def headline_metric_name(dataset: str) -> str:
@@ -2217,7 +2231,7 @@ if not sweep.empty:
             ax.plot(sub["alpha"], sub[col], marker=mk, linestyle=ls, color="black", label=lab)
     ax.set_xlabel("alpha (answer weight; 1-alpha on explanation)")
     ax.set_ylabel("score")
-    ax.set_title("RQ3: explanation-aware alpha sweep")
+    ax.set_title("Explanation-aware alpha sweep")
     ax.grid(alpha=0.25)
     ax.legend(frameon=False, fontsize=8)
     save_fig(fig, "rq3_alpha_sweep", data=s[["alpha", "mc_acc", "rouge_l", "bleu"]])
@@ -2226,15 +2240,17 @@ if not sweep.empty:
 if not rq2.empty:
     plot = rq2[["objective", "headline_base", "headline"]].copy()
     plot["method"] = plot["objective"].map(pretty_objective)
-    fig, ax = plt.subplots(figsize=(5.8, 3.6))
+    fig, ax = plt.subplots(figsize=(6.2, 3.8))
     x = np.arange(len(plot))
-    ax.bar(x - 0.18, plot["headline_base"], 0.36, label="zero-shot", color="#F8FAFC", edgecolor="#111827")
-    ax.bar(x + 0.18, plot["headline"], 0.36, label="fine-tuned", color="#64748B", edgecolor="#111827")
+    base_bars = ax.bar(x - 0.18, plot["headline_base"], 0.36, label="zero-shot", color="#F8FAFC", edgecolor="#111827")
+    tuned_bars = ax.bar(x + 0.18, plot["headline"], 0.36, label="fine-tuned", color="#64748B", edgecolor="#111827")
+    ax.bar_label(tuned_bars, labels=[f"{v:.3f}" for v in plot["headline"]], padding=3, fontsize=8)
     ax.set_xticks(x)
     ax.set_xticklabels(plot["method"], rotation=10, ha="right")
+    ax.set_ylim(0, max(0.62, float(plot[["headline_base", "headline"]].max().max()) + 0.1))
     ax.set_ylabel("ScienceQA MC accuracy")
-    ax.set_title("RQ2: BLIP-2 objective comparison")
-    ax.legend(frameon=False)
+    ax.set_title("BLIP-2 objective comparison")
+    ax.legend(frameon=False, loc="upper center", bbox_to_anchor=(0.5, 1.02), ncol=2)
     save_fig(fig, "rq2_blip2_objective", data=plot)
     plt.show()
 
@@ -2251,7 +2267,7 @@ if not rq3_cmp.empty:
     for ax in axes:
         plt.setp(ax.get_xticklabels(), rotation=18, ha="right", fontsize=8)
         ax.grid(axis="y", alpha=0.2)
-    fig.suptitle("RQ3: generative vs explanation-aware training")
+    fig.suptitle("Rationale-supervision strategy comparison")
     save_fig(fig, "rq3_objective_comparison", data=plot)
     plt.show()
 
@@ -2281,7 +2297,7 @@ if not cross.empty:
     ax.set_xticks(x)
     ax.set_xticklabels(plot["label"])
     ax.set_ylabel("native headline score")
-    ax.set_title("RQ4: cross-domain performance (native metric)")
+    ax.set_title("In-domain performance by visual domain")
     ax.legend(frameon=False, fontsize=8)
     plt.setp(ax.get_xticklabels(), rotation=15, ha="right")
     ax.grid(axis="y", alpha=0.2)
@@ -2293,7 +2309,7 @@ if len(scale) == 2:
     fig, ax = plt.subplots(figsize=(4.8, 3.5))
     ax.bar(plot["model_size"], plot["mc_acc"], color=["#F8FAFC", "#64748B"], edgecolor="#111827")
     ax.set_ylabel("ScienceQA MC accuracy")
-    ax.set_title("RQ6: Qwen2-VL QLoRA scale")
+    ax.set_title("Qwen2-VL QLoRA scale")
     ax.grid(axis="y", alpha=0.2)
     save_fig(fig, "rq6_scale", data=plot)
     plt.show()
@@ -2566,6 +2582,7 @@ for name in faith_runs:
 faith_rows = [
     {
         "run": k,
+        "method": paper_run_label(k),
         "mean_drift": v["mean_drift"],
         "ci95_low": v.get("bootstrap_ci95_low"),
         "ci95_high": v.get("bootstrap_ci95_high"),
@@ -2578,7 +2595,7 @@ if faith_rows:
     fs = pd.DataFrame(faith_rows).sort_values("run").reset_index(drop=True)
     save_table(fs.round(4), "rq5_faithfulness", "RQ5 evidence-masking drift by model.", "tab:rq5_faithfulness")
     fig, ax = plt.subplots(figsize=(7.8, 0.42 * len(fs) + 1.8))
-    ax.barh(fs["run"], fs["mean_drift"], color="dimgray", edgecolor="black")
+    ax.barh(fs["method"], fs["mean_drift"], color="dimgray", edgecolor="black")
     if {"ci95_low", "ci95_high"}.issubset(fs.columns):
         xerr = np.vstack(
             [
@@ -2586,9 +2603,9 @@ if faith_rows:
                 (fs["ci95_high"] - fs["mean_drift"]).clip(lower=0).fillna(0).to_numpy(),
             ]
         )
-        ax.errorbar(fs["mean_drift"], fs["run"], xerr=xerr, fmt="none", ecolor="#111827", capsize=2, linewidth=0.8)
+        ax.errorbar(fs["mean_drift"], fs["method"], xerr=xerr, fmt="none", ecolor="#111827", capsize=2, linewidth=0.8)
     ax.set_xlabel("mean masking drift")
-    ax.set_title("RQ5: visual evidence sensitivity")
+    ax.set_title("Visual evidence sensitivity")
     plt.setp(ax.get_yticklabels(), fontsize=7)
     ax.grid(axis="x", alpha=0.2)
     save_fig(fig, "rq5_faithfulness", data=fs)
@@ -2613,6 +2630,8 @@ def blank_image_like(img):
 def save_masking_example(run_name: str, idx: int = 0, grid: tuple[int, int] = (3, 3)) -> dict[str, Any]:
     cfg, wrapper, template, eval_ds = load_run(run_name)
     try:
+        run_label = paper_run_label(run_name)
+        run_slug = paper_run_slug(run_name)
         if idx >= len(eval_ds):
             idx = 0
         ex = eval_ds[idx]
@@ -2652,12 +2671,14 @@ def save_masking_example(run_name: str, idx: int = 0, grid: tuple[int, int] = (3
             ax.imshow(panel_img)
             ax.axis("off")
             ax.set_title(f"{title}\nscore={score:.3f}, drift={drift:.3f}", fontsize=8)
-        fig.suptitle(f"Masking example - {run_name}\nQ: {short(ex.question, 150)} | Gold: {short(ex.answer, 80)}", fontsize=10)
-        save_fig(fig, f"masking_example_{run_name}")
+        fig.suptitle(f"Masking example - {run_label}\nQ: {short(ex.question, 150)} | Gold: {short(ex.answer, 80)}", fontsize=10)
+        save_fig(fig, f"masking_example_{run_slug}")
         plt.show()
 
         return {
             "run": run_name,
+            "method": run_label,
+            "figure": f"masking_example_{run_slug}",
             "idx": idx,
             "dataset": cfg.data.name,
             "question": ex.question,
@@ -2693,6 +2714,7 @@ masking_example_runs = [
 ]
 masking_example_log_path = ART_DIR / "masking_examples.json"
 masking_examples = json.loads(masking_example_log_path.read_text()) if masking_example_log_path.exists() else {}
+MASKING_EXAMPLE_VERSION = 2
 for run_name in masking_example_runs:
     exp = RUN_BY_NAME.get(run_name)
     if exp is None:
@@ -2705,12 +2727,18 @@ for run_name in masking_example_runs:
         continue
     digest = config_digest(materialize_exp_config(exp))
     cached = masking_examples.get(run_name)
-    if isinstance(cached, dict) and cached.get("status") == "done" and cached.get("config_digest") == digest:
+    if (
+        isinstance(cached, dict)
+        and cached.get("status") == "done"
+        and cached.get("config_digest") == digest
+        and cached.get("artifact_version") == MASKING_EXAMPLE_VERSION
+    ):
         continue
     try:
         masking_examples[run_name] = {
             "status": "done",
             "config_digest": digest,
+            "artifact_version": MASKING_EXAMPLE_VERSION,
             **save_masking_example(run_name, idx=int(os.environ.get("PAPER_MASKING_EXAMPLE_IDX", "0"))),
         }
     except Exception as exc:  # noqa: BLE001
@@ -2732,7 +2760,9 @@ if masking_example_rows:
         masking_example_df[
             [
                 "run",
+                "method",
                 "dataset",
+                "figure",
                 "full_score",
                 "top_drift",
                 "random_drift",
@@ -2756,12 +2786,14 @@ if masking_example_rows:
 def save_qualitative_views(run_name: str, n: int = 6) -> None:
     cfg, wrapper, template, eval_ds = load_run(run_name)
     try:
+        run_label = paper_run_label(run_name)
+        run_slug = paper_run_slug(run_name)
         ev = Evaluator(wrapper, eval_ds, template, cfg.eval, build_metrics(cfg.eval.metrics))
         count = min(n, len(eval_ds))
         cols = 3
         rows = int(np.ceil(count / cols))
 
-        sample_lines = [f"# Qualitative samples - {run_name}\n"]
+        sample_lines = [f"# Qualitative samples - {run_label}\n"]
         fig, axes = plt.subplots(rows, cols, figsize=(15, 4.8 * rows))
         axes = np.array(axes).reshape(-1)
         for i, ax in enumerate(axes):
@@ -2793,9 +2825,9 @@ def save_qualitative_views(run_name: str, n: int = 6) -> None:
                 f"- prediction: {short(pred.predicted_text, 400)}\n"
                 f"- reasoning: {short(pred.reasoning, 700)}\n"
             )
-        fig.suptitle(f"Qualitative samples - {run_name}", fontsize=12)
-        save_fig(fig, f"samples_{run_name}")
-        save_markdown("\n".join(sample_lines), f"samples_{run_name}")
+        fig.suptitle(f"Qualitative samples - {run_label}", fontsize=12)
+        save_fig(fig, f"samples_{run_slug}")
+        save_markdown("\n".join(sample_lines), f"samples_{run_slug}")
         plt.show()
 
         fig, axes = plt.subplots(rows, cols, figsize=(15, 4.8 * rows))
@@ -2820,8 +2852,8 @@ def save_qualitative_views(run_name: str, n: int = 6) -> None:
             )
             ax.set_title(f"[{i}] max drift={res.max_drift:.3f}\n{short(ex.question, 92)}", fontsize=8)
             heat_rows.append({"idx": i, "max_drift": res.max_drift, "mean_drift": res.mean_drift})
-        fig.suptitle(f"Evidence-masking heatmaps - {run_name}", fontsize=12)
-        save_fig(fig, f"faithfulness_heatmaps_{run_name}", data=pd.DataFrame(heat_rows))
+        fig.suptitle(f"Evidence-masking heatmaps - {run_label}", fontsize=12)
+        save_fig(fig, f"faithfulness_heatmaps_{run_slug}", data=pd.DataFrame(heat_rows))
         plt.show()
     finally:
         del wrapper
@@ -2839,6 +2871,7 @@ INSPECT_RUNS = [
 
 qual_status_path = LOG_DIR / "qualitative_status.json"
 qual_status = json.loads(qual_status_path.read_text()) if qual_status_path.exists() else {}
+QUALITATIVE_FIGURE_VERSION = 2
 for run_name in INSPECT_RUNS:
     exp = RUN_BY_NAME.get(run_name)
     if exp is None:
@@ -2847,7 +2880,12 @@ for run_name in INSPECT_RUNS:
         continue
     digest = config_digest(materialize_exp_config(exp))
     cached = qual_status.get(run_name)
-    if isinstance(cached, dict) and cached.get("status") == "done" and cached.get("config_digest") == digest:
+    if (
+        isinstance(cached, dict)
+        and cached.get("status") == "done"
+        and cached.get("config_digest") == digest
+        and cached.get("artifact_version") == QUALITATIVE_FIGURE_VERSION
+    ):
         continue
     if not result_ready(run_name):
         qual_status[run_name] = {"status": result_state(exp)}
@@ -2855,7 +2893,11 @@ for run_name in INSPECT_RUNS:
         continue
     try:
         save_qualitative_views(run_name, n=int(os.environ.get("PAPER_QUAL_N", "6")))
-        qual_status[run_name] = {"status": "done", "config_digest": digest}
+        qual_status[run_name] = {
+            "status": "done",
+            "config_digest": digest,
+            "artifact_version": QUALITATIVE_FIGURE_VERSION,
+        }
     except Exception as exc:  # noqa: BLE001
         qual_status[run_name] = {
             "status": "failed",
@@ -3074,7 +3116,7 @@ if transfer_rows:
                 ax.text(j, i, f"{v:.2f}", ha="center", va="center", color="white" if v > 0.55 else "black")
     ax.set_xlabel("eval on")
     ax.set_ylabel("trained on")
-    ax.set_title("RQ7: cross-domain transfer")
+    ax.set_title("Cross-domain transfer")
     fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
     save_fig(fig, "rq7_transfer", data=tmat.reset_index())
     plt.show()

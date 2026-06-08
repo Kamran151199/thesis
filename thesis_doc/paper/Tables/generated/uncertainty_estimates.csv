@@ -1,0 +1,20 @@
+run,metric,n_eval_config,headline,headline_se_approx,headline_ci95_low_approx,headline_ci95_high_approx
+rq2_blip2_contrastive_scienceqa,MC accuracy,200,0.48,0.0353,0.4108,0.5492
+rq2_blip2_generative_scienceqa,MC accuracy,200,0.475,0.0353,0.4058,0.5442
+rq3_qwen2vl_explanation_aware_aokvqa,MC accuracy,200,0.795,0.0285,0.739,0.851
+rq4_qwen2vl_explanation_aware_chartqa,relaxed accuracy,200,0.655,0.0336,0.5891,0.7209
+rq4_qwen2vl_explanation_aware_docvqa,ANLS,200,0.9052,,,
+rq4_qwen2vl_explanation_aware_vqav2,VQA accuracy,100,0.73,0.0444,0.643,0.817
+rq3_qwen2vl_length_aware_aokvqa,MC accuracy,200,0.79,0.0288,0.7335,0.8465
+rq3_qwen2vl_length_aware_scienceqa,MC accuracy,200,0.78,0.0293,0.7226,0.8374
+rq3_qwen2vl_answer_only_aokvqa,MC accuracy,200,0.83,0.0266,0.7779,0.8821
+rq3_qwen2vl_answer_only_scienceqa,MC accuracy,200,0.8,0.0283,0.7446,0.8554
+rq2_qwen2vl_generative_aokvqa,MC accuracy,200,0.79,0.0288,0.7335,0.8465
+rq2_qwen2vl_generative_scienceqa,MC accuracy,200,0.78,0.0293,0.7226,0.8374
+rq6_qwen2vl_7b_explanation_aware_scienceqa,MC accuracy,200,0.885,0.0226,0.8408,0.9292
+rq3_alpha_000,MC accuracy,200,0.725,0.0316,0.6631,0.7869
+rq3_alpha_010,MC accuracy,200,0.78,0.0293,0.7226,0.8374
+rq3_alpha_025,MC accuracy,200,0.775,0.0295,0.7171,0.8329
+rq3_alpha_050,MC accuracy,200,0.765,0.03,0.7062,0.8238
+rq3_alpha_075,MC accuracy,200,0.69,0.0327,0.6259,0.7541
+rq3_alpha_100,MC accuracy,200,0.695,0.0326,0.6312,0.7588

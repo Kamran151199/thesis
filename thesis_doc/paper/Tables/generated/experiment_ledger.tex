@@ -1,0 +1,29 @@
+\begin{table}
+\caption{Experiment ledger: datasets, caps, prompt family, objective, and supported research question.}
+\label{tab:experiment_ledger}
+\begin{tabular}{lrrrrrrrrrr}
+\toprule
+display_label & backbone & dataset & train_cap & eval_cap & rationale_availability & objective & alpha_mode & prompt_family & metric & supported_question \\
+\midrule
+ScienceQA · Explanation only & Qwen2-VL-2B & ScienceQA & 2000 & 200 & gold rationales & Explanation only & fixed & rationale+answer & MC accuracy & question 3 \\
+ScienceQA · Expl.-aware alpha=0.10 & Qwen2-VL-2B & ScienceQA & 2000 & 200 & gold rationales & Expl.-aware alpha=0.10 & fixed & rationale+answer & MC accuracy & question 3 \\
+ScienceQA · Expl.-aware alpha=0.25 & Qwen2-VL-2B & ScienceQA & 2000 & 200 & gold rationales & Expl.-aware alpha=0.25 & fixed & rationale+answer & MC accuracy & question 3 \\
+ScienceQA · Expl.-aware alpha=0.50 & Qwen2-VL-2B & ScienceQA & 2000 & 200 & gold rationales & Expl.-aware alpha=0.50 & fixed & rationale+answer & MC accuracy & question 3 \\
+ScienceQA · Expl.-aware alpha=0.75 & Qwen2-VL-2B & ScienceQA & 2000 & 200 & gold rationales & Expl.-aware alpha=0.75 & fixed & rationale+answer & MC accuracy & question 3 \\
+ScienceQA · Answer-span only & Qwen2-VL-2B & ScienceQA & 2000 & 200 & gold rationales & Answer-span only & fixed & rationale+answer & MC accuracy & question 3 \\
+ScienceQA · Generative & BLIP-2 OPT-2.7B & ScienceQA & 2000 & 200 & gold rationales & Generative & fixed & rationale+answer & MC accuracy & question 2 \\
+ScienceQA · Generative + contrastive & BLIP-2 OPT-2.7B & ScienceQA & 2000 & 200 & gold rationales & Generative + contrastive & fixed & rationale+answer & MC accuracy & question 2 \\
+ScienceQA · Answer-only & Qwen2-VL-2B & ScienceQA & 2000 & 200 & gold rationales & Answer-only & fixed & answer-only & MC accuracy & question 3/question 7 \\
+ScienceQA · Rationale+answer CE & Qwen2-VL-2B & ScienceQA & 2000 & 200 & gold rationales & Rationale+answer CE & fixed & rationale+answer & MC accuracy & question 2/question 3 \\
+A-OKVQA · Answer-only & Qwen2-VL-2B & A-OKVQA & 2000 & 200 & gold rationales & Answer-only & fixed & answer-only & MC accuracy & question 3/question 7 \\
+A-OKVQA · Rationale+answer CE & Qwen2-VL-2B & A-OKVQA & 2000 & 200 & gold rationales & Rationale+answer CE & fixed & rationale+answer & MC accuracy & question 2/question 3 \\
+A-OKVQA · Expl.-aware alpha=0.50 & Qwen2-VL-2B & A-OKVQA & 2000 & 200 & gold rationales & Expl.-aware alpha=0.50 & fixed & rationale+answer & MC accuracy & question 3/question 4 \\
+ScienceQA · Expl.-aware length-aware & Qwen2-VL-2B & ScienceQA & 2000 & 200 & gold rationales & Expl.-aware length-aware & length_aware & rationale+answer & MC accuracy & question 3 \\
+A-OKVQA · Expl.-aware length-aware & Qwen2-VL-2B & A-OKVQA & 2000 & 200 & gold rationales & Expl.-aware length-aware & length_aware & rationale+answer & MC accuracy & question 3 \\
+ChartQA · Answer-only fallback & Qwen2-VL-2B & ChartQA & 2000 & 200 & answer labels only & Answer-only fallback & fixed & answer-only & relaxed accuracy & question 4/question 7 \\
+DocVQA · Answer-only fallback & Qwen2-VL-2B & DocVQA & 2000 & 200 & answer labels only & Answer-only fallback & fixed & answer-only & ANLS & question 4/question 7 \\
+VQAv2 · Answer-only fallback & Qwen2-VL-2B & VQAv2 & 900 & 100 & answer labels only & Answer-only fallback & fixed & answer-only & VQA accuracy & question 4/question 7 \\
+ScienceQA · Expl.-aware alpha=0.50 & Qwen2-VL-7B & ScienceQA & 2000 & 200 & gold rationales & Expl.-aware alpha=0.50 & fixed & rationale+answer & MC accuracy & question 6 \\
+\bottomrule
+\end{tabular}
+\end{table}

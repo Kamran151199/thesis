@@ -36,7 +36,7 @@
 ]
 
 \node[title] (title) at (7.8,9.35) {Explanation-aware vision--language architecture};
-\node[subtitle,below=1pt of title] {frozen visual backbone, trainable QLoRA adapters, and span-aware supervision};
+\node[subtitle,below=1pt of title] {Qwen2--VL QLoRA branch plus BLIP-2 Q-Former generative/contrastive branch};
 
 % Inputs
 \node[card,text width=3.15cm,minimum height=1.55cm] (image) at (1.9,7.35)
@@ -76,13 +76,13 @@
    \scriptsize $\alpha$ controls answer vs. rationale weight};
 \node[card,text width=4.6cm,minimum height=1.1cm,below=6mm of loss] (eval)
   {\textbf{Retained outputs}\\[-1pt]
-   \scriptsize answer accuracy, rationale quality,\\ evidence-masking faithfulness};
+   \scriptsize answer accuracy, rationale quality,\\ evidence-masking sensitivity};
 
 % BLIP-2 reference lane
-\node[card,text width=13.55cm,minimum height=0.85cm] (blip) at (7.8,-1.65)
-  {\textbf{BLIP-2 reference path for alignment analyses.}
-   \scriptsize Image $\rightarrow$ ViT $\rightarrow$ Q-Former learned queries $\rightarrow$ LLM;
-   ITC / ITM / ITG pretraining exposes pooled image--text representations for contrastive comparisons.};
+\node[card,text width=13.55cm,minimum height=1.0cm] (blip) at (7.8,-1.65)
+  {\textbf{BLIP-2 branch for the generative vs. contrastive comparison.}
+   \scriptsize Image and question $\rightarrow$ frozen ViT / frozen OPT with trainable Q-Former-side path;
+   generative answer loss is compared with generative loss plus image--answer InfoNCE.};
 
 % Section labels
 \node[chip,anchor=south west] at ($(image.north west)+(0,2pt)$) {inputs};
