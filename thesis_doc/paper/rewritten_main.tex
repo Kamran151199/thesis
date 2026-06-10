@@ -162,43 +162,40 @@ The following research questions break that down into more measurable parts.
 \end{enumerate}
 
 \subsection{Problem Statement}
-The problem is cross-modal alignment on the hardware most people actually have: a single GPU.
-Starting from a pretrained vision--language model, we ask what the objective does to three things at once, namely answer accuracy, explanation quality, and how much the model leans on the image.
-The backbone, the data format, the optimiser, and the evaluation procedure are pinned down wherever we can pin them.
-Inside each comparison, only the training signal moves.
-The BLIP-2 pair reuses one Q-Former training setup; the Qwen2-VL generative and explanation-aware runs reuse one QLoRA setup.
-That is what keeps the study tractable instead of ballooning into a full-model fine-tuning project.
-We are not optimising one benchmark score.
-The question is narrower and more useful: does the objective move the model in a direction that matters for trustworthy reasoning?
-A fluent explanation with no visual support is a failure here, even when the final answer happens to be right.
+The problem is cross-modal alignment in a resource-constrained environment.
+Given the same pretrained vision--language model, we analyse the effect of different training objectives on answer accuracy, explanation quality, and evidence sensitivity.
+The model, the data format, the optimiser, and the evaluation process are kept constant wherever possible, leaving only the training signal as the variable.
+The BLIP-2 pair reuses one Q-Former training setup. The Qwen2-VL generative and explanation-aware runs reuse one QLoRA setup.
+The goal is not to find the best scoring setup, but to observe whether the chosen objective leads the model in a direction that matters for a more trustworthy reasoning,
+and to check whether the answer quality, the explanation quality, and the evidence sensitivity move together or separately under each objective.
 
 \subsection{Novelty of this study}
-The contribution is the control, not a new architecture.
-Rather than line up unrelated models or recipes against each other, we vary the objective and keep the surrounding setup as close to identical as the budget allows.
-Faithfulness on structured inputs is treated as a first-class result here, not a couple of cherry-picked figures parked in the discussion.
-Concretely, the paper contributes the following:
+The contribution is the controlled comparison, not a new architecture.
+Instead of introducing a new architecture, we compare existing ones under different training objectives.
+We consider the faithfulness of the model's reasoning as a first-class result, rather than concentrating solely on answer accuracy.
+The paper contributes the following:
 
 \begin{itemize}
-    \item A single comparison that puts zero-shot, answer-only, BLIP-2 generative, BLIP-2 contrastive-enhanced, Qwen2-VL rationale-generative, and Qwen2-VL explanation-aware alignment under the same data and optimisation constraints.
-    \item Evaluation along three separate axes, namely answer quality, explanation quality, and evidence sensitivity, across document, chart, science, commonsense, and natural-image tasks.
-    \item A generate-then-score protocol for multiple-choice reasoning, so the model is judged only after it has produced its own reasoning trace.
+    \item A comparison of zero-shot, answer-only, BLIP-2 generative, BLIP-2 contrastive-enhanced, Qwen2-VL rationale-generative, and Qwen2-VL explanation-aware alignment under the same data and optimisation settings.
+    \item Evaluation along three separate axes, namely answer quality, explanation quality, and evidence sensitivity, across document, chart, science, and commonsense tasks.
+    \item For multiple-choice reasoning, a generate-then-score protocol is used, so the model is evaluated only after it has produced its own reasoning trace.
     \item A direct test of how QLoRA behaves with scale, instead of assuming that full fine-tuning or very large models are the only things worth studying.
 \end{itemize}
 
 \subsection{Why this study matters}
-The usefulness is in the constraints, not in spite of them.
-The whole study runs on the budget a student or a small lab can actually afford: one GPU, capped data, a single seed.
-It also refuses the easy move of reporting one number, and keeps answer accuracy, explanation quality, and evidence sensitivity as three separate readings.
-On documents and charts that separation earns its keep, because there the evidence should trace back to a visible region.
-The plumbing is reusable as well: every dataset is funnelled into one neutral format, and every experiment is picked from a configuration file.
-And the ending is honest rather than tidy.
-Rationale supervision does help on the science and commonsense runs, yet the answer-only controls stay strong, and the BLIP-2 contrastive arm buys only a small answer gain on top of weak retrieval evidence.
+The usefulness of this study is in the constraints.
+It runs on a resource-constrained setup that is actually accessible to students and small labs.
+It also avoids concentrating solely on a single aspect of performance, and instead keeps answer accuracy, explanation quality, and evidence sensitivity as separate readings.
+On documents and charts especially, that separation is particularly important, because the evidence should trace back to a visible region.
+The whole pipeline is reusable: every dataset is transformed into one shared format, and every experiment is declared in a configuration file,
+so the code can be used for future comparisons of new objectives, new models, or new datasets, without worrying about hidden differences between runs.
+And the results are honest rather than overselling: the rationale supervision does help on the science and commonsense runs, but the answer-only controls stay strong,
+and the BLIP-2 contrastive objective provides only a small answer gain on top of weak retrieval evidence.
 
 \section{Literature Review}
-This review stays close to the work that touches the present study directly.
-It is not a full history of vision--language modelling, and does not try to be.
-We group it by the parts that actually matter here: model design, text-rich images, chart reasoning, faithfulness, datasets, metrics, and low-budget adaptation.
-Older dataset and metric papers come in only where the experimental protocol leans on them.
+The review covers relatively latest works in the areas of vision--language model design,
+text-rich and document-heavy images, charts and structured visual reasoning, faithfulness and critique, and efficient adaptation.
+We group it by the parts that actually matter here the most: model design, text-rich images, chart reasoning, faithfulness, datasets, metrics, and low-budget adaptation.
 
 \subsection{Recent vision--language model design}
 No recent VLM rides on a single alignment trick.
