@@ -89,10 +89,10 @@ Hence, it only stands up when answer-only controls, objective balance, model sca
 \end{graphicalabstract}
 
 \begin{highlights}
-\item The study separates zero-shot, answer-only, rationale-generative, explanation-aware, and BLIP-2 contrastive-enhanced controls under one capped single-GPU protocol.
-\item On the rationale-bearing datasets, answer-only controls are strong; explanation-aware training is competitive but not automatically best.
-\item BLIP-2 contrastive-enhanced fine-tuning gives only a small ScienceQA gain over BLIP-2 generative fine-tuning, and the retrieval diagnostic stays near frozen and random controls.
-\item Evidence-masking drift is reported as evidence sensitivity, so answer gains, rationale quality, and grounding claims are kept separate.
+\item The study runs zero-shot, answer-only, rationale-generative, explanation-aware, and BLIP-2 contrastive-enhanced controls under the same single-GPU environment. 
+\item In rationale-bearing datasets, the explanation-aware training does help, but it's not the best; answer-only controls are strong.
+\item BLIP-2 contrastive-enhanced fine-tuning yields only a small gain in ScienceQA with BLIP-2 over generative fine-tuning, and the retrieval diagnostic are very close to frozen and random controls.
+\item Evidence-masking drift shows evidence sensitivity of the model, so the answer gains, rationale quality, and grounding claims are kept separate.
 \end{highlights}
 
 \begin{keyword}
@@ -104,44 +104,52 @@ vision--language models \sep cross-modal alignment \sep explanation-aware traini
 \linenumbers
 
 \section{Introduction}
+Vision--language models (VLMs) are becoming a default tool for answering questions based on the content of images, documents, and charts.
+The process looks simple: you give it an image and a question, and it will respond with an answer the image actually supports.
+What is considered as evidence depends entirely on the picture. 
+In a document it might be sitting in a line of a body text, in a table, or in a stamped region of the scanned page.
+In a chart it might be in an axis label, the relative height of the bars, a colour, or a trend that is not written down explicitly in words.
+In science and commonsense visual question answering (VQA), it is often not in the image at all, forcing the model to deduce the answer from the background knowledge it has already learned.
+Across every one of these, a correct-looking answer is not enough if the reasoning for that answer is not actually based on what is visible in the image.
+The VLMs are very good at generating the right-looking answers while looking at the wrong thing.
+That is why in this paper we do not rely on the answer alone, but also check the quality of the explanation and the sensitivity of the answer to visual evidence.
 
-Vision--language models (VLMs) have turned into a default tool for reading images, documents, and charts and answering questions about them.
-The task looks simple from the outside: you hand the model an image and a question, and it should hand back an answer the image actually supports.
-What counts as evidence, though, depends entirely on the picture.
-In a document it might be buried in a line of body text, in the table structure, or in one small stamped region of a scanned page.
-In a chart it might live in an axis label, the relative height of two bars, a colour, or a trend nobody ever wrote down in words.
-In science and commonsense visual question answering (VQA), it is often not in the image at all, and the model has to fold in background knowledge it already carries.
-Across every one of these, a confident, correct-looking answer is worth little if the reasoning underneath it is not grounded in the image.
-Models are very good at sounding right while looking at the wrong thing.
-So we study the answer and the explanation together, not one or the other.
+The issue behind all of this is a cross-modal alignment problem: how do we connect the visual signal to the language model in a way that actually makes the two talk to each other?
+It turns out that the quality of that wiring depends on many factors, such as the visual resolution, the data mixture, the connector design, the instruction tuning, and the adaptation method~\cite{laurencon2024whatmatters,zhang2025mm15,deitke2025molmo}.
+Open model families are very helpful, because backbones such as Qwen2-VL, BLIP-2, and LLaVA-OneVision are strong enough out of the box, while still being adaptable on an academic budget~\cite{wang2024qwen2vl,li2023blip2,li2025llavaonevision}.
+At the same time, document and chart studies show that general visual instruction following is not enough when it comes to text-heavy and structured images~\cite{fu2025textrichsurvey,wang2024docllm,masry2024chartinstruct,masry2025chartgemma}.
 
-Underneath all of it sits one idea: cross-modal alignment, the job of wiring the visual signal into the language model so the two actually talk.
-How well that wiring works turns out to hinge on a long list of choices, namely visual resolution, data mixture, connector design, instruction tuning, and the adaptation method~\cite{laurencon2024whatmatters,zhang2025mm15,deitke2025molmo}.
-Open model families help, because backbones such as Qwen2-VL, BLIP-2, and LLaVA-OneVision are strong out of the box yet still adaptable on an academic budget~\cite{wang2024qwen2vl,li2023blip2,li2025llavaonevision}.
-They are not enough on their own, though.
-Recent document and chart work keeps showing that general visual instruction following falls short on text-heavy, structured images~\cite{fu2025textrichsurvey,wang2024docllm,masry2024chartinstruct,masry2025chartgemma}.
-There is a budget reality too.
-Most students and small labs cannot fully fine-tune a large multimodal model, full stop.
-Low-rank methods such as DoRA (weight-decomposed low-rank adaptation) make it realistic to touch only a sliver of the parameters while the base model stays frozen or quantised~\cite{liu2024dora}.
-We take the same route, using low-rank adaptation (LoRA) and its quantised variant (QLoRA) instead of full-model fine-tuning~\cite{hu2022lora,dettmers2023qlora}.
-The point is never to top a leaderboard; it is to watch what changes when the alignment objective changes and the budget stays real.
+Furthermore, there is also a budget reality to consider.
+Most students and small labs cannot afford full fine-tuning of a large multimodal model.
+Methods like DoRA (weight-decomposed low-rank adaptation) make it possible to fine-tune the model by updating only a small portion of the parameters, while keeping the base model frozen or quantised~\cite{liu2024dora}.
+Hence, in this study, we take the same approach using low-rank adaptation (LoRA) and its quantised variant (QLoRA) instead of full-model fine-tuning~\cite{hu2022lora,dettmers2023qlora}.
+The main goal is not scoring the highest on a leaderboard, but rather to check the model's performance when only the alignment objective changes while keeping all other factors constant.
+
 
 \subsection{Gap Analysis}
 The gap is isolation.
-A typical paper swaps the model, the data, the training size, and the objective in one move, reports a higher number, and credits the objective.
-But you cannot actually tell.
-Maybe the objective helped; maybe the model was simply bigger, or saw cleaner data.
-Each objective also carries its own blind spot.
-Contrastive learning is excellent at matching an image to its caption, yet it never directly teaches the model to write an answer or an explanation.
-Generative learning trains that writing directly, but fluent text is no proof that the pixels were ever consulted.
-Explanation-aware training goes a step further and supervises the reasoning itself, which is the appealing part; it is also how a model learns to produce a tidy rationale after the fact, decoration rather than cause.
-And most of the hallucination and faithfulness literature still lives on natural images.
-Documents and charts get less attention, even though their evidence is more structured and far easier to inspect, which is exactly what makes them a good stress test.
-We close that gap by changing the alignment objective and holding everything else as steady as we can.
+Most papers change the model, the data, the training size, and the objective all at once.
+Once the final result is reported, it is hard to tell how much the objective itself contributed.
+Maybe the objective helped, but it might also be the case that it was simply a bigger model, cleaner data, or more tuning and not necessarily the objective itself.
+
+Moreover, each objective has its own blind spot.
+Contrastive learning is good at matching an image to a caption, but it does not teach the model to generate an explanation or an answer from the image.
+Generative learning is good at producing an answer, but it does not necessarily mean that the model is basing its answer on the correct parts of the image.
+Explanation-aware training teaches the model to actually write reasoning to come to the answer, but the model could have learned to write a convincing explanation after the fact,
+which might not actually be the cause of the answer.
+
+Hallucination and faithfulness evaluation has mostly been studied on natural images, where the common test is whether the model names objects that are not there.
+Charts and documents have recently come into focus too, with benchmarks for chart hallucination, chart grounding, and document-answer groundedness emerging~\cite{wang2025charthal,bansal2025chartab,chen2025docqa}.
+They are still comparatively underexplored, even though their evidence is more structured and easier to verify.
+That is exactly what makes them a good test case for grounding.
+
+These gaps are not closed by a new model or benchmark. What is actually missing is a controlled study that holds the model, the data, the budget, 
+and the evaluation procedure constant while changing only the alignment objective, to test not only the answer quality but also the explanation quality and the evidence sensitivity of the model under each objective.
+
 
 \subsection{Research Questions}
-The main question is: how should a resource-constrained vision--language model be aligned when the goal is both accurate and faithful visual reasoning?
-The following research questions make that question measurable.
+The main question is to investigate how the resource-constrained vision--language model should be aligned to achieve both accurate and faithful visual reasoning.
+The following research questions break that down into more measurable parts.
 
 \begin{enumerate}
     \item RQ1: How have vision--language alignment methods evolved for grounded visual reasoning and explanation generation?
