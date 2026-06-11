@@ -301,34 +301,41 @@ However, it is still unclear how much the training objective itself contributes 
 In this study, our goal is to fill that gap by conducting a controlled comparison of different training objectives while keeping all other factors constant.
 
 \section{Methodology}
-One rule drives the method: hold the pipeline fixed, change the objective.
-A dataset goes in and is converted to a shared format.
-From there the model is loaded, QLoRA adapters are attached if the run needs them, the chosen objective is trained, and evaluation goes through the same generate-then-score procedure every time.
-Figure~\ref{Fig:Figure1} lays out the full pipeline.
-The design is conservative on purpose.
-For what we are asking, one clean controlled comparison beats a sprawling leaderboard-style run.
-Every experiment is declared in a configuration file: the dataset, the backbone, the objective, the adapter settings, the metrics, and the seed, all on the record.
-One implementation path handles baseline evaluation, fine-tuning, and final evaluation.
-That is what keeps hidden differences from creeping in between runs.
+The main rule in this methodology is to keep the pipeline unchanged and modify only the training objective.
+Each dataset is transformed into a uniform format.
+Then, the model is loaded, QLoRA adapters are applied if needed, the model is trained with the chosen objective,
+and evaluation is performed using the same generate-then-score protocol for every run.
+Figure~\ref{Fig:Figure1} shows the full pipeline.
 
-\begin{figure*}[!ht]
-\centerline{\includegraphics[width=\linewidth]{./Figures/icons/Pipeline}}
+We intentionally keep the pipeline simple and controlled, because the goal is to isolate the effect of the training objective,
+not to find the best possible score on each dataset.
+Every experiment is defined through a configuration file that declares the dataset, the backbone, the objective, the adapter settings, the metrics, and the seed.
+The same implementation is used for baseline evaluation, fine-tuning, and final evaluation, reducing the risk of hidden differences affecting the results.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=1\linewidth]{./Figures/icons/Pipeline}
 \caption{Overall workflow of the proposed explanation-aware alignment study.
 Datasets are normalised into a shared multimodal example format.
 Qwen2-VL runs are adapted with QLoRA, BLIP-2 runs train the Q-Former-side alignment path, and each objective is evaluated through answer, rationale, and evidence-sensitivity metrics.}
 \label{Fig:Figure1}
-\end{figure*}
+\end{figure}
 
 \subsection{Dataset}
-Five public benchmarks carry the experiments.
-DocVQA stands in for documents, where the answer usually rides on scanned text, layout, and local visual context~\cite{mathew2021docvqa}.
-ChartQA covers chart reasoning, where it can turn on a label, an axis, a value, or a comparison~\cite{masry2022chartqa}.
-ScienceQA brings multimodal science questions with answer choices and written explanations, which is what makes it usable for rationale supervision~\cite{lu2022scienceqa}.
-A-OKVQA adds commonsense questions and rationales over natural images~\cite{schwenk2022aokvqa}.
-VQAv2 plays the general natural-image control~\cite{goyal2017vqav2}.
-One caveat there: the completed run draws on the configured \texttt{Erland/VQAv2-sample} source, capped at 900 training and 100 evaluation examples, so we report it as a subset result, not a full VQAv2 score.
-Whatever the source, every dataset is bent into one schema: image, question, optional answer choices, target answer, optional rationale.
-A dataset with no gold rationale is treated as answer-only, unless a separate rationale experiment is explicitly marked.
+The experiments use five public datasets.
+DocVQA represents document understanding, where the answer is usually based on scanned text, layout and local regions of the image~\cite{mathew2021docvqa}.
+ChartQA is used for chart reasoning, in which the answer might depend on labels, axes, values, or relationships between elements in the chart~\cite{masry2022chartqa}.
+ScienceQA provides multimodal science questions with multiple-choice answers and explanations, which is used for rationale supervision~\cite{lu2022scienceqa}.
+A-OKVQA adds commonsense questions and rationales over natural images, which is also used for rationale-supervised training~\cite{schwenk2022aokvqa}.
+VQAv2 is used as a general natural-image control, where the answer is often based on object recognition and simple relationships in the image~\cite{goyal2017vqav2}.
+
+There is one important detail about the VQAv2 subset.
+The experiment uses the configured \texttt{Erland/VQAv2-sample} source, which has 900 training examples and 100 evaluation examples.
+Hence, we report it as a VQAv2 subset result, not as a full VQAv2 benchmark score.
+
+All the datasets are transformed into a uniform format, where each example is comprised of an image, a question, an answer, and optionally a rationale.
+If the dataset does not have gold rationales, the rationale field is left empty, and the training falls back to answer-only supervision.
+
 
 \begin{table}[!ht]
 \centering
@@ -366,28 +373,31 @@ Answer-only fallback & image, question, answer, no gold rationale & \texttt{Ques
 
 \subsection{Detailed methodology}
 Figure~\ref{Fig:Architecture} shows the model-level setup.
-Every backbone sits behind one common interface, so the training code never forks into a separate path per model.
-Qwen2-VL loads in 4-bit precision and picks up rank-16 QLoRA adapters~\cite{hu2022lora,dettmers2023qlora}.
-On the BLIP-2 contrastive arm, the vision encoder and the OPT (Open Pre-trained Transformer) language model are frozen solid.
-Only the Q-Former-side components, the language projection, and a small answer-projection head ever update.
-The baseline variant just evaluates the model before any task fine-tuning.
-The contrastive-enhanced variant bolts on an auxiliary image--answer term: it tugs the pooled Q-Former image representation toward the correct answer and away from the others in the batch.
-The generative variant trains the model to produce the answer from the image and question.
-The explanation-aware variant trains it to produce a rationale first, then the answer.
-So the variants differ in one thing only, the supervision signal, and everything else inside a comparison is held as close as it can be.
+All backbones are loaded in the same way, and the same training code is used for every run,
+so that we don't have to design a separate implementation for each model or each objective.
+In case of Qwen2-VL, the model is loaded in 4-bit precision and trained with rank-16 QLoRA adapters~\cite{hu2022lora,dettmers2023qlora}.
+For the BLIP-2 contrastive run, the vision encoder and the OPT language model are frozen,
+while the Q-Former-side components, the language projection, and a small answer-projection head are trainable.
 
-In generative training, prompt and target live in one concatenated sequence, but the loss only ever touches the target tokens.
-That detail is easy to get wrong, because multimodal processors slip image placeholder tokens in front of the text.
-Count the prompt length by hand and the supervised span quietly slides off position.
-The implementation sidesteps it by measuring prompt length with the very same processor that encodes the full sequence.
-The contrastive objective reuses those span tags, pooling answer tokens alone into the InfoNCE (information noise-contrastive estimation) text representation~\cite{oord2018cpc}.
-Rationale tokens still receive the generative loss; they simply are not treated as the contrastive positive.
-For the explanation-aware objective, the target splits in two, an explanation span and an answer span.
-Equation~\ref{Eq:Loss} weights the two spans with $\alpha$.
-When $\alpha=1$, only the answer span is weighted, although the target sequence can still contain the gold rationale before the answer.
-A clean answer-only control is therefore reported separately, using a target template that contains only \texttt{Answer:}.
+The difference between the variants is only in the supervision signal.
+The baseline is evaluated before the model fine-tuning.
+The generative variant is trained to produce the answer, given the image and question.
+The contrastive-enhanced variant adds an extra image--answer loss, which pulls the Q-Former pooled image representation
+closer to the correct answer and pushes it farther from the other answers in the batch.
+The explanation-aware variant trains the model to generate a rationale first, then the answer, and it weights the rationale and answer spans separately in the loss.
+
+For the generative training, the prompt and targets are concatenated into one sequence, and the loss is computed only over the target tokens.
+The loss mask is constructed after multimodal encoding, so that the image placeholder tokens included by the processor do not shift the target span off position.
+This is achieved by measuring the prompt length with the same processor that encodes the full sequence, and masking out that many tokens from the start of the loss.
+
+For contrastive objective, the same span information is used.
+Only the answer tokens are pooled into the InfoNCE text representation~\cite{oord2018cpc}.
+The rationale tokens still receive the generative loss, but they are not used in the contrastive loss.
+Equation~\ref{Eq:Loss} weights these two parts using $\alpha$.
+When $\alpha=1$, only the answer span is weighted, even if the target may still contain the rationale before the answer.
+That is why the true answer-only control is reported separately with a target template that contains only \texttt{Answer:}.
 When $\alpha=0$, only the explanation span is supervised.
-Intermediate values test whether answer and rationale supervision help each other or compete.
+The intermediate values are used to test the interaction between answer and rationale supervision, whether they help each other or compete.
 
 \begin{figure*}[!ht]
 \centerline{\includegraphics[height=0.74\textheight,keepaspectratio]{./Figures/icons/Architecture_cropped}}
@@ -402,10 +412,13 @@ The BLIP-2 path keeps the vision tower and OPT language model frozen and trains 
     \mathcal{L} = \alpha\,\mathcal{L}_{\text{answer}} + (1-\alpha)\,\mathcal{L}_{\text{explanation}}
     \label{Eq:Loss}
 \end{equation}
-where $\mathcal{L}_{\text{answer}}$ and $\mathcal{L}_{\text{explanation}}$ are the masked cross-entropy losses over the answer and explanation token spans, and $\alpha$ controls their relative weight.
-There are two alpha modes.
-Fixed-alpha mode treats $\alpha$ as a dial we set by configuration, an ablation knob.
-Length-aware mode does something different: it derives the effective answer weight straight from the supervised token counts:
+
+Here, $\mathcal{L}_{\text{answer}}$ is the masked cross-entropy loss on the answer tokens, and $\mathcal{L}_{\text{explanation}}$ is the same loss on the explanation tokens.
+The coefficient $\alpha$ controls the relative weight of the answer and explanation supervision.
+
+We use two ways of setting $\alpha$.
+In fixed-alpha mode, $\alpha$ is chosen explicitly in the experiment configuration serving as an ablation control.
+In length-aware mode, the effective answer weight is computed from the number of supervised answer and explanation tokens:
 
 \begin{equation}
     \alpha_{\text{eff}} =
@@ -413,29 +426,38 @@ Length-aware mode does something different: it derives the effective answer weig
     \label{Eq:LengthAlpha}
 \end{equation}
 where $n_{\text{answer}}$ and $n_{\text{explanation}}$ are the answer and explanation token counts after collation, and $\lambda$ is the answer-weight multiplier.
-With $\lambda=1$, this collapses to plain uniform token-level cross-entropy over the rationale-plus-answer target.
-So the fixed-alpha sweep is the ablation; the length-aware run is the audit control for the natural, token-weighted setting.
+When $\lambda=1$, the loss becomes the usual token-level cross-entropy over the full rationale-plus-answer target.
+Because of this, the fixed-alpha runs are treated as the ablation, while the length-aware run is used as the natural token-weighted control.
 
-Multiple-choice datasets are scored in two steps at inference.
-First the model writes a short reasoning trace from the image and question.
-Then, in the context of that trace, each candidate answer gets a length-normalised conditional likelihood, and the highest score wins.
-The two-step design is there to avoid brittle string parsing and option-label copying.
-Open-ended datasets are simpler: the generated answer string is scored with the dataset's native metric.
-Whenever the model produces a rationale, we save it, and those saved rationales feed the text-quality and faithfulness analysis.
+For multiple-choice datasets, inference is done in two steps.
+First, a short reasoning sequence is generated given the image and the question.
+Then, given that reasoning trace, the model scores each answer option by computing the length-normalised log-likelihood of that option as a continuation of the reasoning.
+Afterwards, the option with the highest score is selected as the final answer.
+This avoids relying on fragile string parsing or on whether the model copied an option label correctly.
+In case of open-ended datasets, the model just generates an answer string, which is evaluated using the dataset's native metric.
+When a rationale is generated, it is saved for later use in the rationale quality and evidence sensitivity evaluation.
 
 \subsection{Evaluation metrics}
-Evaluation splits into three parts: answer quality, rationale quality, and evidence sensitivity.
-Answer quality always uses the benchmark's own native metric.
-When the tables say ``headline metric,'' they mean exactly that native primary metric for the target dataset, not some universal number to be read straight across datasets.
-For ScienceQA and A-OKVQA that metric is multiple-choice accuracy.
-DocVQA uses average normalised Levenshtein similarity (ANLS), per the benchmark convention~\cite{mathew2021docvqa}.
-ChartQA uses relaxed accuracy on numerical answers~\cite{masry2022chartqa}.
-The VQAv2 subset uses VQA consensus accuracy wherever annotator answers exist~\cite{antol2015vqa,goyal2017vqav2}.
-Rationale quality leans on BLEU and ROUGE-L whenever gold rationales are available~\cite{papineni2002bleu,lin2004rouge}.
-Neither is a perfect judge, but together they give a basic lexical and sequence-level check on the explanation.
-Evidence sensitivity asks a blunter question: does the answer's likelihood move when we mask part of the image? This borrows the old idea of occlusion sensitivity analysis~\cite{zeiler2014visualizing}.
-The specific measure is evidence-masking consistency, written out in Equation~\ref{Eq:Drift}.
-The qualitative diagnostic then lines up the high-drift regions against whatever visual evidence the generated explanation actually names, when that comparison is possible.
+Evaluation is divided into three parts: answer quality, rationale quality, and evidence sensitivity.
+Answer quality is measured using the native metric of the benchmark, which is the primary metric reported on the leaderboard for that dataset.
+We use the term ``headline metric'' to refer to this native primary metric,
+not to some universal metric to be compared directly across datasets.
+For ScienceQA and A-OKVQA, the headline metric is multiple-choice accuracy.
+For DocVQA, it is average normalised Levenshtein similarity (ANLS), as per the benchmark convention~\cite{mathew2021docvqa}.
+For ChartQA, it is relaxed accuracy for numerical answers~\cite{masry2022chartqa}.
+For the VQAv2 subset, it is VQA consensus accuracy, which is computed wherever annotator answers exist~\cite{antol2015vqa,goyal2017vqav2}.
+
+For rationale quality, we use BLEU and ROUGE-L whenever gold rationales are available~\cite{papineni2002bleu,lin2004rouge}.
+These metrics do not measure faithfulness or correctness of the rationale, but they do provide a basic check on 
+whether the generated explanation is lexically similar to the gold rationale, and whether it captures the same sequence of reasoning steps.
+
+Evidence sensitivity is measured in an iterative way.
+The model's answer is scored on the original image, and then scored again several times by masking out different regions of the image.
+This is a general idea of occlusion sensitivity analysis~\cite{zeiler2014visualizing}, adapted to the question-answering setting.
+The drift in the answer score when a region is masked out indicates how much the model's answer relies on that region as evidence.
+That evidence-masking drift is shown in Equation~\ref{Eq:Drift}.
+For qualitative inspection, we compare the regions with high evidence-masking drift to the content named in the generated rationale,
+to see if the model is actually naming the evidence it relies on.
 
 \begin{equation}
     \mathrm{drift}(r) = s\!\left(a \mid I\right) - s\!\left(a \mid I \setminus r\right)
