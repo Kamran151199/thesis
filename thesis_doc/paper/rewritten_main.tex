@@ -198,85 +198,107 @@ text-rich and document-heavy images, charts and structured visual reasoning, fai
 We group it by the parts that actually matter here the most: model design, text-rich images, chart reasoning, faithfulness, datasets, metrics, and low-budget adaptation.
 
 \subsection{Recent vision--language model design}
-No recent VLM rides on a single alignment trick.
-What it does depends on the backbone, the visual tokenisation, the data mixture, the connector, and the instruction tuning, all interacting.
-Ablation work makes the case that these knobs are still poorly separated, which is precisely the argument for controlled comparisons~\cite{laurencon2024whatmatters}.
-MM1.5 drives it home: optical character recognition (OCR) data, synthetic captions, instruction mixtures, and specialised variants can each weigh as much as raw scale~\cite{zhang2025mm15}.
-Molmo and PixMo are useful for a different reason, namely open weights and open data that let you actually read the recipe~\cite{deitke2025molmo}.
-LLaVA-OneVision shows a single family stretching across image and video once the data mixture is chosen with care~\cite{li2025llavaonevision}.
-The takeaway is blunt.
-Change the model, the data, and the budget together, and the objective's own contribution disappears into the noise.
+Recent vision--language models are not built around a single alignment trick.
+Their performance is a result of many choices working together, such as the backbone architecture,
+the visual tokenisation method, the data mixture, the connector design, and the instruction tuning.
+Since all those factors are usually changed together, it is hard to tell which part actually caused an improvement in the final performance.
 
-Budget is the other reason open families matter.
-Qwen2-VL earns its place by handling dynamic resolution, documents, charts, diagrams, and other text-heavy inputs~\cite{wang2024qwen2vl}.
-BLIP-2 earns its place differently: its Q-Former is a convenient spot to bolt on a contrastive image--answer loss while the heavy vision and language components stay frozen~\cite{li2023blip2}.
-Neither is cited as a leaderboard trophy.
-They are here as the kind of backbone that makes parameter-efficient experiments possible at all.
+This is exactly the issues raised by recent ablation studies, 
+which demonstrate that these factors are still poorly separated, and that it is vital to conduct controlled comparisons~\cite{laurencon2024whatmatters}.
+MM1.5 also makes the same argument, showing that optical character recognition (OCR) data,
+synthetic captions, instruction mixtures, and specialised variants 
+can each weigh as much as raw scale in the final performance of a vision--language model~\cite{zhang2025mm15}.
+Molmo and PixMo are useful here because they provide open weights and open data 
+that let us actually read the recipe and understand what is going on under the hood~\cite{deitke2025molmo}.
+LLaVA-OneVision shows that a single family of models can be used across image and video when the data mixture is chosen with care~\cite{li2025llavaonevision}.
+
+For this study, the conclusion is simple.
+If the model, the data, and the budget are all changing together, then the contribution of the objective itself is hard to tell.
+That is why we need a controlled comparison, where the model, the data, and the budget are held constant while only the training signal changes.
+
+Open model families are also important, because they enable us to actually run the controlled comparison on a practical budget.
+Qwen2-VL is designed to work with dynamic image resolution and text-heavy visual inputs such as documents, charts, and diagrams~\cite{wang2024qwen2vl}.
+BLIP-2's Q-Former lets us test an image--answer contrastive loss while keeping the larger vision encoder and language model frozen~\cite{li2023blip2}.
+We use these open models because they make controlled, parameter-efficient experiments feasible under limited resources.
 
 \subsection{Text-rich and document-heavy images}
-Documents are hard for a specific reason: the answer often hides in small text, in the layout, or in local context.
-Reading and localising the evidence is the task, not naming objects.
-A recent survey traces how quickly text-rich image understanding has tilted toward multimodal large language models for OCR-heavy and layout-heavy inputs~\cite{fu2025textrichsurvey}.
-DocLLM is a clean example, folding layout directly into the generative document-understanding problem~\cite{wang2024docllm}.
-OmniDocBench takes the coverage angle instead, scoring diverse PDF parsing cases with detailed annotations~\cite{ouyang2025omnidocbench}.
-Our document task is DocVQA~\cite{mathew2021docvqa}.
-We are after something narrower than document modelling at large: what shifts when the objective changes and the rest of the training path holds still?
+Documents are difficult for a specific reason.
+The answer in this case is not in the whole image, but rather in a small part of it, such as a line of text, a table cell, or a layout region.
+Hence, the task is not just an image recognition problem.
+The model has to read the document and find the evidence in the right place, which is a different skill than naming objects in a natural image.
+
+Recent work shows that text-rich image reasoning is moving toward multimodal large language models, especially for OCR-heavy and layout-heavy inputs~\cite{fu2025textrichsurvey}.
+DocLLM is a good example of this trend. It encodes the document layout directly into the generative document-understanding problem,
+which is a step toward more faithful reasoning on documents~\cite{wang2024docllm}.
+OmniDocBench focuses on the coverage angle instead, scoring diverse PDF parsing cases with detailed annotations,
+which is a step toward more structured evaluation of document understanding~\cite{ouyang2025omnidocbench}.
+In this study, we use DocVQA as a test case for document understanding, because it is a well-known benchmark 
+where the answer is usually located on scanned text, layout, and local visual context~\cite{mathew2021docvqa}.
+
+Our goal is not to build a new document model.
+We want to see how much the training objective itself contributes to the model's ability to read documents and answer questions about them.
 
 \subsection{Charts and structured visual reasoning}
-Charts break in their own way.
-Here the model has to read labels, make sense of axes and tick marks, compare quantities, and now and then infer a trend that no one spelled out in words.
-ChartInstruct and ChartGemma show that instruction tuning on chart images lifts both comprehension and reasoning~\cite{masry2024chartinstruct,masry2025chartgemma}.
-ChartMimic adds a useful twist through chart-to-code generation, which probes whether the model grasps the chart's structure rather than a single answer~\cite{yang2025chartmimic}.
-ChartMuseum is the sharper warning: on real-world chart reasoning, current large vision--language models (LVLMs) still sit well below humans~\cite{tang2025chartmuseum}.
-MathVista, MMMU-Pro, and MMReason widen the same gap into mathematical, expert-level, and multi-step multimodal reasoning~\cite{lu2024mathvista,yue2025mmmupro,yao2025mmreason}.
-That mix is why the design keeps ChartQA, ScienceQA, and A-OKVQA: structured charts, science reasoning, and knowledge-heavy visual reasoning in one sweep~\cite{masry2022chartqa,lu2022scienceqa,schwenk2022aokvqa}.
+Charts create a different kind of problem.
+In this case, the model has to read the labels, understand the axes and tick marks,
+and determine the relationships between the visual elements, such as bars, lines, or points.
+ChartInstruct and ChartGemma demonstrate that instruction tuning on chart images can help in both chart understanding and reasoning~\cite{masry2024chartinstruct,masry2025chartgemma}.
+ChartMimic shows the same point by training a model to generate code for that chart, which makes the model understand the chart in a more structured way~\cite{yang2025chartmimic}.
+ChartMuseum shows that current large visual--language models still perform far poorer than humans on chart reasoning~\cite{tang2025chartmuseum}.
+MathVista, MMMU-Pro, and MMReason extend this concern to mathematical and multi-step reasoning, which is often required for chart understanding~\cite{lu2024mathvista,yue2025mmmupro,yao2025mmreason}.
+
+This is why we use ChartQA, ScienceQA, and A-OKVQA in the same study~\cite{masry2022chartqa,lu2022scienceqa,schwenk2022aokvqa}.
+Together, they cover structured chart reasoning, science reasoning, and knowledge-heavy visual reasoning.
+
 
 \subsection{Faithfulness, critique, and efficient adaptation}
-Explanation-aware training carries one obvious risk: the model can learn to write an explanation that reads well while ignoring the image entirely.
-Recent benchmarks corner this from several sides.
-MMMU probes expert-level perception and reasoning across many visual formats~\cite{yue2024mmmu}.
-MMStar asks the awkward question of whether an example is truly vision-dependent or solvable from language priors alone~\cite{chen2024mmstar}.
-HallusionBench zeroes in on where language hallucination meets visual illusion in LVLM answers~\cite{guan2024hallusionbench}.
-Hallucination-augmented contrastive learning reframes hallucinated visual text as a representation-learning problem~\cite{jiang2024hacl}.
-VISCO and Critic-V push past final-answer accuracy into critique, correction, and error detection~\cite{wu2025visco,zhang2025criticv}.
-Read together, they make one case: measure faithfulness apart from accuracy.
+Explanation-aware training has a subtle problem.
+The model might learn to write an explanation that looks convincing,
+but that is not actually based on the image and is not the real cause leading to the answer.
+Recent studies approach this problem from different angles.
+MMMU tests expert-level multimodal reasoning across many visual formats, to see if VLMs can do expert-style visual reasoning and not just simple image captioning~\cite{yue2024mmmu}.
+MMStar checks whether a model actually needs the image to answer the question or whether the answer can be derived from the learned knowledge alone~\cite{chen2024mmstar}.
+HallusionBench focuses on cases where language hallucination and visual illusion appear together in LVLM responses~\cite{guan2024hallusionbench}.
+Hallusination-augmented contrastive learning turns a hallucination into a contrastive signal, to teach the model to avoid it~\cite{jiang2024hacl}.
+VISCO and Critic-V evaluate the model's ability to critique, correct, and detect errors in its own output~\cite{wu2025visco,zhang2025criticv}.
+These works suggest that faithfulness should be measured separately from answer accuracy.
 
-Efficient adaptation is the hard constraint we live under.
-DoRA is the recent example we point to, sharing the same motive: adapt well without paying for full-model fine-tuning~\cite{liu2024dora}.
-Reason-RFT gestures the other direction we care about, toward post-training that explicitly rewards visual reasoning~\cite{tan2025reasonrft}.
-Our own work stays with supervised objective comparisons, but the same worry sits behind it.
-We judge the model as a reasoning system, not merely an answer generator.
+Efficient adaptation is also important,
+because it allows us to test the effect of the training objective without needing to fine-tune the entire model.
+DoRA is a good example of this approach, which demonstrates that we can actually adapt the model by updating only a small portion of the parameters~\cite{liu2024dora}.
+Reason-RFT points to another direction that is relevant here, where post-training specifically rewards visual reasoning~\cite{tan2025reasonrft}.
+In this paper, we stay with supervised objective comparisons, but the concern is similar.
+We evaluate the model as a reasoning system, rather than only as an answer generator.
 
-Table~\ref{tab:LiteratureSummary} lays the closest lines of work beside the gap we target.
-It is not meant as a complete catalogue.
-The point is narrower: a fixed-budget objective comparison still earns its place even when stronger specialised models already exist.
+Table~\ref{tab:LiteratureSummary} summarises the relevant works and the gaps we address in this study.
+It is not meant to be a comprehensive review of the field, but rather a snapshot of the recent trends and how they relate to our controlled comparison.
 
 \begin{table*}[!ht]
 \centering
-\caption{Summary of representative related work and the gap addressed by this study. A check mark indicates that the paper directly targets the property, a cross indicates that it is outside the main scope, and a tilde indicates partial coverage.}
+\caption{Representative related work and how it connects to the gap studied here. A check mark means the line of work directly covers the property, a cross means it is not part of the main scope, and a tilde means partial coverage.}
 \label{tab:LiteratureSummary}
 \scriptsize
 \begin{adjustbox}{max width=\textwidth}
 \begin{tabular}{|p{3.2cm}|p{2.4cm}|c|c|c|c|p{4.5cm}|}
 \hline
-\textbf{Work} & \textbf{Main focus} & \textbf{Generation} & \textbf{Structured VQA} & \textbf{Rationales} & \textbf{Efficient FT} & \textbf{Relation to this study} \\ \hline
-Recent VLM construction~\cite{laurencon2024whatmatters,deitke2025molmo,li2025llavaonevision,zhang2025mm15} & Backbone and data recipe & \cmark & \pmark & \pmark & \pmark & Shows why architecture and data must be controlled before claiming an objective-level effect. \\ \hline
-Open VLM backbones~\cite{wang2024qwen2vl,li2023blip2} & Adaptable model families & \cmark & \pmark & \pmark & \pmark & Provide practical backbone candidates for fixed-budget experiments. \\ \hline
-Text-rich document work~\cite{fu2025textrichsurvey,wang2024docllm,ouyang2025omnidocbench} & Documents and PDF parsing & \cmark & \cmark & \pmark & \pmark & Motivates document evaluation, but does not isolate training objectives under one backbone. \\ \hline
-Chart reasoning work~\cite{masry2024chartinstruct,masry2025chartgemma,tang2025chartmuseum,yang2025chartmimic} & Chart understanding & \cmark & \cmark & \pmark & \pmark & Shows that chart reasoning remains difficult and needs explicit structured evaluation. \\ \hline
-Recent reasoning benchmarks~\cite{lu2024mathvista,yue2024mmmu,chen2024mmstar,yue2025mmmupro,yao2025mmreason} & Harder multimodal evaluation & \pmark & \cmark & \pmark & \xmark & Motivate stricter evaluation for visual, mathematical, and multi-step reasoning. \\ \hline
-Faithfulness and critique~\cite{guan2024hallusionbench,jiang2024hacl,wu2025visco,zhang2025criticv} & Reasoning reliability & \pmark & \cmark & \cmark & \xmark & Supports measuring hallucination, critique, and evidence use separately from accuracy. \\ \hline
+\textbf{Work} & \textbf{Main focus} & \textbf{Generation} & \textbf{Structured VQA} & \textbf{Rationales} & \textbf{Efficient FT} & \textbf{Connection to this study} \\ \hline
+Recent VLM construction~\cite{laurencon2024whatmatters,deitke2025molmo,li2025llavaonevision,zhang2025mm15} & Model and data recipe & \cmark & \pmark & \pmark & \pmark & Shows that model design and training data must be controlled before we can attribute gains to the objective. \\ \hline
+Open VLM backbones~\cite{wang2024qwen2vl,li2023blip2} & Adaptable model families & \cmark & \pmark & \pmark & \pmark & Provide practical backbones for controlled experiments under a fixed compute budget. \\ \hline
+Text-rich document work~\cite{fu2025textrichsurvey,wang2024docllm,ouyang2025omnidocbench} & Documents and PDF parsing & \cmark & \cmark & \pmark & \pmark & Motivates the document setting, but usually does not compare training objectives under one fixed backbone. \\ \hline
+Chart reasoning work~\cite{masry2024chartinstruct,masry2025chartgemma,tang2025chartmuseum,yang2025chartmimic} & Chart understanding & \cmark & \cmark & \pmark & \pmark & Shows that chart reasoning is still difficult and needs structured evaluation beyond ordinary image QA. \\ \hline
+Recent reasoning benchmarks~\cite{lu2024mathvista,yue2024mmmu,chen2024mmstar,yue2025mmmupro,yao2025mmreason} & Harder multimodal evaluation & \pmark & \cmark & \pmark & \xmark & Motivate evaluation on visual, mathematical, expert-level, and multi-step reasoning tasks. \\ \hline
+Faithfulness and critique~\cite{guan2024hallusionbench,jiang2024hacl,wu2025visco,zhang2025criticv} & Reliability of reasoning & \pmark & \cmark & \cmark & \xmark & Support the need to measure hallucination, critique, and evidence use separately from answer accuracy. \\ \hline
 DoRA / Reason-RFT~\cite{liu2024dora,tan2025reasonrft} & Efficient and reasoning-focused adaptation & \pmark & \xmark & \pmark & \cmark & Motivate low-resource adaptation and explicit reasoning-oriented post-training. \\ \hline
-This study & Controlled explanation-aware alignment & \cmark & \cmark & \cmark & \cmark & Isolates objective choice and measures answer, rationale, and evidence-sensitivity outcomes. \\ \hline
+This study & Controlled explanation-aware alignment & \cmark & \cmark & \cmark & \cmark & Compares objective choices directly and reports answer accuracy, rationale quality, and evidence sensitivity together. \\ \hline
 \end{tabular}
 \end{adjustbox}
 \end{table*}
 
-One pattern runs through all of it.
-Early multimodal alignment mostly meant learning a shared image--text representation, or generating a short answer and stopping there.
-The recent wave pushes much further: harder visual reasoning, instruction tuning, text-rich images, critique, hallucination checks, efficient adaptation.
-What still goes unmeasured is the objective on its own, namely how much it moves answer quality, rationale quality, and visual evidence use once the model, the data cap, and the compute budget are nailed down.
-That measurement is the job of the experiments below.
+A common pattern emerges from this review.
+Earlier work on multimodal alignment focused mainly on learning image--text representations, or on generating an answer from the image and the question.
+More recent work has started to pay attention to the faithfulness of the model's reasoning, and to the quality of the explanations it generates.
+However, it is still unclear how much the training objective itself contributes to the model's performance.
+In this study, our goal is to fill that gap by conducting a controlled comparison of different training objectives while keeping all other factors constant.
 
 \section{Methodology}
 One rule drives the method: hold the pipeline fixed, change the objective.
