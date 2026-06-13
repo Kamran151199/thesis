@@ -339,28 +339,34 @@ This does not make the study perfect, but it makes the comparison more focused o
 
 
 \section{Generative supervision}
-Generative supervision trains the model to produce a target text sequence.
-In the simplest answer-only case, the target contains only the answer.
-In a rationale-generative case, the target contains a reasoning sentence or rationale followed by the final answer.
-The model receives the image and the question as input, and the loss is computed on the target tokens.
+Generative supervision is a setup in which the model is trained to produce a target token sequence.
+In the answer-only case, that target sequence is comprised of the answer tokens only.
+In a rationale-generative case, the target sequence contains not only the answer tokens, but also a reasoning sentence or rationale before the answer.
+The model is fed an image and a question as input, and the loss is computed on the target tokens.
 
-This type of supervision fits naturally with instruction-tuned vision--language models.
-The model is already built to generate text, so fine-tuning can adapt the output format to a specific task.
-For example, the model can learn that ScienceQA answers should be selected from answer choices, or that DocVQA answers are usually short text spans.
-Generative fine-tuning is therefore a practical baseline for many visual question answering tasks.
+Since instruction-tuned VLMs already work by reading a prompt and generating text,
+training them with answer/rationale text targets fits well with the way these models are used.
+The model can already generate text, so fine-tuning can adapt it to produce the expected output format for a specific task.
+For example, the model can learn that in ScienceQA, it should select an answer from the provided answer choices,
+or that in DocVQA, it should generate a short text as the answer.
+Hence, generative fine-tuning is a good baseline for many visual question answering tasks.
 
-The weakness of pure generative supervision is that it does not by itself prove grounding.
-A model can learn to generate the expected answer format without relying on the right visual region.
-It may also learn common dataset patterns.
-For example, in multiple-choice settings, some questions can be partly solved from the text and answer options.
-In document or chart settings, some answers may be repeated in common positions or formats.
-This does not make generative supervision useless, but it means the evaluation needs to check more than final answer accuracy.
+However, pure generative supervision has some limitations when it comes to grounding.
+A model might learn to generate the answer without actually using the provided visual information correctly.
+It might also just memorise common patterns in the dataset.
+For example, in multiple-choice datasets, some questions could to some extent be answered by looking at the question and the answer choices alone,
+without actually looking at the image.
+In documents and charts, the model could memorise that the answer is often in some specific position or format.
+This does not mean that generative supervision is not a good option, but it does mean that in the evaluation phase, we need to check more than just the final answer accuracy
+to make sure that the model is actually using the visual signal in a meaningful way.
 
-In this thesis, generative supervision plays two roles.
-First, it is used as a direct training objective for BLIP-2 and Qwen2-VL runs.
-Second, it is used as a control for explanation-aware training.
-This is important because explanation-aware training should not only be compared against a frozen zero-shot model.
-It should also be compared against a simpler model that was fine-tuned to produce answers or rationale-plus-answer text without the same span-weighting strategy.
+In this thesis, we use generative supervision in two ways.
+First, we use it as a direct training objective for the BLIP-2 and Qwen2-VL runs that are not explanation-aware.
+Second, we use it as a control for the explanation-aware training.
+This is quite important, because we do not want to compare the explanation-aware supervision only against a frozen zero-shot model,
+but also against pure generative supervision that was fine-tuned to produce the expected answer or rationale-plus-answer text without
+the same span-weighting strategy. 
+
 
 \section{Contrastive supervision}
 Contrastive supervision trains the model to bring matching image and text representations closer together while pushing non-matching pairs farther apart.
