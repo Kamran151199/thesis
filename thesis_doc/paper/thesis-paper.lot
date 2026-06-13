@@ -1,0 +1,22 @@
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {3.1}{\ignorespaces Representative related work and how it connects to the gap studied here. A check mark means the line of work directly covers the property, a cross means it is not part of the main scope, and a tilde means partial coverage.}}{17}{table.caption.6}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {4.1}{\ignorespaces Benchmarks used in the study. The sizes are rounded public benchmark sizes before filtering by image availability, answer type, or rationale availability. The completed experiments use capped train and evaluation splits so that every run fits the same practical compute budget.}}{19}{table.caption.8}%
+\contentsline {table}{\numberline {4.2}{\ignorespaces Input construction examples. The complete token, label, span, and collator traces are saved as pipeline artifacts; this table gives the paper-level view of what each prompt family means.}}{20}{table.caption.9}%
+\contentsline {table}{\numberline {4.3}{\ignorespaces Default Qwen2-VL QLoRA fine-tuning configuration. BLIP-2 contrastive runs use the separately reported frozen-vision/frozen-LLM Q-Former training setup. Any run that changes these values is reported separately in the experiment ledger and in the Results section.}}{24}{table.caption.11}%
+\contentsline {table}{\numberline {4.4}{\ignorespaces Main experiment ledger. The full generated ledger includes exact caps, seeds, prompt variants, alpha mode, and configuration hashes.}}{24}{table.caption.12}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {5.1}{\ignorespaces Objective-level results under the controlled protocol. The zero-shot reference is the shared score for the same model and dataset group before the fine-tuning, not a separately recomputed frozen score for every prompt family. Accuracy is multiple-choice accuracy for ScienceQA and A-OKVQA.}}{26}{table.caption.13}%
+\contentsline {table}{\numberline {5.2}{\ignorespaces Approximate uncertainty for selected accuracy-style headline metrics. These intervals use the generated normal-approximation standard errors for capped evaluation sets, so they are a caution about small observed differences rather than a replacement for multi-seed testing.}}{26}{table.caption.14}%
+\contentsline {table}{\numberline {5.3}{\ignorespaces Explanation-aware fixed-$\alpha $ sweep on ScienceQA (Qwen2-VL-2B, QLoRA, 2{,}000 train / 200 eval, single seed). The coefficient $\alpha $ weights the answer span in Equation~\ref {Eq:Loss}: $\alpha =1$ is answer-span-only within the rationale target and $\alpha =0$ is explanation-span-only. The zero-shot and rationale-generative rows are references. Random-choice accuracy is 0.354. The best fixed $\alpha $ is shown in bold.}}{28}{table.caption.18}%
+\contentsline {table}{\numberline {5.4}{\ignorespaces Domain-level results for the completed Qwen2-VL-2B runs. Each domain uses its native headline metric: multiple-choice accuracy for ScienceQA and A-OKVQA, relaxed accuracy for ChartQA, ANLS for DocVQA, and VQA accuracy for the VQAv2 subset.}}{29}{table.caption.20}%
+\contentsline {table}{\numberline {5.5}{\ignorespaces Evidence-masking drift by completed run. Higher values indicate stronger sensitivity to masked visual evidence. The intervals are approximate 95\% intervals from the generated masking artifact.}}{31}{table.caption.22}%
+\contentsline {table}{\numberline {5.6}{\ignorespaces Qwen2-VL scale comparison on ScienceQA with the same explanation-aware objective ($\alpha =0.50$).}}{33}{table.caption.25}%
+\contentsline {table}{\numberline {5.7}{\ignorespaces Cross-domain transfer matrix. Rows indicate the training domain and columns indicate the evaluation domain. Each column uses the target domain's headline metric, so values are best compared within a column.}}{34}{table.caption.27}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\providecommand \tocbasic@end@toc@file {}\tocbasic@end@toc@file 

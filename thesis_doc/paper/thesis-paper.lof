@@ -1,0 +1,21 @@
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Overall workflow of the proposed explanation-aware alignment study. Datasets are normalised into a shared multimodal example format. Qwen2-VL runs are adapted with QLoRA, BLIP-2 runs train the Q-Former-side alignment path, and each objective is evaluated through answer, rationale, and evidence-sensitivity metrics.}}{19}{figure.caption.7}%
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Model-level architecture for explanation-aware cross-modal alignment. Visual evidence and the question prompt are encoded into a multimodal token stream. The Qwen2-VL path uses trainable QLoRA adapters and separate rationale and answer supervision spans. The BLIP-2 path keeps the vision tower and OPT language model frozen and trains the Q-Former-side generative or contrastive alignment components.}}{21}{figure.caption.10}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {5.1}{\ignorespaces BLIP-2 generative and contrastive-enhanced ScienceQA results. Both runs improve over the frozen baseline, with only a small observed gain from the auxiliary contrastive term.}}{26}{figure.caption.15}%
+\contentsline {figure}{\numberline {5.2}{\ignorespaces BLIP-2 image-to-answer retrieval diagnostic. The analysis reports frozen BLIP-2, BLIP-2 generative, BLIP-2 contrastive-enhanced, and random-rank controls so the contrastive branch is not interpreted without a reference point.}}{27}{figure.caption.16}%
+\contentsline {figure}{\numberline {5.3}{\ignorespaces Controlled strategy comparison for BLIP-2 and Qwen2-VL. The figure shows zero-shot, answer-only, rationale-generative, explanation-aware, and contrastive variants where those controls are available.}}{27}{figure.caption.17}%
+\contentsline {figure}{\numberline {5.4}{\ignorespaces Fixed-alpha explanation-aware sweep on ScienceQA. Answer accuracy peaks at the low-answer-weight setting and declines toward both extremes inside the rationale-plus-answer target. Explanation quality (ROUGE-L, BLEU) peaks at the same point and falls as $\alpha $ increases. Series are distinguished by marker shape and line style; the dashed grey line marks random-choice accuracy. Single seed.}}{29}{figure.caption.19}%
+\contentsline {figure}{\numberline {5.5}{\ignorespaces In-domain adaptation results for the selected completed Qwen2-VL-2B domain runs. The comparison mixes rationale-supervised ScienceQA/A-OKVQA rows with answer-only fallback rows for domains without gold rationales, so it should not be read as an explanation-aware effect across all domains.}}{30}{figure.caption.21}%
+\contentsline {figure}{\numberline {5.6}{\ignorespaces Mean evidence-masking drift across completed runs. Structured document and chart runs show much stronger visual sensitivity than the rationale-rich ScienceQA and A-OKVQA runs, but stronger drift does not automatically imply better answer accuracy.}}{31}{figure.caption.23}%
+\contentsline {figure}{\numberline {5.7}{\ignorespaces Example masking diagnostic for a ChartQA answer-only fallback run. The pipeline saves the original image, the top-drift mask, a random-region mask, and a blank-image control, together with the full-image and masked answer scores. This figure is used as an evidence-sensitivity example, not as proof that a generated rationale is faithful.}}{32}{figure.caption.24}%
+\contentsline {figure}{\numberline {5.8}{\ignorespaces Scale comparison for the fixed ScienceQA explanation-aware setting. Moving from Qwen2-VL-2B to Qwen2-VL-7B improves both answer accuracy and rationale-overlap metrics.}}{33}{figure.caption.26}%
+\contentsline {figure}{\numberline {5.9}{\ignorespaces Cross-domain transfer heatmap. The strongest non-diagonal transfer is not always from the visually closest domain. Answer-only ScienceQA transfers strongly to A-OKVQA, while answer-only document and chart adapters transfer strongly to several open-ended targets.}}{35}{figure.caption.28}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\providecommand \tocbasic@end@toc@file {}\tocbasic@end@toc@file 
