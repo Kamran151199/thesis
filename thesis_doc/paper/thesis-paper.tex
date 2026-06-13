@@ -279,61 +279,64 @@ Finally, Chapter 6 concludes the thesis and gives directions for future work.
 
 
 \chapter{Preliminaries}
-This chapter introduces the technical ideas that are needed before the methodology and results can be read properly.
-The thesis uses several terms that are common in recent vision--language research, but they can be easy to mix up.
-For example, answer accuracy, explanation quality, and visual grounding are related, but they are not the same thing.
-Likewise, contrastive alignment, generative fine-tuning, and explanation-aware training all try to connect image information with language, but they do it through different training signals.
-The purpose of this chapter is therefore to define the basic concepts in the same way they are used later in the experiments.
+This chapter provides the technical background that is required to understand the concepts of this thesis properly.
+There are many terms used in the vision--language literature that might seem similar to each other, but mean different things.
+For example, answer accuracy, explanation quality, and visual grounding are related concepts, but they are measured differently.
+Also, concepts like contrastive alignment, generative fine-tuning, and explanation-aware training are all about connecting the visual signal to the language model,
+but they do it through different training signals and have different implications for the model's behaviour.
+The main goal of this chapter is to provide enough background on these concepts so that the reader understands
+what they mean, and how and why they are used in the experiments of this thesis.
 
 \section{Vision--language models and visual question answering}
-A vision--language model is a model that processes both visual input and text input.
+A vision--language model is a model that can process both visual and text-based inputs and produce text-based outputs.
 In this thesis, the visual input can be a natural image, a chart, a scanned document, or a science-style diagram.
-The text input is usually a question, and in some datasets it also includes answer choices.
-The model is then expected to produce an answer, and in some settings it is also expected to produce a rationale before the answer.
+The text input is usually a question to be answered based on the provided image, and in some datasets it also includes answer choices.
+The model is expected to generate an answer to the given question, and in some cases it is also expected to produce a rationale before answering the question.
 
-Visual question answering is the task form used throughout this thesis.
-The basic structure is simple: an image and a question are given, and the model returns an answer.
-However, the type of reasoning required can vary a lot across datasets.
-In a natural-image question, the answer might depend on recognising an object or a simple relationship between objects.
-In a chart question, the answer may depend on reading an axis label, comparing two bars, or estimating a value.
-In a document question, the answer may be a short text span hidden inside a scanned page.
-In a science or commonsense question, the model may need to combine image information with answer choices and learned background knowledge.
+The task throughout this thesis is visual question answering.
+The structure is simple: given an image and a question as input, the model returns an answer as output.
+However, the type of reasoning required to come up with the answer can be different across datasets.
+In a natural-image question, the answer usually depends on recognising an object or a simple relationship between objects.
+In the case of a chart question, the answer might depend on reading an axis label, comparing two bars, or estimating a value.
+In a document question, the answer might be a short text region hidden somewhere inside a scanned page.
+In a science or commonsense question, the model might need to combine image information with answer choices and learned background knowledge.
 
-This variation is one reason why this thesis does not rely on one dataset only.
-A model can look strong on one benchmark and still fail on another benchmark that requires a different kind of visual evidence.
-For example, a model that is good at object recognition may still struggle with small text in a document.
-A model that can answer multiple-choice science questions may not transfer cleanly to open-ended chart or document questions.
-Therefore, the thesis treats visual question answering as a family of related tasks rather than one single problem.
+This variation is one of the reasons why this thesis uses multiple datasets across different domains instead of focusing on one dataset only.
+A model might be good at one type of visual reasoning but perform poorly on another type of visual reasoning.
+For example, a model that excels at recognising objects in natural images might still fail to read small text in a document or to compare two bars in a chart.
+That is why this thesis treats visual question answering as a family of related tasks rather than one single problem.
 
-A second important point is that the answer format changes across datasets.
-ScienceQA and A-OKVQA are used as multiple-choice datasets in the main rationale-supervised experiments.
-DocVQA, ChartQA, and VQAv2 are treated as open-ended or short-answer tasks in the completed runs.
-Because of this, the evaluation cannot use one universal metric for every dataset.
-The thesis instead uses each dataset's native headline metric and explains the comparison within each domain.
+A second important point is that the answer format is different across datasets.
+In ScienceQA and A-OKVQA datasets the answers are multiple-choice, where the model does not automatically generate the answer,
+but instead assigns a score to each answer choice and the highest-scoring choice is then selected as the final answer.
+Other datasets, such as DocVQA, ChartQA, and VQAv2 provide open-ended or short-answer tasks, where the model produces the answer directly.
+That is why the evaluation cannot use a single universal metric for every dataset and instead uses the metrics
+that are native to each dataset.
+
 
 \section{Cross-modal alignment}
-Cross-modal alignment means connecting information from different modalities, such as images and language, so that they can support the same prediction.
-In a vision--language model, the visual side must provide useful information to the language side.
-If this connection is weak, the model may still produce fluent text, but the answer may be based on language patterns rather than on the image.
-That is the central problem behind this thesis.
+Cross-modal alignment means connecting signals from different modalities, such as images and language,
+in a way that those modalities can interact with each other for the model to perform a certain task.
+In vision--language models, the visual signal must provide useful context for the language side.
+If this connection is weak, the model might still produce a convincing answer, but that answer might be coming from
+the learned language patterns rather than from the visual information provided by the image.
 
-The word alignment can refer to several levels of the model.
-At the representation level, the model may learn that an image and a matching text description should be close to each other in an embedding space.
-At the generation level, the model may learn to use image features while producing an answer token by token.
-At the reasoning level, the model may learn to produce an intermediate explanation before giving the final answer.
-All three levels are relevant, but they do not measure the same behaviour.
+The word alignment can mean different things in different contexts.
+At the representation level, it means that the model learns that in the embedding space, the provided image and the matching text should be close to each other, while non-matching ones should be further apart.
+At the generation level, it means that the model learns to use the information provided by the image when generating the output for a given task.
+At the reasoning level, it means that the model learns to produce explanations that connect the question, visual input, and the final answer in a helpful way.
 
-A model can have useful image--text representations and still generate weak answers.
-It can generate a correct answer without producing a useful explanation.
-It can also produce a plausible explanation that is not the real reason for the answer.
-This is why the thesis separates the training objective from the evaluation axis.
-The objective tells us what signal the model receives during fine-tuning.
-The evaluation tells us which behaviour actually changed after fine-tuning.
+A model might internally have a strong text--image representation and still fail to generate a correct answer.
+It might generate a correct answer without producing a useful explanation.
+It might also produce a good-looking explanation that is not actually based on the right visual evidence.
+That is why this thesis separates the training objective from the evaluation axis.
+The training objective tells us what signal to feed the model during fine-tuning,
+while the evaluation axis tells us which behaviour actually changed after fine-tuning. 
 
-The comparison in this thesis is controlled because model design, data handling, and compute budget can otherwise hide the effect of the objective.
-If one method uses a larger model, more training data, and a different prompt format, then a higher score cannot be cleanly attributed to the training objective.
-For that reason, the experiments try to keep the pipeline fixed and change only the objective inside each comparison group.
-This does not remove every limitation, but it makes the comparison more interpretable.
+During comparison, the model design, the data handling, and the compute budget are kept constant, so that the outcome is attributed to the training objective rather than to other factors.
+If one method uses a larger model, more training data, or a different prompt format, then it would be difficult to say whether the outcome is the result of the training objective or any of those other factors.
+This does not make the study perfect, but it makes the comparison more focused on the effect of the training objective itself.
+
 
 \section{Generative supervision}
 Generative supervision trains the model to produce a target text sequence.
