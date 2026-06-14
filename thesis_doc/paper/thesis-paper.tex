@@ -369,18 +369,24 @@ the same span-weighting strategy.
 
 
 \section{Contrastive supervision}
-Contrastive supervision trains the model to bring matching image and text representations closer together while pushing non-matching pairs farther apart.
-In this thesis, the contrastive branch is tested with BLIP-2 because its Q-Former provides a natural place to build an image representation.
+Contrastive supervision is a way to train the model to bring the image and text representations closer to each other when they match,
+and to push them apart when they do not match.
+In this thesis, we use contrastive supervision as an additional signal on top of generative fine-tuning, not as a replacement for it.
+We still train the model to generate the answer, but in addition to that, we also give it a contrastive signal over image--answer representations.
+We use BLIP-2 for this setup, because it has a Q-Former that uses a fixed number of learnable query tokens to pool visual information from the image encoder outputs, which can then be used to build an image representation.
 The basic idea is that the image representation should be closer to the correct answer representation than to other answers in the same batch.
 
-This objective is different from ordinary text generation.
-Generative training asks the model to produce the next target token.
-Contrastive training asks the model to organise representations so that matching image--answer pairs are easier to retrieve.
-In principle, this can encourage stronger image--answer alignment.
-In practice, the effect depends on the model, the feature extraction path, the projection head, the batch size, and the data.
-That is why the thesis does not assume the contrastive branch is useful just because it adds another loss term.
-It tests the branch directly against a BLIP-2 generative control.
+This contrastive-enhanced setup is different from ordinary text generation.
+The generative part asks the model to generate the next target token.
+The contrastive part asks the model to organise the image and answer representations in such a way that the correct image--answer pair is easier to retrieve than mismatched pairs.
 
+In principle, this can motivate the model to learn stronger image--answer alignment.
+In practice, however, the effect of the contrastive signal depends on many factors, such as the model architecture, the way the image representation is extracted,
+the design of the projection head for contrastive learning, the batch size used during training, and the nature of the data.
+Hence, we do not assume that the contrastive branch is useful just because it adds an additional loss term.
+Instead, we test the contrastive-enhanced setup directly against a BLIP-2 generative fine-tuning control, to check whether it actually leads to a stronger result.
+
+-----
 The retrieval diagnostic is important here.
 If the contrastive loss is doing what it is supposed to do, the correct answer should rank higher than mismatched answers when compared against the image representation.
 Recall at one, recall at five, recall at ten, and mean reciprocal rank give a simple way to inspect that behaviour.
