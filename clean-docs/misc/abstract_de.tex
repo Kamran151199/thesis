@@ -1,0 +1,8 @@
+\chapter*{Kurzfassung}
+\addcontentsline{toc}{chapter}{Kurzfassung}
+Diese Arbeit untersucht, wie unterschiedliche Trainingsziele das Verhalten von Vision--Language Models beeinflussen, wenn Modellarchitektur, Datenschema, Rechenbudget und Evaluationsprotokoll möglichst konstant gehalten werden.
+Verglichen werden Zero-Shot-Referenzen, BLIP-2 mit generativer und kontrastiv-erweiterter Feinabstimmung sowie Qwen2-VL mit answer-only, rationale-generativer und explanation-aware Supervision.
+Die Evaluation betrachtet nicht nur die Antwortqualität, sondern auch die Qualität generierter Begründungen und die Sensitivität gegenüber visuellen Evidenzbereichen.
+Die Ergebnisse zeigen, dass explanation-aware Training in einigen Einstellungen die Begründungsqualität verbessern kann, aber nicht automatisch besser als answer-only Training ist.
+Außerdem bleibt die visuelle Evidenzsensitivität getrennt von der reinen Textqualität der Begründung zu bewerten.
+Die Arbeit versteht sich daher nicht als Leaderboard-Beitrag, sondern als kontrollierte Analyse von Trainingssignalen unter einem realistischen Single-GPU-Budget.

@@ -1,0 +1,138 @@
+\chapter{Introduction}
+\section{Motivation}
+Vision--language models (VLMs) are becoming a default tool for answering questions based on the content of images, documents, and charts.
+The process looks simple: you give it an image and a question, and it will respond with an answer the image actually supports.
+What is considered as evidence depends entirely on the picture. 
+In a document it might be sitting in a line of a body text, in a table, or in a stamped region of the scanned page.
+In a chart it might be in an axis label, the relative height of the bars, a colour, or a trend that is not written down explicitly in words.
+In science and commonsense visual question answering (VQA), it is often not in the image at all, forcing the model to deduce the answer from the background knowledge it has already learned.
+Across every one of these, a correct-looking answer is not enough if the reasoning for that answer is not actually based on what is visible in the image.
+The VLMs are very good at generating the right-looking answers while looking at the wrong thing.
+That is why in this paper we do not rely on the answer alone, but also check the quality of the explanation and the sensitivity of the answer to visual evidence.
+
+The issue behind all of this is a cross-modal alignment problem: how do we connect the visual signal to the language model in a way that actually makes the two talk to each other?
+It turns out that the quality of that wiring depends on many factors, such as the visual resolution, the data mixture, the connector design, the instruction tuning, and the adaptation method~\cite{laurencon2024whatmatters,zhang2025mm15,deitke2025molmo}.
+Open model families are very helpful, because backbones such as Qwen2-VL, BLIP-2, and LLaVA-OneVision are strong enough out of the box, while still being adaptable on an academic budget~\cite{wang2024qwen2vl,li2023blip2,li2025llavaonevision}.
+At the same time, document and chart studies show that general visual instruction following is not enough when it comes to text-heavy and structured images~\cite{fu2025textrichsurvey,wang2024docllm,masry2024chartinstruct,masry2025chartgemma}.
+
+Furthermore, there is also a budget reality to consider.
+Most students and small labs cannot afford full fine-tuning of a large multimodal model.
+Methods like DoRA (weight-decomposed low-rank adaptation) make it possible to fine-tune the model by updating only a small portion of the parameters, while keeping the base model frozen or quantised~\cite{liu2024dora}.
+Hence, in this study, we take the same approach using low-rank adaptation (LoRA) and its quantised variant (QLoRA) instead of full-model fine-tuning~\cite{hu2022lora,dettmers2023qlora}.
+The main goal is not scoring the highest on a leaderboard, but rather to check the model's performance when only the alignment objective changes while keeping all other factors constant.
+
+\section{Gap Analysis}
+The gap is isolation.
+Most papers change the model, the data, the training size, and the objective all at once.
+Once the final result is reported, it is hard to tell how much the objective itself contributed.
+Maybe the objective helped, but it might also be the case that it was simply a bigger model, cleaner data, or more tuning and not necessarily the objective itself.
+
+Moreover, each objective has its own blind spot.
+Contrastive learning is good at matching an image to a caption, but it does not teach the model to generate an explanation or an answer from the image.
+Generative learning is good at producing an answer, but it does not necessarily mean that the model is basing its answer on the correct parts of the image.
+Explanation-aware training teaches the model to actually write reasoning to come to the answer, but the model could have learned to write a convincing explanation after the fact,
+which might not actually be the cause of the answer.
+
+Hallucination and faithfulness evaluation has mostly been studied on natural images, where the common test is whether the model names objects that are not there.
+Charts and documents have recently come into focus too, with benchmarks for chart hallucination, chart grounding, and document-answer groundedness emerging~\cite{wang2025charthal,bansal2025chartab,chen2025docqa}.
+They are still comparatively underexplored, even though their evidence is more structured and easier to verify.
+That is exactly what makes them a good test case for grounding.
+
+These gaps are not closed by a new model or benchmark. What is actually missing is a controlled study that holds the model, the data, the budget, 
+and the evaluation procedure constant while changing only the alignment objective, to test not only the answer quality but also the explanation quality and the evidence sensitivity of the model under each objective.
+
+\section{Objective}
+The goal of this thesis is to study the effect of different training objectives on vision--language model performance
+while keeping all the other factors such as the model, the data, the budget, and the evaluation protocol constant.
+This work is not meant to be a leaderboard submission.
+Instead, it focuses on a controlled comparison where the same pipeline is used to 
+study answer quality, explanation quality, and visual evidence sensitivity under a resource-constrained environment.
+This enables the study to be more accessible and reproducible for students and small academic labs who may not have access to large computational resources.
+
+The first objective is to compare different alignment strategies that are often discussed separately.
+In this thesis, we place answer-only supervision, rationale-generative supervision,
+explanation-aware supervision, BLIP-2 generative fine-tuning, and BLIP-2 contrastive-enhanced fine-tuning inside a single experimental frame.
+This way, we achieve the comparison that focuses on the training signal rather than on uncontrolled changes in the model family, dataset pipeline, or evaluation code.
+
+The second objective is to evaluate the answer quality and explanation quality separately.
+A model can generate a correct answer without producing a strong explanation,
+and it can also generate a convincing explanation without actually using the visual evidence correctly.
+That is why the evaluation does not focus on a single score.
+Instead, it reports the native answer metric for each dataset and also uses rationale-overlap metrics in 
+the datasets where gold rationales are available, to see whether the model's explanation is actually improving in quality or just looking better on the surface.
+
+The third objective is to check the model's sensitivity to visual evidence in the image.
+We measure this with image-masking perturbations, where we compare the model's answer score before and after hiding parts of the input image.
+The goal is not to prove perfect faithfulness, but to add an additional signal of evidence sensitivity alongside answer accuracy and rationale quality.
+
+The fourth objective is to study the consistency of the same fine-tuning pipeline across different visual domains.
+Therefore, we include science, commonsense, chart, document, and natural-image tasks in the study.
+This matters because answering the questions in documents and charts often depends on local text, layout, labels, axes, and values,
+whereas science and commonsense questions may rely more on answer choices and learned knowledge.
+
+The fifth objective is to keep the limitations visible.
+We use capped datasets, one primary seed per complete configuration, and parameter-efficient fine-tuning,
+because those choices make the work feasible on a student budget, but they also define how far the claims can go.
+Therefore, the results should be interpreted as controlled framework results rather than final benchmark claims.
+
+\section{Thesis Scope}
+The scope of this thesis is intentionally fixed around bachelor-level feasibility.
+The study does not try to train the largest possible model or cover every possible dataset split.
+It asks a narrower question: what can be learned when a practical VLM fine-tuning pipeline is kept stable and the training objective is changed?
+This is why the thesis treats the capped protocol as part of the method rather than as an accidental weakness.
+The cap makes the runs possible, repeatable, and easy to audit within the available time and hardware.
+
+This also affects how the results should be judged.
+A small single-seed result cannot prove that one method is universally better than another.
+It can, however, show whether a proposed training signal still looks useful after answer-only controls, rationale-generative controls, masking diagnostics, and transfer checks are placed beside it.
+That is the standard used here.
+The thesis does not claim that explanation-aware training always wins.
+It checks where it helps, where it does not help, and where the evidence is too weak to make a strong claim.
+
+The same logic applies to the model choices.
+Qwen2-VL is used for the main objective comparison because it can be adapted with QLoRA and can handle several visual domains.
+BLIP-2 is used for the contrastive branch because its Q-Former gives a practical representation path for image--answer alignment.
+These choices are not presented as the only valid backbones.
+They are practical backbones for testing the research question under a controlled budget.
+
+The thesis therefore sits between a small implementation project and a large benchmark paper.
+It includes working code, generated artifacts, figures, tables, and a full paper-style analysis.
+At the same time, it keeps the claims limited to what the completed runs can actually support.
+That balance is important for this topic, because VLMs can make results look more impressive than they really are if the evaluation only reports final answer accuracy.
+The central value of the work is the controlled comparison and the careful interpretation of answer quality, rationale quality, and visual sensitivity as separate outcomes.
+
+\section{Purpose and goal}
+The contribution is the controlled comparison, not a new architecture.
+Instead of introducing a new architecture, we compare existing ones under different training objectives.
+We consider the faithfulness of the model's reasoning as a first-class result, rather than concentrating solely on answer accuracy.
+The paper contributes the following:
+
+\begin{itemize}
+    \item A comparison of zero-shot, answer-only, BLIP-2 generative, BLIP-2 contrastive-enhanced, Qwen2-VL rationale-generative, and Qwen2-VL explanation-aware alignment under the same data and optimisation settings.
+    \item Evaluation along three separate axes, namely answer quality, explanation quality, and evidence sensitivity, across document, chart, science, and commonsense tasks.
+    \item For multiple-choice reasoning, a generate-then-score protocol is used, so the model is evaluated only after it has produced its own reasoning trace.
+    \item A direct test of how QLoRA behaves with scale, instead of assuming that full fine-tuning or very large models are the only things worth studying.
+\end{itemize}
+
+\subsection{Why this study matters}
+The usefulness of this study is in the constraints.
+It runs on a resource-constrained setup that is actually accessible to students and small labs.
+It also avoids concentrating solely on a single aspect of performance, and instead keeps answer accuracy, explanation quality, and evidence sensitivity as separate readings.
+On documents and charts especially, that separation is particularly important, because the evidence should trace back to a visible region.
+The whole pipeline is reusable: every dataset is transformed into one shared format, and every experiment is declared in a configuration file,
+so the code can be used for future comparisons of new objectives, new models, or new datasets, without worrying about hidden differences between runs.
+And the results are honest rather than overselling: the rationale supervision does help on the science and commonsense runs, but the answer-only controls stay strong,
+and the BLIP-2 contrastive objective provides only a small answer gain on top of weak retrieval evidence.
+
+\section{Outline}
+Chapter 2 provides the material needed to understand this thesis.
+It includes the technical background on vision--language models, cross-modal alignment,
+generative and contrastive supervision, explanation-aware learning,
+parameter-efficient fine-tuning, evidence sensitivity, and the evaluation metrics used in the work.
+Chapter 3 reviews the recent literature on topics such as vision--language model architectures,
+document-heavy inputs, chart reasoning, faithfulness, critique, and efficient adaptation.
+Chapter 4 presents the problem statement and research questions.
+Chapter 5 describes the methodology used in our experiments,
+including the datasets, prompt families, model setup, training objectives, evaluation protocol, and experimental settings.
+Chapter 6 shows the results of the experiments and discusses their meaning in relation to the research questions, domain differences, masking analysis, model scale, and transfer behaviour.
+Finally, Chapter 7 concludes the thesis and gives directions for future work.

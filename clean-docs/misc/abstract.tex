@@ -1,0 +1,31 @@
+\chapter*{Abstract}
+    \addcontentsline{toc}{chapter}{Abstract}
+A vision-language model (VLM) is able to read a chart, document, scanned form, or natural image and answer questions about it. 
+But how do we know if the answer is actually derived from the image itself, rather than being a lucky guess on a question based on the model's remembered language patterns?
+The correctness of the answer itself is not enough if the reasoning for that answer is not grounded in the visual evidence of the image.
+Charts and documents are a good example of this problem, because to answer the question correctly, the model has to actually ground its reasoning on specific parts of the image,
+making it easier to spot when the model is looking at the wrong thing. Although recent work has made progress on this issue,
+there was no isolation of the training objective as the main variable, with all other factors such as the model, the data, and the budget held constant.
+Contrastive, generative, and explanation-based methods have all been proposed, but they have not been directly compared under the same conditions,
+so it is not clear what the objective itself contributed to the final performance. 
+In this paper, we keep the pipeline fixed and change only the training signal, so we can see what the objective does to answer accuracy, explanation quality, 
+and evidence sensitivity when the model, the data, and the compute budget are all held steady.
+We compare five settings head to head rather than treating them as unrelated systems: BLIP-2 generative fine-tuning, BLIP-2 contrastive-enhanced fine-tuning,
+Qwen2-VL under answer-only, rationale-generative, and explanation-aware supervision.
+All the runs use the same resource-constrained single-seed protocol, and the same evaluation code as much as possible,
+across ScienceQA, A-OKVQA, ChartQA, DocVQA, and a VQAv2 subset.
+The picture that emerges is mixed. On ScienceQA, Qwen2-VL-2B reaches 0.800 accuracy with answer-only supervision,
+0.780 in both rationale-generative and length-aware explanation control settings, and 0.765 with fixed-alpha explanation-aware training.
+On A-OKVQA, the same model reaches 0.830 with answer-only supervision, 0.790 in both rationale-generative and length-aware explanation control training,
+and 0.795 with fixed-alpha explanation-aware training.
+ChartQA, DocVQA, and the VQAv2 subset have no gold rationales, so those runs fall back to answer-only controls;
+they lift the native headline metrics, but they do not test rationale supervision at all.
+BLIP-2 barely moves: the contrastive objective gives a small gain compared to the generative one on ScienceQA 0.480 vs 0.475,
+but the retrieval diagnostic stays near frozen and random controls in both cases.
+Scale is the exception. With a fixed explanation-aware objective on ScienceQA, Qwen2-VL-7B reaches 0.885 while the 2B version reaches 0.765.
+The masking analysis tells us whether the model relies on the image, not whether its explanation is faithful.
+Overall, the results do not show a clear win for explanation-aware training.
+The rationale supervision can help on a single-GPU budget, but the gain is easy to mis-credit to scale or tuning.
+Hence, it only stands up when answer-only controls, objective balance, model scale, transfer and evidence sensitivity are each reported separately.
+
+    \clearpage

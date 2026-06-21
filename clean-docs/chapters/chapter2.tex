@@ -1,0 +1,331 @@
+\chapter{Theoretical Background}
+This chapter provides the technical background that is required to understand the concepts of this thesis properly.
+There are many terms used in the vision--language literature that might seem similar to each other, but mean different things.
+For example, answer accuracy, explanation quality, and visual grounding are related concepts, but they are measured differently.
+Also, concepts like contrastive alignment, generative fine-tuning, and explanation-aware training are all about connecting the visual signal to the language model,
+but they do it through different training signals and have different implications for the model's behaviour.
+The main goal of this chapter is to provide enough background on these concepts so that the reader understands
+what they mean, and how and why they are used in the experiments of this thesis.
+
+\section{Vision--language models and visual question answering}
+A vision--language model is a model that can process both visual and text-based inputs and produce text-based outputs.
+In this thesis, the visual input can be a natural image, a chart, a scanned document, or a science-style diagram.
+The text input is usually a question to be answered based on the provided image, and in some datasets it also includes answer choices.
+The model is expected to generate an answer to the given question, and in some cases it is also expected to produce a rationale before answering the question.
+
+The task throughout this thesis is visual question answering.
+The structure is simple: given an image and a question as input, the model returns an answer as output.
+However, the type of reasoning required to come up with the answer can be different across datasets.
+In a natural-image question, the answer usually depends on recognising an object or a simple relationship between objects.
+In the case of a chart question, the answer might depend on reading an axis label, comparing two bars, or estimating a value.
+In a document question, the answer might be a short text region hidden somewhere inside a scanned page.
+In a science or commonsense question, the model might need to combine image information with answer choices and learned background knowledge.
+
+This variation is one of the reasons why this thesis uses multiple datasets across different domains instead of focusing on one dataset only.
+A model might be good at one type of visual reasoning but perform poorly on another type of visual reasoning.
+For example, a model that excels at recognising objects in natural images might still fail to read small text in a document or to compare two bars in a chart.
+That is why this thesis treats visual question answering as a family of related tasks rather than one single problem.
+
+A second important point is that the answer format is different across datasets.
+In ScienceQA and A-OKVQA datasets the answers are multiple-choice, where the model does not automatically generate the answer,
+but instead assigns a score to each answer choice and the highest-scoring choice is then selected as the final answer.
+Other datasets, such as DocVQA, ChartQA, and VQAv2 provide open-ended or short-answer tasks, where the model produces the answer directly.
+That is why the evaluation cannot use a single universal metric for every dataset and instead uses the metrics
+that are native to each dataset.
+
+
+\section{Cross-modal alignment}
+Cross-modal alignment means connecting signals from different modalities, such as images and language,
+in a way that those modalities can interact with each other for the model to perform a certain task.
+In vision--language models, the visual signal must provide useful context for the language side.
+If this connection is weak, the model might still produce a convincing answer, but that answer might be coming from
+the learned language patterns rather than from the visual information provided by the image.
+
+The word alignment can mean different things in different contexts.
+At the representation level, it means that the model learns that in the embedding space, the provided image and the matching text should be close to each other, while non-matching ones should be further apart.
+At the generation level, it means that the model learns to use the information provided by the image when generating the output for a given task.
+At the reasoning level, it means that the model learns to produce explanations that connect the question, visual input, and the final answer in a helpful way.
+
+A model might internally have a strong text--image representation and still fail to generate a correct answer.
+It might generate a correct answer without producing a useful explanation.
+It might also produce a good-looking explanation that is not actually based on the right visual evidence.
+That is why this thesis separates the training objective from the evaluation axis.
+The training objective tells us what signal to feed the model during fine-tuning,
+while the evaluation axis tells us which behaviour actually changed after fine-tuning. 
+
+During comparison, the model design, the data handling, and the compute budget are kept constant, so that the outcome is attributed to the training objective rather than to other factors.
+If one method uses a larger model, more training data, or a different prompt format, then it would be difficult to say whether the outcome is the result of the training objective or any of those other factors.
+This does not make the study perfect, but it makes the comparison more focused on the effect of the training objective itself.
+
+
+\section{Generative supervision}
+Generative supervision is a setup in which the model is trained to produce a target token sequence.
+In the answer-only case, that target sequence is comprised of the answer tokens only.
+In a rationale-generative case, the target sequence contains not only the answer tokens, but also a reasoning sentence or rationale before the answer.
+The model is fed an image and a question as input, and the loss is computed on the target tokens.
+
+Since instruction-tuned VLMs already work by reading a prompt and generating text,
+training them with answer/rationale text targets fits well with the way these models are used.
+The model can already generate text, so fine-tuning can adapt it to produce the expected output format for a specific task.
+For example, the model can learn that in ScienceQA, it should select an answer from the provided answer choices,
+or that in DocVQA, it should generate a short text as the answer.
+Hence, generative fine-tuning is a good baseline for many visual question answering tasks.
+
+However, pure generative supervision has some limitations when it comes to grounding.
+A model might learn to generate the answer without actually using the provided visual information correctly.
+It might also just memorise common patterns in the dataset.
+For example, in multiple-choice datasets, some questions could to some extent be answered by looking at the question and the answer choices alone,
+without actually looking at the image.
+In documents and charts, the model could memorise that the answer is often in some specific position or format.
+This does not mean that generative supervision is not a good option, but it does mean that in the evaluation phase, we need to check more than just the final answer accuracy
+to make sure that the model is actually using the visual signal in a meaningful way.
+
+In this thesis, we use generative supervision in two ways.
+First, we use it as a direct training objective for the BLIP-2 and Qwen2-VL runs that are not explanation-aware.
+Second, we use it as a control for the explanation-aware training.
+This is quite important, because we do not want to compare the explanation-aware supervision only against a frozen zero-shot model,
+but also against pure generative supervision that was fine-tuned to produce the expected answer or rationale-plus-answer text without
+the same span-weighting strategy. 
+
+
+\section{Contrastive supervision}
+Contrastive supervision is a way to train the model to bring the image and text representations closer to each other when they match,
+and to push them apart when they do not match.
+In this thesis, we use contrastive supervision as an additional signal on top of generative fine-tuning, not as a replacement for it.
+We still train the model to generate the answer, but in addition to that, we also give it a contrastive signal over image--answer representations.
+We use BLIP-2 for this setup, because it has a Q-Former that uses a fixed number of learnable query tokens to pool visual information from the image encoder outputs, which can then be used to build an image representation.
+The basic idea is that the image representation should be closer to the correct answer representation than to other answers in the same batch.
+
+This contrastive-enhanced setup is different from ordinary text generation.
+The generative part asks the model to generate the next target token.
+The contrastive part asks the model to organise the image and answer representations in such a way that the correct image--answer pair is easier to retrieve than mismatched pairs.
+
+In principle, this can encourage the model to learn stronger image--answer alignment.
+In practice, however, the effect of the contrastive signal depends on many factors, such as the model architecture, the way the image representation is extracted,
+the design of the projection head for contrastive learning, the batch size used during training, and the nature of the data.
+Hence, we do not assume that the contrastive branch is useful just because it adds an additional loss term.
+Instead, we test the contrastive-enhanced setup directly against a BLIP-2 generative fine-tuning control, to check whether it actually leads to better results.
+
+One of the important things to check is the retrieval diagnostic.
+If the contrastive supervision is doing what we expect, the correct answer should be easier to retrieve from the image representation than mismatched answers.
+A simple way to check that is to compute Recall@1, Recall@5, Recall@10, and mean reciprocal rank.
+These metrics do not directly measure the final answer accuracy, but they give us a way to see if the contrastive objective is actually adding any value in terms of representation alignment.
+
+A modest contrastive result does not mean that contrastive supervision is useless in general.
+It only means that under our specific setup, with the chosen BLIP-2 configuration and the capped ScienceQA run, the contrastive-enhanced fine-tuning
+does not lead to a better result than the generative fine-tuning control.
+This is important to note, because the thesis is about the controlled effect of the training objective under the available budget, not about dismissing an entire class of methods.
+
+
+\section{Rationales and explanation-aware learning}
+A rationale is a text generated before the final answer that explains how to connect the question and the visual input to come up with the answer.
+Not all the datasets provide gold rationales.
+Hence, for the rationale supervision, we use only the datasets that provide gold rationales, which are ScienceQA and A-OKVQA.
+With those runs, we can check whether rationale supervision improves answer accuracy and explanation quality.
+
+Explanation-aware supervision is very similar to rationale supervision with the only difference in the training loss.
+In rationale supervision, we train the model to generate a rationale and an answer in one sequence, and the loss is computed over the entire sequence.
+In explanation-aware supervision, we split the target into two spans: the explanation span and the answer span.
+The training loss is then computed separately for each span, and a coefficient $\alpha$ is used to weight the answer loss compared with the explanation loss.
+This allows us to test whether answer supervision and rationale supervision help each other or compete with each other.
+
+There is an ablation sweep done over $\alpha$ to check how the balance between answer and explanation supervision affects the results.
+When $\alpha$ is low, the model receives more signal from the explanation span,
+which encourages it to produce better rationales, but it might not focus enough on getting the answer right.
+On the other hand, when $\alpha$ is high, the model receives more signal from the answer span,
+which encourages it to produce better answers, but it might not focus enough on producing good rationales.
+The third setting is a length-aware control,
+where $\alpha$ is set based on the number of tokens in the explanation and answer spans.
+This control is useful because fixed $\alpha$ values might give a misleading impression of what explanation-aware training is doing.
+
+A key limitation is that only datasets with gold rationales can directly support rationale-supervised training.
+ScienceQA and A-OKVQA provide this supervision in the completed experiments.
+ChartQA, DocVQA, and VQAv2 do not provide the same type of gold rationale in this setup.
+For those datasets, the thesis uses answer-only fallback training and transfer testing instead of treating them as explanation-aware datasets.
+This is why the interpretation of results changes by domain.
+
+Rationale quality is also not the same as faithfulness.
+A generated explanation can overlap with the gold rationale and still fail to prove that the model actually used the image.
+For example, the model might learn a common explanation pattern from training data.
+It might also generate a reasonable explanation after choosing the answer for some other reason.
+This is why rationale metrics are reported beside, not instead of, evidence-sensitivity analysis.
+
+\section{Parameter-efficient fine-tuning}
+Full fine-tuning updates all or most of the parameters in a model.
+For large vision--language models, this can be expensive in memory, compute, and time.
+Parameter-efficient fine-tuning updates only a small number of additional parameters while leaving most of the base model frozen or quantised.
+This makes experiments possible on a much smaller budget.
+
+LoRA is one common parameter-efficient method.
+Instead of updating a full weight matrix directly, LoRA adds low-rank trainable matrices that modify the behaviour of selected layers.
+QLoRA extends the idea by loading the base model in quantised precision and training low-rank adapters on top of it.
+This makes the memory requirement lower while still allowing the model to adapt to the task.
+In this thesis, Qwen2-VL runs use QLoRA so that both the broad sweep and the 7B scale check can fit the available environment.
+
+Parameter-efficient fine-tuning is not only a practical trick.
+It also shapes the research question.
+The thesis asks what can be learned under a resource-constrained setup, not what could be achieved with unlimited compute and full-model fine-tuning.
+That is why the results should be read as fixed-budget comparisons.
+A method that works well under these constraints is useful for students, small labs, and early-stage research projects.
+A method that only works after very large compute investment would answer a different question.
+
+Using QLoRA also makes the scale comparison more controlled.
+The 2B and 7B Qwen2-VL runs are not compared by changing the whole training strategy.
+Both use the same explanation-aware setting and the same parameter-efficient adaptation style.
+This makes the observed difference more about backbone scale than about changing the fine-tuning method.
+The comparison is still not a full efficiency benchmark because exact runtime and peak memory are not measured as primary results.
+
+\section{Evidence sensitivity and masking}
+Evidence sensitivity asks whether the model's answer changes when relevant visual information is removed or altered.
+In this thesis, the diagnostic is based on masking regions of the image.
+The model is scored on the full image, then scored again after a region is hidden.
+If the score for the correct answer drops after masking, the model was sensitive to that region.
+
+This is a useful diagnostic, but it must be interpreted carefully.
+A high drift value means the answer score depends on the masked region.
+It does not automatically prove that the generated rationale is faithful.
+A model may rely on a visual region without describing it correctly.
+It may also produce a good-looking rationale while the answer score barely changes when the image is masked.
+For that reason, masking drift is treated as evidence sensitivity rather than a full proof of faithful explanation generation.
+
+Masking is also affected by the domain.
+In documents and charts, evidence can be local: a number in a table, a word in a scanned form, an axis label, or a bar height.
+Masking such a region can strongly change the answer score.
+In science and commonsense images, the evidence may be more diffuse, or the answer may be partly recoverable from the question and answer choices.
+In that case, masking one coarse region may produce a smaller drift even when the image still matters.
+
+The thesis therefore uses masking as one part of the evaluation, not as the only faithfulness measure.
+It is strongest when read together with answer accuracy, rationale metrics, and qualitative examples.
+The qualitative masking figure is included to show what kind of visual perturbation was applied and how the scores changed.
+It is not meant to replace a human annotation study of faithful reasoning.
+
+\section{Metrics used in the thesis}
+The datasets in this thesis use different native metrics, so the results are not read as one universal score.
+ScienceQA and A-OKVQA use multiple-choice accuracy in the main experiments.
+ChartQA uses relaxed accuracy because numerical answers can have small acceptable differences.
+DocVQA uses average normalised Levenshtein similarity, which gives partial credit for short text answers that are close to the target.
+The VQAv2 subset uses VQA consensus accuracy where annotator answers are available.
+
+The term headline metric refers to the main metric for a dataset.
+It does not mean that a score on one dataset can be directly compared with a score on another dataset.
+For example, 0.80 multiple-choice accuracy on ScienceQA and 0.80 ANLS on DocVQA do not mean the same thing.
+They are both strong within their own benchmark context, but they measure different answer formats.
+This is why the thesis compares models mostly within a dataset or within a clearly stated transfer column.
+
+BLEU and ROUGE-L are used only when gold rationales are available.
+They measure overlap between generated text and reference rationale text.
+They are useful because they provide a repeatable automatic check, but they are limited.
+A correct explanation can use different wording and receive a lower overlap score.
+A high-overlap explanation can still fail to prove visual grounding.
+For this reason, the thesis describes them as rationale quality metrics, not as complete faithfulness metrics.
+
+The uncertainty intervals are also used cautiously.
+Most completed evaluation sets are capped, and the main configurations use one seed.
+Small differences such as 0.790 versus 0.795 should therefore be read as observed single-run differences.
+They are not treated as conclusive evidence that one method is definitely better.
+This is especially important in the BLIP-2 comparison and the A-OKVQA explanation-aware comparison, where the numerical gaps are small.
+
+\section{Prompt families and model-facing text}
+The prompt family is part of the experiment, not a small implementation detail.
+If two models are trained or evaluated with different prompt styles, then a difference in performance may come from the prompt rather than from the training objective.
+For that reason, this thesis separates answer-only prompts from rationale prompts and keeps this choice visible in the experiment ledger.
+An answer-only run receives a question and is trained to produce only the final answer.
+A rationale-generative or explanation-aware run receives the same visual question, but the target text contains a reasoning part before the final answer.
+
+This distinction matters most for datasets with gold rationales.
+ScienceQA and A-OKVQA can support rationale-supervised training because the dataset already contains explanations.
+For those datasets, the model can be asked to produce a short reasoning trace and then the answer.
+For ChartQA, DocVQA, and VQAv2, the completed setup does not have gold rationale labels.
+Using rationale targets there would require an extra annotation or teacher-generation step, which would introduce a different source of supervision.
+Therefore, those datasets are treated as answer-only in-domain and transfer settings.
+
+The model-facing text is not exactly the same as the human-readable prompt written in the paper.
+The processor inserts special tokens, image placeholders, and model-specific chat formatting.
+This means that the actual tensor seen by the model is longer and more structured than the plain question shown in the dataset table.
+The pipeline therefore saves sample traces that show the raw example, the rendered prompt, the target, the decoded token sequence, and the supervised spans.
+Those traces are included as artifacts because they make the training process inspectable instead of hidden inside the collator.
+
+This is also why the thesis avoids describing a run only as ``fine-tuned''.
+Fine-tuning can mean different things depending on the prompt and target.
+An answer-only adapter is trained on a different target than a rationale-generative adapter.
+An explanation-aware adapter uses the same rationale-plus-answer target family, but it applies different loss weights to the answer and explanation spans.
+So, when results are compared, the comparison has to say which prompt family and which target family were used.
+
+\section{Collation and supervised spans}
+Collation is the step where raw examples become tensors.
+For this thesis, the raw example contains an image, a question, optional answer choices, a gold answer, and sometimes a gold rationale.
+The collator turns that example into model inputs such as token IDs, attention masks, image tensors, and labels.
+The labels tell the model which tokens should receive loss.
+Prompt tokens are usually masked out, because the model should not be trained to reproduce the question.
+Target tokens remain supervised, because they are the text the model is supposed to learn to generate.
+
+This step is easy to underestimate.
+In a normal text-only model, one might count the prompt length using a tokenizer and then start the labels after that point.
+In a multimodal model, the processor may add image tokens before or inside the text representation.
+If the label mask is shifted by even a few tokens, the model can be trained on the wrong span without an obvious runtime error.
+The pipeline avoids this by measuring the prompt and full sequence through the same multimodal processor.
+That makes the supervised answer and rationale spans line up with the sequence that is actually given to the model.
+
+The span information is used by more than one objective.
+For ordinary answer-only training, the supervised span is the answer target.
+For rationale-generative training, the supervised span covers the rationale and answer target together.
+For explanation-aware training, the rationale and answer spans are tracked separately so that the loss can weight them with alpha.
+For the BLIP-2 contrastive-enhanced run, only the answer span is pooled into the contrastive text representation, while the rationale span still receives generative loss where it exists.
+This keeps the contrastive signal focused on matching the image to the answer rather than to a longer explanation paragraph.
+
+The saved sample traces are therefore not just debugging output.
+They are part of the research record.
+They show whether the answer-only run really excludes the rationale from the target.
+They show whether the explanation-aware run actually has separate explanation and answer spans.
+They also show whether decoded tokens match the intended prompt and target format.
+Without this audit, a result could look mathematically valid while being based on the wrong supervision.
+
+\section{Transfer evaluation}
+Transfer evaluation asks what happens when an adapter trained in one source setting is evaluated on another target dataset or prompt family.
+This is different from in-domain adaptation.
+In-domain adaptation asks whether a model improves on the same dataset family it was trained on.
+Transfer asks whether the learned behaviour carries over when the visual format, answer style, or prompt family changes.
+For this thesis, that distinction is important because the domains are deliberately different.
+Science questions, commonsense images, charts, documents, and general natural images do not stress the model in the same way.
+
+The transfer matrix should not be read as a claim that one dataset is universally easier than another.
+Each column uses the metric appropriate for that target dataset, and each source adapter may have learned a different output style.
+For example, a ScienceQA rationale model may learn to produce reasoning before choosing an option, while a DocVQA answer-only model may learn short extractive text answering.
+When these adapters are moved across domains, the result depends on both the learned objective and the target prompt.
+This is why the transfer result is discussed as a pattern, not as a single ranking.
+
+The most useful part of transfer evaluation is that it exposes when a gain is narrow.
+A model can improve strongly in-domain but transfer poorly because it has adapted to the source dataset format.
+Another model can have a smaller in-domain gain but transfer better to related visual formats.
+For example, document and chart tasks can share some text-heavy or layout-heavy behaviour even though the images look different.
+This kind of result helps prevent the thesis from treating a single benchmark as the whole story.
+
+The transfer setting also explains why no-rationale datasets still matter.
+ChartQA, DocVQA, and VQAv2 do not support rationale-supervised training in the completed setup, but they still test whether the same fine-tuning framework works outside rationale-heavy science and commonsense tasks.
+They also give target domains for transfer analysis.
+So those datasets are not unnecessary; they answer a different part of the thesis.
+They show where answer-only adaptation and source-trained adapters work or fail when the visual domain changes.
+
+\section{Reproducibility and artifact record}
+Because the experiments are capped and single-seed, the artifact record is important.
+The thesis cannot rely on the claim that results are obvious from large-scale repeated runs.
+Instead, every completed run has to be traceable: which configuration was used, which dataset split was selected, which checkpoint was evaluated, which metric was computed, and which table or figure used the result.
+This is why the pipeline writes an experiment ledger, a split audit, result tables, generated figures, and a claim-to-evidence map.
+
+The experiment ledger records the backbone, dataset, objective, train and evaluation caps, prompt family, rationale availability, and primary metric.
+This makes the comparison readable before the results are shown.
+The split audit records the selected source split and checks whether selected training and evaluation identifiers overlap where native identifiers are available.
+The purpose is to avoid accidental leakage and to make the capped protocol honest.
+If a dataset source exposes only validation and test splits, the pipeline records exactly how the controlled split was built.
+
+The claim-to-evidence map serves a different purpose.
+It links each important claim in the abstract, highlights, discussion, and conclusion to a result row, table, figure, or artifact.
+This is useful because it stops the paper from making a broader claim than the results support.
+For example, a masking result can support a statement about evidence sensitivity, but it cannot by itself prove faithful explanation generation.
+Likewise, a DocVQA answer-only result can support a claim about capped document answering, but it cannot support a claim about document rationale faithfulness.
+
+The final validation step checks for missing expected runs, stale results, failed runs, and missing artifacts.
+This does not make the experiments statistically stronger, but it makes the reporting cleaner.
+It reduces the chance that a table is built from an old configuration or that a figure silently disappears after a partial run.
+For a small thesis project, this kind of bookkeeping is part of research quality.
+It keeps the scope modest, but it makes the completed scope easier to defend.

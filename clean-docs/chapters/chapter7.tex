@@ -1,0 +1,99 @@
+\chapter{Conclusion}
+\section{Discussion}
+The results do support the main idea in some ways, but not as a simple success story.
+Changing the objective does change the behaviour of the model,
+but the claim that explanation supervision is always better than answer-only supervision is clearly not supported by the results of the completed runs.
+Answer-only training is the strongest on both ScienceQA and A-OKVQA.
+On ScienceQA, the best fixed explanation-aware run is achieved when the answer weight is low ($\alpha=0.10$), and the length-aware control is close to the rationale-generative control, while the answer-span-only control performs worse than both of those.
+The same story can be seen on A-OKVQA, where explanation-aware training improves the accuracy above the rationale-generative control,
+but the gap is small enough that it should not be treated as statistically significant given the capped evaluation protocol.
+
+The fixed $\alpha=0.50$ ScienceQA run is also below the rationale-generative and answer-only controls.
+So the main takeaway is not just ``add explanations'', but rather find the right balance of answer and rationale supervision for the domain and model.
+
+The BLIP-2 contrastive result is also modest.
+On ScienceQA, the contrastive-enhanced control improves the performance just slightly above the generative control (0.480 versus 0.475),
+but that difference is statistically insignificant given the approximate confidence intervals.
+The retrieval diagnostic tells the same story, staying close to the frozen and random references.
+In this setup, the auxiliary image--answer InfoNCE term does not produce any stronger representation by itself.
+That is still a useful result, because it keeps the contrastive branch from being viewed as helpful just because it adds more seemingly useful signal to the training.
+
+The domain results show why the study needs more than one benchmark.
+ScienceQA and A-OKVQA are used for the rationale-supervised training, because they provide the gold explanations that make that training possible.
+ChartQA, DocVQA, and VQAv2, on the other hand, do not have gold explanations, and that is why those runs are used only for answer-only adaptation 
+and domain transfer testing across structured documents, charts and natural images, rather than for rationale-supervised training.
+They are used to show how the same fine-tuning pipeline behaves when moved to domain where the model must answer directly without gold rationale supervision.
+For the stronger document-faithfulness claim we would need document-specific rationale labels or a more direct OCR/layout intervention test, because the current setup does not strongly prove that the model is using the document evidence in a faithful way, even though it achieves a strong ANLS score.
+
+The masking results should also be interpreted carefully.
+If masking some region causes the answer score to drop, that means that the model is sensitive to that part of the image.
+However, that does not automatically mean that the generated explanation is faithful.
+DocVQA and ChartQA show higher masking drift because their answers often depend on local text, labels, or layout, even though those runs use answer-only training.
+On ScienceQA and A-OKVQA, the masking drift is low and does not change much with the explanation-aware training, even though the rationale metrics do improve.
+That shows that the explanation quality and the visual sensitivity are not perfectly correlated.
+That is why, masking drift should be considered as an evidence-sensitivity test rather than as a proof of faithful explanation generation.
+
+The cleanest positive result is seen in the scale comparison.
+Holding the ScienceQA explanation-aware objective fixed and moving from Qwen2-VL-2B to Qwen2-VL-7B improves accuracy from 0.765 to 0.885, ROUGE-L from 0.643 to 0.738, and BLEU from 0.493 to 0.637.
+However, this does not mean that the 2B runs are not useful, because the smaller model makes the broader sweep of configurations affordable.
+It does suggest that some of the weaker 2B results are capacity-related rather than only objective-related.
+
+Transfer is mixed too.
+Answer-only supervision on ScienceQA transfers well to A-OKVQA, ChartQA, DocVQA, and VQAv2, while rationale-generative and explanation-aware training on ScienceQA perform worse on those targets.
+On A-OKVQA however, the rationale-generative and explanation-aware runs transfer better to DocVQA than the answer-only run, while the answer-only run transfers better to VQAv2.
+The DocVQA adapter is strong in-domain and also transfers well to ChartQA even though the visual format is quite different, which suggests that the model learns some useful structured, text-heavy visual reading skills that can be carried from documents to charts.
+Overall, these results show that the transfer depends on the trained objective and the dataset domain of both source and target.
+
+\section{Limitations}
+There are several limitations in this study that should be considered when reading the results and claims.
+The first and most important one is the compute.
+To keep this study feasible for a small project, all the experiments are run in a single-GPU environment, which consequently limits the number of seeds, model sizes, and full-dataset runs that can be completed.
+
+The second limitation is the rationale availability in the datasets.
+ScienceQA and A-OKVQA do provide gold explanations, which enables the rationale-supervised training, while DocVQA, ChartQA, and VQAv2 do not, which is why those datasets are used for answer-only adaptation and transfer testing rather than for rationale-supervised training.
+
+The third limitation is metric quality.
+BLEU and ROUGE-L are good for measuring overlap between the generated rationale and the gold rationale, but they can miss valid explanations when the model generates the same meaning with different wording.
+Masking drift is close to visual evidence use, but it can be noisy for highly dispersed evidence or dense documents and charts, where the masked region might not actually cover the full region of the evidence the model uses.
+
+The fourth limitation is the capped protocol.
+Most runs use limited training and evaluation subsets instead of the full datasets with a single seed for each configuration due to resource constraints.
+This makes the work possible. However, it also means that the results should not be viewed as fully representative.
+Finally, the execution logs validate the produced outputs, but they are not enough for precise wall-clock or peak-memory benchmarking.
+
+These limitations define how far the claims in this paper should go.
+
+\section{Summary}
+This paper studied the effect of training objectives on the behaviour of the model, while keeping other factors such as the model architecture, data setup, and compute budget fixed.
+It compared zero-shot references, BLIP-2 generative and contrastive-enhanced supervision, and Qwen2-VL with answer-only, rationale-generative, and explanation-aware training across document, chart, science, commonsense, and natural-image domains.
+The evaluation measured answer accuracy, rationale quality where gold rationales are available, and visual sensitivity, instead of looking at final accuracy alone.
+
+The main outcome is that explanation-aware training can improve the quality of the generated rationales, but that does not mean the model performs better in that setting compared to answer-only training, at least not in the completed runs.
+It also shows that the ratio of answer supervision to rationale supervision matters, and that the best setting is not necessarily the one with the strongest rationale supervision.
+The completed runs also suggest that BLIP-2 contrastive-enhanced training does not contribute much to final accuracy or retrieval performance compared to the generative control.
+
+At the same time, the domain results show that the same pipeline can still be useful outside the rationale-supervised datasets.
+ScienceQA and A-OKVQA are the main datasets for testing rationale supervision, while ChartQA, DocVQA, and VQAv2 are used to test answer-only adaptation and transfer across different visual domains.
+The selected runs improve on all five datasets, but the meaning of the improvement depends on the type of training used for each dataset.
+For example, the DocVQA result shows strong capped document-answering performance, but it does not prove faithful document explanation generation.
+
+The faithfulness analysis also needs to be read carefully.
+Masking drift shows whether the model is sensitive to visual evidence, but it should not be considered as a full proof that the generated explanation is faithful.
+In some settings, the model can generate better rationales without showing a clear increase in masking-based visual sensitivity.
+This means that good explanation text is not fully correlated with the actual use of visual evidence.
+
+The scale comparison gives the clearest positive result.
+When the same ScienceQA explanation-aware setup is moved from Qwen2-VL-2B to Qwen2-VL-7B, the larger model improves both answer accuracy and rationale metrics.
+The transfer results are more mixed, showing that a fine-tuned adapter does not transfer equally well to every target domain.
+Overall, the study shows that supervised rationales can be useful for low-resource VLM fine-tuning, but their value is only clear when they are compared with answer-only training and tested for domain transfer and visual evidence sensitivity.
+
+\section{Outlook}
+The first future direction would be to increase the number of seeds and the dataset size for the strongest configurations.
+A second step would be to test more recent open multimodal backbones, while keeping the same objective-isolation protocol.
+Another direction is to add rationale annotation for document and chart datasets, because faithful explanations in those domains would be very valuable.
+Also, more causal masking tests would be useful.
+Future work could apply edits to the document text, chart labels, or some regions of the image in a controlled way, instead of only masking, and measure how the answer changes after those edits.
+Additionally, it would be interesting to compare supervised explanation-aware training with reinforcement learning or preference-based methods where the model is rewarded for grounded reasoning directly.
+Measuring latency, memory, and calibration together with accuracy and faithfulness would also be important for practical deployment, especially as the model size increases.
+
+% ---------------------------------------------------------------

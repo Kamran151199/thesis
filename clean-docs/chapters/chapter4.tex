@@ -1,0 +1,22 @@
+\chapter{Research Question}
+\section{Problem Statement}
+The problem is cross-modal alignment in a resource-constrained environment.
+Given the same pretrained vision--language model, we analyse the effect of different training objectives on answer accuracy, explanation quality, and evidence sensitivity.
+The model, the data format, the optimiser, and the evaluation process are kept constant wherever possible, leaving only the training signal as the variable.
+The BLIP-2 pair reuses one Q-Former training setup. The Qwen2-VL generative and explanation-aware runs reuse one QLoRA setup.
+The goal is not to find the best scoring setup, but to observe whether the chosen objective leads the model in a direction that matters for a more trustworthy reasoning,
+and to check whether the answer quality, the explanation quality, and the evidence sensitivity move together or separately under each objective.
+
+\section{Research Questions}
+The main question is to investigate how the resource-constrained vision--language model should be aligned to achieve both accurate and faithful visual reasoning.
+The following research questions break that down into more measurable parts.
+
+\begin{enumerate}
+    \item RQ1: How have vision--language alignment methods evolved for grounded visual reasoning and explanation generation?
+    \item RQ2: How does BLIP-2 generative fine-tuning compare with BLIP-2 contrastive-enhanced fine-tuning on visual reasoning?
+    \item RQ3: Does explanation-aware fine-tuning improve answer accuracy and explanation quality on datasets with gold rationales?
+    \item RQ4: How does the same fine-tuning framework perform across document, chart, science, commonsense, and natural-image domains?
+    \item RQ5: How sensitive are the model's answers to visual evidence under image-masking perturbations?
+    \item RQ6: How does the selected explanation-aware QLoRA setup scale from Qwen2-VL-2B to Qwen2-VL-7B?
+    \item RQ7: How well do fine-tuned adapters transfer across visual domains and prompt formats?
+\end{enumerate}

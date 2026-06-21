@@ -1,0 +1,119 @@
+\documentclass[bibtotoc,liststotoc,BCOR=5mm,DIV=12]{scrbook}
+
+% use this declaration to set specific page margins
+\usepackage[a4paper , lmargin = {2cm} , rmargin = {4.0cm} , tmargin = {2.5cm} , bmargin = {3cm} ]{geometry}
+\usepackage[a4paper]{geometry}
+
+\usepackage[ngerman, english]{babel}
+\usepackage{bibgerm}       		% german references
+\usepackage[T1]{fontenc} % german characters
+\usepackage{graphicx} 				% it's recommended to use PDF images but you can use JPG or PNG as well
+\usepackage{url}           		% format URLs
+\usepackage{hyperref} 				% create hyperlinks
+\usepackage{listings, color}	% for source code
+\usepackage{subfig}						% two figures next to each other (example: figure 3a), figure 3b)
+\usepackage{scrlayer-scrpage}					% header and footer line
+\usepackage{todonotes}
+\usepackage{lipsum}     % Generate automatic filler text.
+
+
+\usepackage{soul}
+\usepackage[acronym,toc]{glossaries}
+\usepackage{amsfonts}
+
+\usepackage{amsmath}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{pifont}
+\usepackage{adjustbox}
+\usepackage{booktabs}
+\usepackage{placeins}
+\definecolor{orange}{rgb}{1.0,0.55,0.0}
+
+\setlength{\emergencystretch}{2em}
+\setlength{\abovecaptionskip}{8pt plus 2pt minus 1pt}
+\setlength{\belowcaptionskip}{8pt plus 2pt minus 1pt}
+\setlength{\textfloatsep}{16pt plus 3pt minus 2pt}
+\setlength{\floatsep}{14pt plus 3pt minus 2pt}
+\setlength{\intextsep}{14pt plus 3pt minus 2pt}
+
+\newcommand{\cmark}{\ding{51}}
+\newcommand{\xmark}{\ding{55}}
+\newcommand{\pmark}{\textcolor{orange}{$\sim$}}
+\newcommand{\rev}[1]{\textcolor{blue}{#1}}
+\newcommand{\del}[1]{\textcolor{red}{#1}}
+
+% header and footer line - no header & footer line on pages where a new chapter starts
+\pagestyle{scrheadings}
+\ohead{Reasoning and Grounded Explanation Generation Using Vision--Language Models}
+\ihead{Komron Valijonov}
+\ofoot[]{\thepage}
+\ifoot{Bachelor Thesis, UE, 2026}
+\author{Komron Valijonov}
+
+% set path where images are stored
+\graphicspath{{./img/}}
+
+\input{./misc/hyphenation} 					% use this file to set explicit hyphenations (doesn't seem to work correctly)
+
+\makeglossaries
+
+\begin{document}
+% ---------------------------------------------------------------
+\frontmatter
+    \include{./misc/titlepage}
+    \thispagestyle{empty}
+    \cleardoublepage
+
+    \include{./misc/self-assertion}
+    \thispagestyle{empty}
+    \cleardoublepage
+
+
+    \include{./misc/abstract}
+    \thispagestyle{empty}
+    \cleardoublepage
+
+    \include{./misc/abstract_de}
+    \thispagestyle{empty}
+
+
+    \tableofcontents
+    \thispagestyle{empty}
+
+    % \todo[inline]{talk to your supervisor if this is needed}
+    \listoffigures
+    \thispagestyle{empty}
+
+    \listoftables
+    \thispagestyle{empty}
+
+% --------------------------------------------------------------
+
+\mainmatter % comment single chapters for faster compilation
+
+    \input{./chapters/chapter1}
+    \input{./chapters/chapter2}
+    \input{./chapters/chapter3}
+    \input{./chapters/chapter4}
+    \input{./chapters/chapter5}
+    \input{./chapters/chapter6}
+    \input{./chapters/chapter7}
+
+% ---------------------------------------------------------------
+\backmatter % no page numbering from here
+    \input{./misc/acronyms}
+    \input{./misc/glossary}
+    % \clearpage
+    \printglossary[title={Acronyms}, type=\acronymtype, toctitle=List of Acronyms]
+    \printglossary[title=Special Terms, toctitle=List of terms]
+
+		% if you want to provide a glossary with explanations of important terms put it in here
+
+    \nocite{radford2021clip,jia2021align,li2022blip,alayrac2022flamingo,liu2023llava,zhu2023minigpt4,dai2023instructblip,wang2022ofa,wang2022git,bai2023qwenvl,chen2023pali,awadalla2023openflamingo,agrawal2017vqa,marino2019okvqa,singh2019textvqa,hudson2019gqa,johnson2017clevr,kafle2018dvqa,kahou2018figureqa,kim2020plotqa,mathew2022infographicvqa,mishra2019ocrvqa,houlsby2019adapters,li2021prefix,lester2021prompt,liu2022ptuningv2,zaken2022bitfit,sung2022vladapter,selvaraju2017gradcam,ribeiro2016lime,sundararajan2017axiomatic,chefer2021transformer,li2023pope,fu2023mme,liu2023mmbench,li2024seedbench,yu2024mmvet,zhang2020bertscore,banerjee2005meteor,sellam2020bleurt,krishna2017visualgenome,plummer2015flickr30k,kazemzadeh2014referitgame,yu2016modelingvisual,wang2024cogvlm}
+    \bibliographystyle{geralpha}
+    \bibliography{./bib/manual}
+
+    \input{./misc/annex}
+
+\end{document}

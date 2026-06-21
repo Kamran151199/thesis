@@ -76,7 +76,7 @@ None of this adds up to a clean win for explanations: rationale supervision can 
 
 \begin{graphicalabstract}
 \centering
-\includegraphics[width=\linewidth]{Figures/icons/Abstract_L}
+\includegraphics[width=0.95\linewidth]{Figures/icons/Abstract.pdf}
 \end{graphicalabstract}
 
 \begin{highlights}
@@ -276,9 +276,8 @@ That is what keeps hidden differences from creeping in between runs.
 
 \begin{figure*}[!ht]
 \centerline{\includegraphics[width=\linewidth]{./Figures/icons/Pipeline}}
-\caption{Overall workflow of the proposed explanation-aware alignment study.
-Datasets are normalised into a shared multimodal example format.
-Qwen2-VL runs are adapted with QLoRA, BLIP-2 runs train the Q-Former-side alignment path, and each objective is evaluated through answer, rationale, and evidence-sensitivity metrics.}
+\caption{Configuration-driven experimental workflow.
+Each run is declared through an experiment ledger, inspected through the data and prompt path, trained under the selected objective, evaluated with answer, rationale, and visual-sensitivity checks, and exported as paper-ready figures, tables, logs, and validation artifacts.}
 \label{Fig:Figure1}
 \end{figure*}
 
@@ -353,11 +352,10 @@ When $\alpha=0$, only the explanation span is supervised.
 Intermediate values test whether answer and rationale supervision help each other or compete.
 
 \begin{figure*}[!ht]
-\centerline{\includegraphics[height=0.74\textheight,keepaspectratio]{./Figures/icons/Architecture_cropped}}
-\caption{Model-level architecture for explanation-aware cross-modal alignment.
-Visual evidence and the question prompt are encoded into a multimodal token stream.
-The Qwen2-VL path uses trainable QLoRA adapters and separate rationale and answer supervision spans.
-The BLIP-2 path keeps the vision tower and OPT language model frozen and trains the Q-Former-side generative or contrastive alignment components.}
+\centerline{\includegraphics[height=0.74\textheight,keepaspectratio]{./Figures/icons/ModelArchitecture.pdf}}
+\caption{Model-level architecture of the controlled alignment setup.
+A shared multimodal interface prepares prompts, processor inputs, and supervised spans before routing the run through the Qwen2-VL QLoRA branch or the BLIP-2 Q-Former branch.
+Qwen2-VL is used for answer-only, rationale-generative, and explanation-aware supervision, while BLIP-2 is used for generative and contrastive-enhanced controls.}
 \label{Fig:Architecture}
 \end{figure*}
 

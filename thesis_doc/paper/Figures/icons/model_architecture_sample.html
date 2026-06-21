@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Model-Level Architecture Sample</title>
+  <style>
+    :root {
+      --ink: #111827;
+      --muted: #475569;
+      --line: #cbd5e1;
+      --page: #ffffff;
+      --soft: #f8fafc;
+      --blue: #2451d6;
+      --teal: #0f766e;
+      --orange: #c2410c;
+      --purple: #7c3aed;
+      --green: #16a34a;
+      --amber: #f59e0b;
+      --navy: #173b63;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #dbe3ec;
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .page {
+      width: 1700px;
+      min-height: 1120px;
+      padding: 42px 54px 46px;
+      background: var(--page);
+      border: 1px solid var(--line);
+    }
+
+    .title {
+      margin: 0;
+      text-align: center;
+      font-size: 48px;
+      line-height: 1.05;
+      font-weight: 800;
+    }
+
+    .subtitle {
+      margin: 12px 0 28px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 24px;
+      line-height: 1.25;
+      font-weight: 600;
+    }
+
+    .top-row {
+      display: grid;
+      grid-template-columns: 1fr 70px 1.2fr;
+      gap: 18px;
+      align-items: stretch;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      border: 3px solid var(--line);
+      border-radius: 22px;
+      overflow: hidden;
+      background: var(--soft);
+    }
+
+    .card-head {
+      min-height: 68px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 22px;
+      color: white;
+      font-size: 27px;
+      line-height: 1.08;
+      font-weight: 800;
+    }
+
+    .num {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: white;
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .card-body {
+      padding: 20px 22px 22px;
+    }
+
+    .inputs .card-head { background: var(--orange); }
+    .interface .card-head { background: var(--navy); }
+    .qwen .card-head { background: var(--blue); }
+    .blip .card-head { background: var(--teal); }
+    .supervision .card-head { background: var(--purple); }
+    .outputs .card-head { background: var(--green); }
+
+    .icon-line {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .icon-item {
+      min-height: 112px;
+      display: grid;
+      place-items: center;
+      gap: 8px;
+      padding: 14px 8px;
+      border: 2px solid #e2e8f0;
+      border-radius: 16px;
+      background: white;
+      text-align: center;
+      font-size: 16px;
+      line-height: 1.12;
+      font-weight: 800;
+    }
+
+    .icon-item img {
+      width: 46px;
+      height: 46px;
+    }
+
+    .arrow {
+      display: grid;
+      place-items: center;
+    }
+
+    .arrow::before {
+      content: "";
+      width: 0;
+      height: 0;
+      border-top: 30px solid transparent;
+      border-bottom: 30px solid transparent;
+      border-left: 46px solid var(--navy);
+    }
+
+    .interface-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .interface-box {
+      min-height: 112px;
+      padding: 18px 14px;
+      border: 2px solid #dbeafe;
+      border-radius: 16px;
+      background: white;
+      text-align: center;
+    }
+
+    .interface-box strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 20px;
+      line-height: 1.15;
+    }
+
+    .interface-box p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.25;
+      font-weight: 600;
+    }
+
+    .branches {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .lane {
+      border: 3px solid var(--line);
+      border-radius: 24px;
+      background: #f8fafc;
+      overflow: hidden;
+    }
+
+    .lane-head {
+      min-height: 74px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 24px;
+      color: white;
+      font-size: 30px;
+      font-weight: 800;
+    }
+
+    .lane-body {
+      padding: 22px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .model-core {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 18px;
+      align-items: center;
+      min-height: 145px;
+      padding: 20px;
+      border: 3px solid #bfdbfe;
+      border-radius: 18px;
+      background: white;
+    }
+
+    .model-core img {
+      width: 82px;
+      height: 82px;
+      justify-self: center;
+    }
+
+    .model-core h2 {
+      margin: 0 0 8px;
+      font-size: 29px;
+      line-height: 1.05;
+    }
+
+    .model-core p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.28;
+      font-weight: 600;
+    }
+
+    .module-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .module {
+      min-height: 118px;
+      padding: 16px 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 16px;
+      background: white;
+      text-align: center;
+    }
+
+    .module strong {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 18px;
+      line-height: 1.15;
+    }
+
+    .module p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.25;
+      font-weight: 600;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .tag {
+      padding: 9px 12px;
+      border-radius: 999px;
+      border: 2px solid #dbeafe;
+      background: white;
+      font-size: 15px;
+      line-height: 1.1;
+      font-weight: 800;
+      color: #1e293b;
+    }
+
+    .qwen .lane-head { background: var(--blue); }
+    .blip .lane-head { background: var(--teal); }
+
+    .bottom-row {
+      display: grid;
+      grid-template-columns: 1.05fr 1fr;
+      gap: 24px;
+    }
+
+    .loss-grid,
+    .output-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .loss,
+    .out {
+      min-height: 145px;
+      padding: 18px 14px;
+      border-radius: 16px;
+      background: white;
+      border: 2px solid #ddd6fe;
+      text-align: center;
+    }
+
+    .loss img,
+    .out img {
+      width: 46px;
+      height: 46px;
+      margin-bottom: 8px;
+    }
+
+    .loss strong,
+    .out strong {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 18px;
+      line-height: 1.15;
+    }
+
+    .loss p,
+    .out p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.25;
+      font-weight: 600;
+    }
+
+    .takeaway {
+      margin-top: 24px;
+      padding: 20px 28px;
+      border: 3px solid var(--amber);
+      border-radius: 18px;
+      background: #fef3c7;
+      color: var(--navy);
+      text-align: center;
+      font-size: 25px;
+      line-height: 1.25;
+      font-weight: 800;
+    }
+
+    @media (max-width: 1100px) {
+      .page {
+        width: 100vw;
+        padding: 28px 18px;
+      }
+
+      .top-row,
+      .branches,
+      .bottom-row,
+      .icon-line,
+      .interface-grid,
+      .module-grid,
+      .loss-grid,
+      .output-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .arrow {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page" aria-label="Model-level architecture sample">
+    <h1 class="title">Model-level architecture</h1>
+    <p class="subtitle">One data interface feeds two backbone branches with different supervision paths</p>
+
+    <section class="top-row" aria-label="Inputs and shared interface">
+      <article class="card inputs">
+        <div class="card-head"><div class="num">1</div><div>Inputs</div></div>
+        <div class="card-body">
+          <div class="icon-line">
+            <div class="icon-item"><img src="figma_icon_pack/image_input.svg" alt="">image</div>
+            <div class="icon-item"><img src="figma_icon_pack/document_image.svg" alt="">document</div>
+            <div class="icon-item"><img src="figma_icon_pack/chart_input.svg" alt="">chart</div>
+            <div class="icon-item"><img src="figma_icon_pack/rationale_explanation.svg" alt="">question + choices</div>
+          </div>
+        </div>
+      </article>
+
+      <div class="arrow"></div>
+
+      <article class="card interface">
+        <div class="card-head"><div class="num">2</div><div>Shared model interface</div></div>
+        <div class="card-body interface-grid">
+          <div class="interface-box">
+            <strong>Prompt template</strong>
+            <p>Builds answer-only or rationale-plus-answer target text.</p>
+          </div>
+          <div class="interface-box">
+            <strong>Multimodal processor</strong>
+            <p>Encodes image placeholders and text with the same processor used by the model.</p>
+          </div>
+          <div class="interface-box">
+            <strong>Span tags</strong>
+            <p>Marks answer and rationale tokens so losses hit the correct target positions.</p>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="branches" aria-label="Backbone branches">
+      <article class="lane qwen">
+        <div class="lane-head"><div class="num">3A</div><div>Qwen2-VL branch</div></div>
+        <div class="lane-body">
+          <div class="model-core">
+            <img src="figma_icon_pack/qwen2vl_block.svg" alt="">
+            <div>
+              <h2>Qwen2-VL + QLoRA</h2>
+              <p>The model is loaded in 4-bit precision. Rank-16 QLoRA adapters update a small trainable part of the language-side projection and transformer stack.</p>
+            </div>
+          </div>
+
+          <div class="module-grid">
+            <div class="module">
+              <strong>Vision input</strong>
+              <p>Image tokens are provided through the model processor.</p>
+            </div>
+            <div class="module">
+              <strong>Adapter updates</strong>
+              <p>QLoRA changes only the adapter parameters, not the full backbone.</p>
+            </div>
+            <div class="module">
+              <strong>Generated text</strong>
+              <p>Produces answer text, or rationale followed by answer.</p>
+            </div>
+          </div>
+
+          <div class="tag-row">
+            <div class="tag">answer-only CE</div>
+            <div class="tag">rationale-generative CE</div>
+            <div class="tag">explanation-aware span CE</div>
+            <div class="tag">length-aware alpha control</div>
+          </div>
+        </div>
+      </article>
+
+      <article class="lane blip">
+        <div class="lane-head"><div class="num">3B</div><div>BLIP-2 branch</div></div>
+        <div class="lane-body">
+          <div class="model-core">
+            <img src="figma_icon_pack/blip2_qformer.svg" alt="">
+            <div>
+              <h2>BLIP-2 + Q-Former</h2>
+              <p>The image encoder and OPT language model stay frozen. The Q-Former path and projection heads provide the trainable alignment point.</p>
+            </div>
+          </div>
+
+          <div class="module-grid">
+            <div class="module">
+              <strong>Frozen image encoder</strong>
+              <p>Extracts visual features without full vision fine-tuning.</p>
+            </div>
+            <div class="module">
+              <strong>Q-Former features</strong>
+              <p>Pooled query tokens become the image representation.</p>
+            </div>
+            <div class="module">
+              <strong>Answer projection</strong>
+              <p>Answer-token features are projected for image-answer contrastive scoring.</p>
+            </div>
+          </div>
+
+          <div class="tag-row">
+            <div class="tag">generative CE</div>
+            <div class="tag">InfoNCE image-answer loss</div>
+            <div class="tag">retrieval diagnostic</div>
+            <div class="tag">frozen / generative / contrastive controls</div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="bottom-row" aria-label="Supervision and outputs">
+      <article class="card supervision">
+        <div class="card-head"><div class="num">4</div><div>Supervision signals</div></div>
+        <div class="card-body loss-grid">
+          <div class="loss">
+            <img src="figma_icon_pack/generative_decoding.svg" alt="">
+            <strong>Target-token CE</strong>
+            <p>Loss is applied to target tokens, not to the prompt.</p>
+          </div>
+          <div class="loss">
+            <img src="figma_icon_pack/rationale_explanation.svg" alt="">
+            <strong>Explanation-aware CE</strong>
+            <p>Answer and rationale spans are weighted separately by alpha.</p>
+          </div>
+          <div class="loss">
+            <img src="figma_icon_pack/contrastive_alignment.svg" alt="">
+            <strong>Contrastive-enhanced</strong>
+            <p>BLIP-2 adds image-answer InfoNCE on top of generation.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="card outputs">
+        <div class="card-head"><div class="num">5</div><div>Outputs and diagnostics</div></div>
+        <div class="card-body output-grid">
+          <div class="out">
+            <img src="figma_icon_pack/metrics_evaluation.svg" alt="">
+            <strong>Answer score</strong>
+            <p>Native metric for each dataset.</p>
+          </div>
+          <div class="out">
+            <img src="figma_icon_pack/rationale_explanation.svg" alt="">
+            <strong>Generated rationale</strong>
+            <p>Saved when the prompt and objective ask for one.</p>
+          </div>
+          <div class="out">
+            <img src="figma_icon_pack/masking_grid.svg" alt="">
+            <strong>Evidence sensitivity</strong>
+            <p>Masking drift checks whether answer scores change.</p>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <div class="takeaway">
+      Main idea: Qwen2-VL is the main explanation-aware QLoRA branch; BLIP-2 is the controlled generative versus contrastive-enhanced branch.
+    </div>
+  </main>
+</body>
+</html>
