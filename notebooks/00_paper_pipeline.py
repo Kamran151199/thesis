@@ -70,9 +70,10 @@ TAB_DIR = PAPER_OUT / "tables"
 ART_DIR = PAPER_OUT / "data"
 LOG_DIR = PAPER_OUT / "logs"
 
-# Mirror final figures/tables into the repo paper folder when this notebook is
-# run from the checked-out thesis repo. This makes LaTeX inclusion easy.
-REPO_PAPER_DIR = REPO_ROOT / "thesis_doc" / "paper"
+# Mirror final figures/tables into the clean document folder when this notebook
+# is run from the checked-out thesis repo. This makes LaTeX inclusion easy and
+# avoids repopulating older paper-draft folders.
+REPO_PAPER_DIR = REPO_ROOT / os.environ.get("PAPER_REPO_DOC_DIR", "clean-docs")
 REPO_FIG_DIR = REPO_PAPER_DIR / "Figures" / "generated"
 REPO_TAB_DIR = REPO_PAPER_DIR / "Tables" / "generated"
 

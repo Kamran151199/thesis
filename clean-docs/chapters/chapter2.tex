@@ -33,6 +33,12 @@ Other datasets, such as DocVQA, ChartQA, and VQAv2 provide open-ended or short-a
 That is why the evaluation cannot use a single universal metric for every dataset and instead uses the metrics
 that are native to each dataset.
 
+The wider VQA literature shows why these task differences matter.
+VQA and OK-VQA focus on natural-image and knowledge-heavy question answering,
+TextVQA and OCR-VQA add text in the image,
+GQA and CLEVR focus more on compositional reasoning,
+and DVQA, FigureQA, PlotQA, and InfographicVQA move the same problem toward charts, plots, and infographic-style documents~\cite{agrawal2017vqa,marino2019okvqa,singh2019textvqa,mishra2019ocrvqa,hudson2019gqa,johnson2017clevr,kafle2018dvqa,kahou2018figureqa,kim2020plotqa,mathew2022infographicvqa}.
+
 
 \section{Cross-modal alignment}
 Cross-modal alignment means connecting signals from different modalities, such as images and language,
@@ -45,6 +51,12 @@ The word alignment can mean different things in different contexts.
 At the representation level, it means that the model learns that in the embedding space, the provided image and the matching text should be close to each other, while non-matching ones should be further apart.
 At the generation level, it means that the model learns to use the information provided by the image when generating the output for a given task.
 At the reasoning level, it means that the model learns to produce explanations that connect the question, visual input, and the final answer in a helpful way.
+
+Earlier alignment models such as CLIP and ALIGN make the representation-level idea very clear:
+matching images and text are pulled together in the embedding space,
+while BLIP and Flamingo push the same alignment idea toward generation and few-shot vision--language interaction~\cite{radford2021clip,jia2021align,li2022blip,alayrac2022flamingo}.
+Grounding datasets such as Visual Genome, Flickr30k Entities, ReferItGame, and RefCOCO also show the stricter version of the problem,
+where the model has to connect language not only to the whole image, but also to the right region inside the image~\cite{krishna2017visualgenome,plummer2015flickr30k,kazemzadeh2014referitgame,yu2016modelingvisual}.
 
 A model might internally have a strong text--image representation and still fail to generate a correct answer.
 It might generate a correct answer without producing a useful explanation.
@@ -162,6 +174,10 @@ QLoRA extends the idea by loading the base model in quantised precision and trai
 This makes the memory requirement lower while still allowing the model to adapt to the task.
 In this thesis, Qwen2-VL runs use QLoRA so that both the broad sweep and the 7B scale check can fit the available environment.
 
+LoRA and QLoRA are part of a larger family of parameter-efficient methods.
+Adapters, prefix tuning, prompt tuning, P-tuning v2, BitFit, and vision--language adapters all follow the same practical direction:
+change a small trainable part of the model instead of updating the whole backbone~\cite{houlsby2019adapters,li2021prefix,lester2021prompt,liu2022ptuningv2,zaken2022bitfit,sung2022vladapter}.
+
 Parameter-efficient fine-tuning is not only a practical trick.
 It also shapes the research question.
 The thesis asks what can be learned under a resource-constrained setup, not what could be achieved with unlimited compute and full-model fine-tuning.
@@ -180,6 +196,10 @@ Evidence sensitivity asks whether the model's answer changes when relevant visua
 In this thesis, the diagnostic is based on masking regions of the image.
 The model is scored on the full image, then scored again after a region is hidden.
 If the score for the correct answer drops after masking, the model was sensitive to that region.
+
+This is related to the broader explainability literature.
+Methods such as Grad-CAM, LIME, Integrated Gradients, and Transformer attribution also try to connect model behaviour back to input evidence,
+but this thesis uses a simpler score-change masking diagnostic instead of claiming a full causal explanation~\cite{selvaraju2017gradcam,ribeiro2016lime,sundararajan2017axiomatic,chefer2021transformer}.
 
 This is a useful diagnostic, but it must be interpreted carefully.
 A high drift value means the answer score depends on the masked region.
@@ -218,6 +238,10 @@ They are useful because they provide a repeatable automatic check, but they are 
 A correct explanation can use different wording and receive a lower overlap score.
 A high-overlap explanation can still fail to prove visual grounding.
 For this reason, the thesis describes them as rationale quality metrics, not as complete faithfulness metrics.
+
+Other text-quality metrics such as METEOR, BERTScore, and BLEURT are also common in generation evaluation,
+especially when exact lexical overlap is too narrow.
+They are not used as primary results here, because the goal is to keep the rationale-quality analysis lightweight and repeatable under the same fixed pipeline~\cite{banerjee2005meteor,zhang2020bertscore,sellam2020bleurt}.
 
 The uncertainty intervals are also used cautiously.
 Most completed evaluation sets are capped, and the main configurations use one seed.

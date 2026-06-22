@@ -6,11 +6,14 @@ dist/
 build/
 *.egg
 .eggs/
+.pytest_cache/
+.ruff_cache/
 
 # Virtual environments
 .venv/
 venv/
 env/
+node_modules/
 
 # IDE
 .vscode/*
@@ -54,6 +57,12 @@ wandb/
 runs/
 logs/
 *.log
+outputs/
+tmp/
+gdrive_thesis/
+paper_artifacts*/
+paper_artifacts*.zip
+drive-download*.zip
 
 # Secrets
 .env
@@ -89,3 +98,31 @@ thesis_doc/paper/*.toc
 thesis_doc/paper/main.pdf
 drive-download*
 paper_artifacts-20260605T184139Z-3-001.zip
+
+# Clean thesis/journal document build products. Keep source .tex/.bib and
+# committed figure PDFs under clean-docs/Figures/.
+clean-docs/*.aux
+clean-docs/*.bbl
+clean-docs/*.blg
+clean-docs/*.fdb_latexmk
+clean-docs/*.fls
+clean-docs/*.log
+clean-docs/*.out
+clean-docs/*.spl
+clean-docs/*.toc
+clean-docs/*.lof
+clean-docs/*.lot
+clean-docs/*.acn
+clean-docs/*.acr
+clean-docs/*.alg
+clean-docs/*.glg
+clean-docs/*.glo
+clean-docs/*.gls
+clean-docs/*.glsdefs
+clean-docs/*.ist
+clean-docs/*.synctex.gz
+clean-docs/*.pdf
+clean-docs/misc/*.aux
+
+# Local exported final PDFs at repo root.
+SS26_UE_Bachelors_Thesis___Komron_Valijonov___Reasoning_and_Grounded_Explanation_Generation*.pdf

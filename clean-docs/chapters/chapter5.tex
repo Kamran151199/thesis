@@ -10,7 +10,7 @@ not to find the best possible score on each dataset.
 Every experiment is defined through a configuration file that declares the dataset, the backbone, the objective, the adapter settings, the metrics, and the seed.
 The same implementation is used for baseline evaluation, fine-tuning, and final evaluation, reducing the risk of hidden differences affecting the results.
 
-\begin{figure}[!t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=1\linewidth]{./Figures/icons/Pipeline}
 \caption{Configuration-driven experimental workflow.
@@ -99,7 +99,7 @@ When $\alpha=0$, only the explanation span is supervised.
 The intermediate values are used to test the interaction between answer and rationale supervision, whether they help each other or compete.
 
 \begin{figure*}[!ht]
-\centerline{\includegraphics[height=0.74\textheight,keepaspectratio]{./Figures/icons/ModelArchitecture.pdf}}
+\centerline{\includegraphics[width=\linewidth,height=0.74\textheight,keepaspectratio]{./Figures/icons/ModelArchitecture.pdf}}
 \caption{Model-level architecture of the controlled alignment setup.
 A shared multimodal interface prepares prompts, processor inputs, and supervised spans before routing the run through the Qwen2-VL QLoRA branch or the BLIP-2 Q-Former branch.
 Qwen2-VL is used for answer-only, rationale-generative, and explanation-aware supervision, while BLIP-2 is used for generative and contrastive-enhanced controls.}

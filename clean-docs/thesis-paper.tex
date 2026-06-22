@@ -10,6 +10,7 @@
 \usepackage{graphicx} 				% it's recommended to use PDF images but you can use JPG or PNG as well
 \usepackage{url}           		% format URLs
 \usepackage{hyperref} 				% create hyperlinks
+\hypersetup{hidelinks}
 \usepackage{listings, color}	% for source code
 \usepackage{subfig}						% two figures next to each other (example: figure 3a), figure 3b)
 \usepackage{scrlayer-scrpage}					% header and footer line
@@ -28,6 +29,7 @@
 \usepackage{adjustbox}
 \usepackage{booktabs}
 \usepackage{placeins}
+\usepackage{float}
 \definecolor{orange}{rgb}{1.0,0.55,0.0}
 
 \setlength{\emergencystretch}{2em}
@@ -36,6 +38,8 @@
 \setlength{\textfloatsep}{16pt plus 3pt minus 2pt}
 \setlength{\floatsep}{14pt plus 3pt minus 2pt}
 \setlength{\intextsep}{14pt plus 3pt minus 2pt}
+\KOMAoptions{cleardoublepage=empty}
+\setkomafont{pageheadfoot}{\normalfont\footnotesize\itshape}
 
 \newcommand{\cmark}{\ding{51}}
 \newcommand{\xmark}{\ding{55}}
@@ -45,7 +49,7 @@
 
 % header and footer line - no header & footer line on pages where a new chapter starts
 \pagestyle{scrheadings}
-\ohead{Reasoning and Grounded Explanation Generation Using Vision--Language Models}
+\ohead{Reasoning and Grounded Explanation Generation Using VLMs}
 \ihead{Komron Valijonov}
 \ofoot[]{\thepage}
 \ifoot{Bachelor Thesis, UE, 2026}
@@ -85,7 +89,7 @@
     \listoffigures
     \thispagestyle{empty}
 
-    \listoftables
+    {\small\listoftables}
     \thispagestyle{empty}
 
 % --------------------------------------------------------------
@@ -101,16 +105,22 @@
     \input{./chapters/chapter7}
 
 % ---------------------------------------------------------------
+\KOMAoptions{open=any}
+\makeatletter
+\renewcommand*{\backmatter}{\@mainmatterfalse}
+\makeatother
 \backmatter % no page numbering from here
     \input{./misc/acronyms}
     \input{./misc/glossary}
     % \clearpage
-    \printglossary[title={Acronyms}, type=\acronymtype, toctitle=List of Acronyms]
-    \printglossary[title=Special Terms, toctitle=List of terms]
+    \let\thesisorigglsclearpage\glsclearpage
+    \renewcommand*{\glsclearpage}{}
+    \printglossary[title={Acronyms}, type=\acronymtype, toctitle=List of Acronyms, nonumberlist]
+    \let\glsclearpage\thesisorigglsclearpage
+    \printglossary[title=Special Terms, toctitle=List of terms, nonumberlist]
 
 		% if you want to provide a glossary with explanations of important terms put it in here
 
-    \nocite{radford2021clip,jia2021align,li2022blip,alayrac2022flamingo,liu2023llava,zhu2023minigpt4,dai2023instructblip,wang2022ofa,wang2022git,bai2023qwenvl,chen2023pali,awadalla2023openflamingo,agrawal2017vqa,marino2019okvqa,singh2019textvqa,hudson2019gqa,johnson2017clevr,kafle2018dvqa,kahou2018figureqa,kim2020plotqa,mathew2022infographicvqa,mishra2019ocrvqa,houlsby2019adapters,li2021prefix,lester2021prompt,liu2022ptuningv2,zaken2022bitfit,sung2022vladapter,selvaraju2017gradcam,ribeiro2016lime,sundararajan2017axiomatic,chefer2021transformer,li2023pope,fu2023mme,liu2023mmbench,li2024seedbench,yu2024mmvet,zhang2020bertscore,banerjee2005meteor,sellam2020bleurt,krishna2017visualgenome,plummer2015flickr30k,kazemzadeh2014referitgame,yu2016modelingvisual,wang2024cogvlm}
     \bibliographystyle{geralpha}
     \bibliography{./bib/manual}
 

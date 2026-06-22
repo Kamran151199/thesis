@@ -1,4 +1,0 @@
-run,dataset,full_score,top_drift,random_drift,blank_drift,top_tensor_diff_l1
-rq4_qwen2vl_explanation_aware_chartqa,chartqa,-2.0243,0.1333,0.0504,-0.2049,234971.2031
-rq4_qwen2vl_explanation_aware_docvqa,docvqa,-0.001,1.4398,0.0002,2.3048,1188748.125
-rq3_alpha_050,scienceqa,-0.3291,0.019,0.008,0.0387,167650.1875

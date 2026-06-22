@@ -17,6 +17,9 @@ can each weigh as much as raw scale in the final performance of a vision--langua
 Molmo and PixMo are useful here because they provide open weights and open data 
 that let us actually read the recipe and understand what is going on under the hood~\cite{deitke2025molmo}.
 LLaVA-OneVision shows that a single family of models can be used across image and video when the data mixture is chosen with care~\cite{li2025llavaonevision}.
+The same development can also be seen in earlier and related open VLM families.
+OFA and GIT frame visual tasks as generation problems,
+while Qwen-VL, PaLI, OpenFlamingo, CogVLM, LLaVA, MiniGPT-4, and InstructBLIP show different ways of connecting a visual encoder with a language model and instruction-tuning it for practical use~\cite{wang2022ofa,wang2022git,bai2023qwenvl,chen2023pali,awadalla2023openflamingo,wang2024cogvlm,liu2023llava,zhu2023minigpt4,dai2023instructblip}.
 
 For this study, the conclusion is simple.
 If the model, the data, and the budget are all changing together, then the contribution of the objective itself is hard to tell.
@@ -67,6 +70,8 @@ MMStar checks whether a model actually needs the image to answer the question or
 HallusionBench focuses on cases where language hallucination and visual illusion appear together in LVLM responses~\cite{guan2024hallusionbench}.
 Hallucination-augmented contrastive learning turns a hallucination into a contrastive signal, to teach the model to avoid it~\cite{jiang2024hacl}.
 VISCO and Critic-V evaluate the model's ability to critique, correct, and detect errors in its own output~\cite{wu2025visco,zhang2025criticv}.
+General multimodal benchmarks such as POPE, MME, MMBench, SEED-Bench, and MM-Vet are also relevant here,
+because they test hallucination, perception, reasoning, and instruction-following outside one narrow dataset score~\cite{li2023pope,fu2023mme,liu2023mmbench,li2024seedbench,yu2024mmvet}.
 These works suggest that faithfulness should be measured separately from answer accuracy.
 
 Efficient adaptation is also important,
