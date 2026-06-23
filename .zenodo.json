@@ -1,0 +1,28 @@
+{
+  "title": "Reasoning and Grounded Explanation Generation Using Vision-Language Models",
+  "upload_type": "software",
+  "description": "Code, experiment configurations, Colab pipeline, final figures, and LaTeX sources for a controlled study of resource-constrained vision-language model fine-tuning. The study compares answer-only, rationale-generative, explanation-aware, BLIP-2 generative, and BLIP-2 contrastive-enhanced supervision across document, chart, science, commonsense, and natural-image visual question answering settings.",
+  "creators": [
+    {
+      "name": "Valijonov, Komron"
+    }
+  ],
+  "keywords": [
+    "vision-language models",
+    "visual question answering",
+    "explanation-aware learning",
+    "BLIP-2",
+    "Qwen2-VL",
+    "QLoRA",
+    "reproducibility"
+  ],
+  "access_right": "open",
+  "publication_date": "2026-06-23",
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/Kamran151199/thesis",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    }
+  ]
+}

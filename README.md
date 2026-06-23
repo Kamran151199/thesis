@@ -13,6 +13,9 @@ The repository has two jobs:
 
 The finished thesis source of truth is `clean-docs/`.
 
+For citation and reuse, see `CITATION.cff` and `REPRODUCIBILITY.md`.
+Journal availability wording and release metadata are kept in `docs/`.
+
 ## Repository Map
 
 | Path | Purpose |
@@ -156,6 +159,28 @@ latexmk -pdf journal-paper.tex
 
 If `latexmk` is not installed locally, upload the contents of `clean-docs/` to
 Overleaf and set `thesis-paper.tex` as the main file.
+
+## Citation And Availability
+
+The recommended repository citation metadata is in `CITATION.cff`.
+
+For the journal paper, the availability text is in:
+
+```text
+docs/JOURNAL_AVAILABILITY.md
+```
+
+For a stable public release, use:
+
+```text
+docs/RELEASE_NOTES_v1.0.0.md
+.zenodo.json
+```
+
+The repository intentionally stores source code, configs, notebooks, final
+figures, and LaTeX sources. Large generated outputs such as checkpoints,
+downloaded dataset caches, and full Google Drive artifact bundles are excluded
+from git and should be attached only as a separate release artifact if needed.
 
 ## What Should Not Be Committed
 

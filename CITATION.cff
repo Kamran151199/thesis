@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use this code, configurations, or artifact pipeline, please cite this repository and the accompanying thesis/paper."
+type: software
+title: "Reasoning and Grounded Explanation Generation Using Vision-Language Models"
+version: "1.0.0"
+date-released: "2026-06-23"
+authors:
+  - family-names: "Valijonov"
+    given-names: "Komron"
+repository-code: "https://github.com/Kamran151199/thesis"
+url: "https://github.com/Kamran151199/thesis"
+abstract: >-
+  Code, experiment configurations, Colab pipeline, final figures, and LaTeX
+  sources for a controlled study of resource-constrained vision-language model
+  fine-tuning. The study compares answer-only, rationale-generative,
+  explanation-aware, BLIP-2 generative, and BLIP-2 contrastive-enhanced
+  supervision across document, chart, science, commonsense, and natural-image
+  visual question answering settings.
+keywords:
+  - vision-language models
+  - visual question answering
+  - explanation-aware learning
+  - BLIP-2
+  - Qwen2-VL
+  - QLoRA
+  - reproducibility
